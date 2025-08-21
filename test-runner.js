@@ -254,7 +254,19 @@ async function runTestFile(testFile) {
           // Show progress indicator
           console.log(chalk.cyan(`    [${i + 1}/${individualTests.length}] Running ${name}...`));
           
-                    try {
+                    // Suppress console output for passed tests
+          const originalConsoleLog = console.log;
+          const originalConsoleError = console.error;
+          let capturedOutput = [];
+          
+          try {
+            // Capture console output during test execution
+            console.log = (...args) => {
+              capturedOutput.push(['log', ...args]);
+            };
+            console.error = (...args) => {
+              capturedOutput.push(['error', ...args]);
+            };
             
             // Add timeout protection (10 seconds per test)
             const testPromise = func();
@@ -264,20 +276,39 @@ async function runTestFile(testFile) {
             
             await Promise.race([testPromise, timeoutPromise]);
             
+            // Restore console and discard captured output for passed tests
+            console.log = originalConsoleLog;
+            console.error = originalConsoleError;
+            
             const duration = Date.now() - startTime;
             fileTotalDuration += duration;
             filePassedTests++;
             
-            // Show pass status
+            // Show pass status (no logs for passed tests)
             console.log(chalk.green(`    ✅ ${name} passed (${duration}ms)`));
             
           } catch (error) {
+            // Restore console immediately on error
+            console.log = originalConsoleLog;
+            console.error = originalConsoleError;
             const duration = Date.now() - startTime;
             fileTotalDuration += duration;
             fileFailedTests++;
             
             console.log(chalk.red(`    ❌ ${name} failed (${duration}ms)`));
             console.error(chalk.red(`       Error: ${error.message}`));
+            
+            // Show captured output for failed tests
+            if (capturedOutput.length > 0) {
+              console.log(chalk.yellow(`       Test output:`));
+              capturedOutput.forEach(([type, ...args]) => {
+                if (type === 'log') {
+                  console.log(chalk.gray(`         ${args.join(' ')}`));
+                } else if (type === 'error') {
+                  console.error(chalk.red(`         ${args.join(' ')}`));
+                }
+              });
+            }
             
             // Always show the full error details for debugging
             console.error(chalk.red(`       Full error details:`));
@@ -551,7 +582,12 @@ async function runAllTests() {
     console.log(chalk.blue(`\n🏃 Starting test execution...\n`));
     
          // Run tests sequentially to avoid conflicts
-     for (const testFile of testFiles) {
+     for (let fileIndex = 0; fileIndex < testFiles.length; fileIndex++) {
+       const testFile = testFiles[fileIndex];
+       
+       // Show file progress indicator
+       console.log(chalk.bold.blue(`📁 File [${fileIndex + 1}/${testFiles.length}]: ${relative(__dirname, testFile)}`));
+       
        try {
          const result = await runTestFile(testFile);
          if (result && !result.success) {
