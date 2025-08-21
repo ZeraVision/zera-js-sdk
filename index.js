@@ -10,6 +10,14 @@ const {
   TRANSACTION_TYPE 
 } = require('./proto/generated');
 
+// Import wallet creation functionality
+const { 
+  ZeraWallet, 
+  createZeraWallet, 
+  generateMnemonic, 
+  validateZeraAddress 
+} = require('./src/wallet-creation');
+
 // Export all protobuf classes for easy importing
 module.exports = {
   // Protocol Buffer Classes
@@ -18,6 +26,12 @@ module.exports = {
   PublicKey,
   TXN_STATUS,
   TRANSACTION_TYPE,
+  
+  // Wallet Creation Classes and Functions
+  ZeraWallet,
+  createZeraWallet,
+  generateMnemonic,
+  validateZeraAddress,
   
   // Utility functions
   createTransaction: (feeAmount, feeId, contractId) => {
@@ -40,7 +54,7 @@ module.exports = {
   
   // Version info
   version: '1.0.0',
-  description: 'Zera JavaScript SDK with Protocol Buffers'
+  description: 'Zera JavaScript SDK with Protocol Buffers and Wallet Creation'
 };
 
 // Example usage (when run directly)
