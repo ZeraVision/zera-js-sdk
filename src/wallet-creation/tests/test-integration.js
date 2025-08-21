@@ -38,8 +38,10 @@ async function testGenerateMnemonic() {
 /**
  * Test 3: Create ed25519 wallet
  */
-async function testCreateEd25519Wallet(mnemonic) {
+async function testCreateEd25519Wallet() {
   console.log('🔐 Test 3: Create ed25519 Wallet');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
   const ed25519Wallet = await createZeraWallet('ed25519', mnemonic);
   console.log('ed25519 Wallet created successfully');
   console.log('Type:', ed25519Wallet.type);
@@ -52,8 +54,10 @@ async function testCreateEd25519Wallet(mnemonic) {
 /**
  * Test 4: Create ed448 wallet
  */
-async function testCreateEd448Wallet(mnemonic) {
+async function testCreateEd448Wallet() {
   console.log('🔐 Test 4: Create ed448 Wallet');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
   const ed448Wallet = await createZeraWallet('ed448', mnemonic);
   console.log('ed448 Wallet created successfully');
   console.log('Type:', ed448Wallet.type);
@@ -66,8 +70,13 @@ async function testCreateEd448Wallet(mnemonic) {
 /**
  * Test 5: Validate addresses
  */
-async function testAddressValidation(ed25519Wallet, ed448Wallet) {
+async function testAddressValidation() {
   console.log('✅ Test 5: Address Validation');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
+  const ed25519Wallet = await createZeraWallet('ed25519', mnemonic);
+  const ed448Wallet = await createZeraWallet('ed448', mnemonic);
+  
   console.log('ed25519 address valid:', validateZeraAddress(ed25519Wallet.address));
   console.log('ed448 address valid:', validateZeraAddress(ed448Wallet.address));
   console.log('');
@@ -76,8 +85,10 @@ async function testAddressValidation(ed25519Wallet, ed448Wallet) {
 /**
  * Test 6: Create wallets with passphrase
  */
-async function testWalletsWithPassphrase(mnemonic) {
+async function testWalletsWithPassphrase() {
   console.log('🔐 Test 6: Wallets with Passphrase');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
   const passphrase = 'my-secure-passphrase-123!@#';
   
   const ed25519WithPass = await createZeraWallet('ed25519', mnemonic, passphrase);
@@ -93,8 +104,16 @@ async function testWalletsWithPassphrase(mnemonic) {
 /**
  * Test 7: Verify address uniqueness
  */
-async function testAddressUniqueness(ed25519Wallet, ed448Wallet, ed25519WithPass, ed448WithPass) {
+async function testAddressUniqueness() {
   console.log('🏠 Test 7: Address Uniqueness Verification');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
+  const ed25519Wallet = await createZeraWallet('ed25519', mnemonic);
+  const ed448Wallet = await createZeraWallet('ed448', mnemonic);
+  const passphrase = 'my-secure-passphrase-123!@#';
+  const ed25519WithPass = await createZeraWallet('ed25519', mnemonic, passphrase);
+  const ed448WithPass = await createZeraWallet('ed448', mnemonic, passphrase);
+  
   const addresses = [
     ed25519Wallet.address,
     ed448Wallet.address,
@@ -112,8 +131,10 @@ async function testAddressUniqueness(ed25519Wallet, ed448Wallet, ed25519WithPass
 /**
  * Test 8: Error handling
  */
-async function testErrorHandling(mnemonic) {
+async function testErrorHandling() {
   console.log('❌ Test 8: Error Handling');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
   
   try {
     await createZeraWallet('invalid-type', mnemonic);
@@ -138,10 +159,13 @@ async function testErrorHandling(mnemonic) {
 /**
  * Test 9: Wallet consistency
  */
-async function testWalletConsistency(wallet, mnemonic) {
+async function testWalletConsistency() {
   console.log('🔄 Test 9: Wallet Consistency');
-  const wallet1 = await wallet.createEd25519Wallet(mnemonic);
-  const wallet2 = await wallet.createEd25519Wallet(mnemonic);
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
+  
+  const wallet1 = await createZeraWallet('ed25519', mnemonic);
+  const wallet2 = await createZeraWallet('ed25519', mnemonic);
   
   console.log('Same mnemonic produces same wallet:', 
     wallet1.privateKey === wallet2.privateKey &&

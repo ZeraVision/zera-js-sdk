@@ -2,7 +2,7 @@
 
 import { glob } from 'glob';
 import { fileURLToPath } from 'url';
-import { dirname, relative } from 'path';
+import { dirname, relative, resolve } from 'path';
 import chalk from 'chalk';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,7 +16,8 @@ const options = {
   verbose: false,
   watch: false,
   coverage: false,
-  clean: false
+  clean: false,
+  file: null  // Add support for specific file testing
 };
 
 // Parse arguments
@@ -47,6 +48,9 @@ for (let i = 0; i < args.length; i++) {
     options.coverage = true;
   } else if (arg === '--clean') {
     options.clean = true;
+  } else if (arg.endsWith('.js') && !arg.startsWith('--')) {
+    // Treat .js files as specific file paths to test
+    options.file = arg;
   }
 }
 
@@ -68,6 +72,13 @@ async function discoverTests() {
   console.log(chalk.blue('🔍 Discovering test files...'));
   
   try {
+    // If a specific file is provided, use that
+    if (options.file) {
+      console.log(chalk.blue(`🎯 Testing specific file: ${options.file}`));
+      const filePath = resolve(__dirname, options.file);
+      return [filePath];
+    }
+    
     // Find all test files using multiple patterns
     const patterns = [
       'src/**/test-*.js',      // test-*.js files in src subdirectories
@@ -202,7 +213,7 @@ function groupFilesByModule(files) {
 }
 
 /**
- * Run a single test file
+ * Run a single test file with individual test function reporting
  */
 async function runTestFile(testFile) {
   const relativePath = relative(__dirname, testFile);
@@ -211,50 +222,149 @@ async function runTestFile(testFile) {
   console.log(chalk.blue(`\n🧪 Running: ${relativePath}`));
   
   try {
-    // Import and run the test file
+    // Import the test module
     const testModule = await import(`file://${testFile}`);
     
-    // Check if the module has a main test function
-    let testFunction = null;
-    if (testModule.default && typeof testModule.default === 'function') {
-      testFunction = testModule.default;
-    } else if (testModule.test && typeof testModule.test === 'function') {
-      testFunction = testModule.test;
-    } else if (testModule.runTests && typeof testModule.runTests === 'function') {
-      testFunction = testModule.runTests;
-    } else if (testModule.testIntegration && typeof testModule.testIntegration === 'function') {
-      testFunction = testModule.testIntegration;
-    } else if (testModule.runAllTests && typeof testModule.runAllTests === 'function') {
-      testFunction = testModule.runAllTests;
+    // Try to find individual test functions first
+    const individualTests = [];
+    const excludedKeys = ['default', 'test', 'runTests', 'testIntegration', 'runAllTests'];
+    
+    // Look for exported test functions
+    for (const [key, value] of Object.entries(testModule)) {
+      if (typeof value === 'function' && 
+          key.startsWith('test') && 
+          !excludedKeys.includes(key)) {
+        individualTests.push({ name: key, func: value });
+      }
     }
     
-    if (testFunction) {
-      const startTime = Date.now();
-      await testFunction();
-      const duration = Date.now() - startTime;
+    let filePassedTests = 0;
+    let fileFailedTests = 0;
+    let fileTotalDuration = 0;
+    let fileErrors = [];
+    
+         if (individualTests.length > 0) {
+       // Run individual test functions
+       console.log(chalk.cyan(`  Found ${individualTests.length} individual tests`));
+       
+               for (let i = 0; i < individualTests.length; i++) {
+          const { name, func } = individualTests[i];
+          const startTime = Date.now();
+          
+          // Show progress indicator
+          console.log(chalk.cyan(`    [${i + 1}/${individualTests.length}] Running ${name}...`));
+          
+                    try {
+            
+            // Add timeout protection (10 seconds per test)
+            const testPromise = func();
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Test timeout after 10 seconds')), 10000);
+            });
+            
+            await Promise.race([testPromise, timeoutPromise]);
+            
+            const duration = Date.now() - startTime;
+            fileTotalDuration += duration;
+            filePassedTests++;
+            
+            // Show pass status
+            console.log(chalk.green(`    ✅ ${name} passed (${duration}ms)`));
+            
+          } catch (error) {
+            const duration = Date.now() - startTime;
+            fileTotalDuration += duration;
+            fileFailedTests++;
+            
+            console.log(chalk.red(`    ❌ ${name} failed (${duration}ms)`));
+            console.error(chalk.red(`       Error: ${error.message}`));
+            
+            // Always show the full error details for debugging
+            console.error(chalk.red(`       Full error details:`));
+            console.error(chalk.red(`       Stack trace: ${error.stack}`));
+            
+            fileErrors.push({
+              test: name,
+              error: error.message,
+              stack: error.stack
+            });
+          }
+       }
+       
+       // Update test results tracking
+       testResults.total += individualTests.length;
+       testResults.passed += filePassedTests;
+       testResults.failed += fileFailedTests;
       
-      console.log(chalk.green(`✅ ${relativePath} passed (${duration}ms)`));
-      
-      // Track results
-      testResults.total++;
-      testResults.passed++;
+      // Add file errors to global errors
+      fileErrors.forEach(err => {
+        testResults.errors.push({
+          file: `${relativePath} -> ${err.test}`,
+          error: err.error,
+          stack: err.stack
+        });
+      });
       
       if (!testResults.modules.has(moduleName)) {
         testResults.modules.set(moduleName, { passed: 0, failed: 0, total: 0 });
       }
       const moduleStats = testResults.modules.get(moduleName);
-      moduleStats.passed++;
-      moduleStats.total++;
+      moduleStats.passed += filePassedTests;
+      moduleStats.failed += fileFailedTests;
+      moduleStats.total += individualTests.length;
       
-      return { success: true, duration };
+      // File summary
+      if (fileFailedTests === 0) {
+        console.log(chalk.green(`✅ ${relativePath} completed: ${filePassedTests}/${individualTests.length} tests passed (${fileTotalDuration}ms)`));
+        return { success: true, duration: fileTotalDuration, individualTests: individualTests.length, passed: filePassedTests, failed: fileFailedTests };
+      } else {
+        console.log(chalk.red(`❌ ${relativePath} completed: ${filePassedTests}/${individualTests.length} tests passed, ${fileFailedTests} failed (${fileTotalDuration}ms)`));
+        return { success: false, duration: fileTotalDuration, individualTests: individualTests.length, passed: filePassedTests, failed: fileFailedTests };
+      }
+      
     } else {
-      console.log(chalk.yellow(`⚠️  ${relativePath} - No test function found, skipping`));
-      testResults.skipped++;
-      return { success: false, reason: 'No test function found' };
+      // Fallback to original behavior for files without individual test exports
+      let testFunction = null;
+      if (testModule.default && typeof testModule.default === 'function') {
+        testFunction = testModule.default;
+      } else if (testModule.test && typeof testModule.test === 'function') {
+        testFunction = testModule.test;
+      } else if (testModule.runTests && typeof testModule.runTests === 'function') {
+        testFunction = testModule.runTests;
+      } else if (testModule.testIntegration && typeof testModule.testIntegration === 'function') {
+        testFunction = testModule.testIntegration;
+      } else if (testModule.runAllTests && typeof testModule.runAllTests === 'function') {
+        testFunction = testModule.runAllTests;
+      }
+      
+      if (testFunction) {
+        const startTime = Date.now();
+        await testFunction();
+        const duration = Date.now() - startTime;
+        
+        console.log(chalk.green(`✅ ${relativePath} passed (${duration}ms)`));
+        
+        // Track results (as single test)
+        testResults.total++;
+        testResults.passed++;
+        
+        if (!testResults.modules.has(moduleName)) {
+          testResults.modules.set(moduleName, { passed: 0, failed: 0, total: 0 });
+        }
+        const moduleStats = testResults.modules.get(moduleName);
+        moduleStats.passed++;
+        moduleStats.total++;
+        
+        return { success: true, duration };
+      } else {
+        console.log(chalk.yellow(`⚠️  ${relativePath} - No test function found, skipping`));
+        testResults.skipped++;
+        return { success: false, reason: 'No test function found' };
+      }
     }
     
   } catch (error) {
-    console.error(chalk.red(`❌ ${relativePath} failed:`), error.message);
+    console.error(chalk.red(`❌ ${relativePath} import failed:`), error.message);
     
     // Track results
     testResults.total++;
@@ -406,44 +516,135 @@ async function runAllTests() {
   console.log(chalk.bold.blue('\n🚀 ZERA JS SDK - Test Runner\n'));
   console.log(chalk.cyan(`Project: ${__dirname}\n`));
   
-  // Show current options
-  if (options.module || options.type || options.verbose || options.watch || options.coverage) {
-    console.log(chalk.blue('🔧 Active Options:'));
-    if (options.module) console.log(chalk.blue(`  - Module: ${options.module}`));
-    if (options.type) console.log(chalk.blue(`  - Type: ${options.type}`));
-    if (options.verbose) console.log(chalk.blue(`  - Verbose: enabled`));
-    if (options.watch) console.log(chalk.blue(`  - Watch: enabled`));
-    if (options.coverage) console.log(chalk.blue(`  - Coverage: enabled`));
-    console.log('');
-  }
+  // Add global timeout (5 minutes)
+  const globalTimeout = setTimeout(() => {
+    console.error(chalk.red('❌ Test runner timed out after 5 minutes'));
+    process.exit(1);
+  }, 300000);
   
-  const testFiles = await discoverTests();
-  
-  if (testFiles.length === 0) {
-    console.log(chalk.yellow('⚠️  No test files found'));
-    return;
-  }
-  
-  // Show available commands at the top (only when not filtering and after discovery)
-  if (!options.module && !options.type) {
-    showAvailableCommands(testFiles);
-    console.log(''); // Add spacing
-  }
-  
-  console.log(chalk.blue(`\n🏃 Starting test execution...\n`));
-  
-  // Run tests sequentially to avoid conflicts
-  for (const testFile of testFiles) {
-    await runTestFile(testFile);
-  }
-  
-  // Print summary
-  printTestSummary();
+  try {
+    // Show current options
+    if (options.module || options.type || options.verbose || options.watch || options.coverage) {
+      console.log(chalk.blue('🔧 Active Options:'));
+      if (options.module) console.log(chalk.blue(`  - Module: ${options.module}`));
+      if (options.type) console.log(chalk.blue(`  - Type: ${options.type}`));
+      if (options.verbose) console.log(chalk.blue(`  - Verbose: enabled`));
+      if (options.watch) console.log(chalk.blue(`  - Watch: enabled`));
+      if (options.coverage) console.log(chalk.blue(`  - Coverage: enabled`));
+      console.log('');
+    }
+    
+    const testFiles = await discoverTests();
+    
+    if (testFiles.length === 0) {
+      console.log(chalk.yellow('⚠️  No test files found'));
+      clearTimeout(globalTimeout);
+      return;
+    }
+    
+    // Show available commands at the top (only when not filtering and after discovery)
+    if (!options.module && !options.type && !options.file) {
+      showAvailableCommands(testFiles);
+      console.log(''); // Add spacing
+    }
+    
+    console.log(chalk.blue(`\n🏃 Starting test execution...\n`));
+    
+         // Run tests sequentially to avoid conflicts
+     for (const testFile of testFiles) {
+       try {
+         const result = await runTestFile(testFile);
+         if (result && !result.success) {
+           // Continue running other tests even if one fails
+           console.log(chalk.yellow(`⚠️  Continuing with remaining tests...\n`));
+         }
+       } catch (error) {
+         console.error(chalk.red(`❌ Test file execution failed: ${error.message}`));
+         console.error(chalk.red(`   File: ${testFile}`));
+         console.error(chalk.red(`   Stack: ${error.stack}`));
+         
+         // Add to test results as failed
+         testResults.total++;
+         testResults.failed++;
+         testResults.errors.push({
+           file: relative(__dirname, testFile),
+           error: error.message,
+           stack: error.stack
+         });
+         
+         // Continue with remaining tests
+         console.log(chalk.yellow(`⚠️  Continuing with remaining tests...\n`));
+       }
+     }
+     
+          // Clear global timeout and print summary
+     clearTimeout(globalTimeout);
+     
+     // Always show summary, even if there were errors
+     try {
+       printTestSummary();
+     } catch (summaryError) {
+       console.error(chalk.red('\n💥 Failed to print test summary:'), summaryError);
+       console.error(chalk.red('This is a critical error - please report this bug.'));
+     }
+     
+   } catch (error) {
+     clearTimeout(globalTimeout);
+     console.error(chalk.red('\n💥 Critical error in test runner:'), error);
+     console.error(chalk.red('Stack trace:'), error.stack);
+     
+     // Try to show what we have so far
+     try {
+       console.log(chalk.bold.red('\n📊 Partial Test Results (due to error)'));
+       console.log(chalk.cyan(`Total Tests: ${testResults.total}`));
+       console.log(chalk.green(`✅ Passed: ${testResults.passed}`));
+       console.log(chalk.red(`❌ Failed: ${testResults.failed}`));
+       console.log(chalk.yellow(`⏭️  Skipped: ${testResults.skipped}`));
+       
+       if (testResults.errors.length > 0) {
+         console.log(chalk.bold.red('\n❌ Test Failures:'));
+         testResults.errors.forEach((err, index) => {
+           console.log(chalk.red(`${index + 1}. ${err.file}`));
+           console.log(chalk.red(`   Error: ${err.error}`));
+         });
+       }
+     } catch (partialError) {
+       console.error(chalk.red('\n💥 Even partial results failed to display:'), partialError);
+     }
+     
+     throw error;
+   }
 }
 
 // Main execution
 console.log('Starting test runner...');
+
+// Add global error handlers to catch any unhandled errors
+process.on('uncaughtException', (error) => {
+  console.error(chalk.red('\n💥 UNCAUGHT EXCEPTION:'), error);
+  console.error(chalk.red('Stack trace:'), error.stack);
+  console.error(chalk.red('\nTest runner crashed unexpectedly!'));
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error(chalk.red('\n💥 UNHANDLED PROMISE REJECTION:'), reason);
+  console.error(chalk.red('Promise:'), promise);
+  console.error(chalk.red('\nTest runner crashed due to unhandled promise rejection!'));
+  process.exit(1);
+});
+
+// Ensure we always show what happened
+process.on('exit', (code) => {
+  if (code !== 0) {
+    console.error(chalk.red(`\n💥 Test runner exited with code ${code}`));
+    console.error(chalk.red('This usually means tests failed or crashed.'));
+  }
+});
+
 runAllTests().catch(error => {
   console.error(chalk.red('\n💥 Test runner failed:'), error);
+  console.error(chalk.red('Stack trace:'), error.stack);
+  console.error(chalk.red('\nThis should not happen - please report this bug.'));
   process.exit(1);
 });

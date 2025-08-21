@@ -4,8 +4,12 @@ import { assert } from '../../test-utils/index.js';
  * Test 1: Basic assertions
  */
 async function testBasicAssertions() {
+  console.log('Running basic assertions test');
+  console.log('Testing true assertion');
   assert.ok(true, 'Basic assertion should work');
+  console.log('Testing math');
   assert.equal(2 + 2, 4, 'Basic math should work');
+  console.log('Testing array comparison');
   assert.deepEqual([1, 2, 3], [1, 2, 3], 'Array comparison should work');
 }
 

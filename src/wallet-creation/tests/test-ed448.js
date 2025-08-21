@@ -36,8 +36,12 @@ async function testCreateWallet() {
 /**
  * Test 3: Verify wallet structure
  */
-async function testWalletStructure(wallet) {
+async function testWalletStructure() {
   console.log('✅ Test 3: Wallet Structure Validation');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
+  const wallet = await createEd448Wallet(mnemonic);
+  
   const requiredFields = ['type', 'mnemonic', 'privateKey', 'publicKey', 'address', 'derivationPath', 'coinType', 'symbol'];
   const missingFields = requiredFields.filter(field => !(field in wallet));
   
@@ -57,8 +61,10 @@ async function testWalletStructure(wallet) {
 /**
  * Test 4: Create wallet with passphrase
  */
-async function testWalletWithPassphrase(mnemonic) {
+async function testWalletWithPassphrase() {
   console.log('🔐 Test 4: Wallet with Passphrase');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
   const passphraseWallet = await createEd448Wallet(mnemonic, 'my-secure-passphrase');
   console.log('Passphrase wallet created:', JSON.stringify(passphraseWallet, null, 2));
   console.log('');
@@ -69,8 +75,13 @@ async function testWalletWithPassphrase(mnemonic) {
 /**
  * Test 5: Verify different addresses with same mnemonic
  */
-async function testAddressUniqueness(wallet, passphraseWallet) {
+async function testAddressUniqueness() {
   console.log('🏠 Test 5: Address Uniqueness');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
+  const wallet = await createEd448Wallet(mnemonic);
+  const passphraseWallet = await createEd448Wallet(mnemonic, 'my-secure-passphrase');
+  
   console.log('Same mnemonic, no passphrase:', wallet.address);
   console.log('Same mnemonic, with passphrase:', passphraseWallet.address);
   console.log('Addresses different:', wallet.address !== passphraseWallet.address);
@@ -93,8 +104,12 @@ async function testInvalidMnemonicError() {
 /**
  * Test 7: Import from seed phrase (HD wallet)
  */
-async function testImportFromSeed(mnemonic, wallet) {
+async function testImportFromSeed() {
   console.log('🌱 Test 7: Import from Seed Phrase (HD Wallet)');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
+  const wallet = await createEd448Wallet(mnemonic);
+  
   const importedSeedWallet = await importEd448WalletFromSeed(mnemonic, '', 'm/44\'/1110\'/0\'/0/1');
   console.log('Imported seed wallet:', JSON.stringify(importedSeedWallet, null, 2));
   console.log('Different derivation path, different address:', importedSeedWallet.address !== wallet.address);
@@ -104,8 +119,12 @@ async function testImportFromSeed(mnemonic, wallet) {
 /**
  * Test 8: Import from private key
  */
-async function testImportFromPrivateKey(wallet) {
+async function testImportFromPrivateKey() {
   console.log('🔑 Test 8: Import from Private Key');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
+  const wallet = await createEd448Wallet(mnemonic);
+  
   const importedPrivateKeyWallet = await importEd448WalletFromPrivateKey(wallet.privateKey);
   console.log('Imported private key wallet:', JSON.stringify(importedPrivateKeyWallet, null, 2));
   console.log('Same address from private key:', importedPrivateKeyWallet.address === wallet.address);
@@ -116,8 +135,12 @@ async function testImportFromPrivateKey(wallet) {
 /**
  * Test 9: Import from public key (read-only)
  */
-async function testImportFromPublicKey(wallet) {
+async function testImportFromPublicKey() {
   console.log('🔓 Test 9: Import from Public Key (Read-only)');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
+  const wallet = await createEd448Wallet(mnemonic);
+  
   const importedPublicKeyWallet = await importEd448WalletFromPublicKey(wallet.publicKey);
   console.log('Imported public key wallet:', JSON.stringify(importedPublicKeyWallet, null, 2));
   console.log('Same address from public key:', importedPublicKeyWallet.address === wallet.address);
@@ -155,8 +178,12 @@ async function testInvalidPublicKeyError() {
 /**
  * Test 12: Base58 validation
  */
-async function testBase58Validation(wallet) {
+async function testBase58Validation() {
   console.log('🔢 Test 12: Base58 Validation');
+  // Create test data for this test
+  const mnemonic = generateMnemonic(24);
+  const wallet = await createEd448Wallet(mnemonic);
+  
   console.log('Private key is valid base58:', bs58.decode(wallet.privateKey).length === 56);
   console.log('Public key is valid base58:', bs58.decode(wallet.publicKey).length === 56);
   console.log('');
