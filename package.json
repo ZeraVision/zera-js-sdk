@@ -1,0 +1,18 @@
+{
+  "name": "zera-js-sdk",
+  "version": "1.0.0",
+  "description": "Zera JavaScript SDK with Protocol Buffers",
+  "main": "index.js",
+  "scripts": {
+    "build:proto": "cd proto && npm run build",
+    "build:proto:js": "cd proto && npm run build:js",
+    "build:proto:ts": "cd proto && npm run build:ts",
+    "build:proto:grpc": "cd proto && npm run build:grpc",
+    "proto:install": "cd proto && npm install",
+    "proto:clean": "cd proto && npm run clean",
+    "proto:example": "cd proto && node example.js"
+  },
+  "keywords": ["protobuf", "grpc", "zera", "blockchain"],
+  "author": "",
+  "license": "MIT"
+}
