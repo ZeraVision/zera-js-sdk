@@ -12,9 +12,17 @@ export function generateMnemonic(strength = 24) {
     throw new Error('Invalid strength. Must be one of: 12, 15, 18, 21, 24');
   }
   
-  // Calculate entropy size in bytes
-  const entropySize = (strength * 32) / 33;
-  const entropy = randomBytes(entropySize);
+  // BIP39 standard entropy sizes in bytes for each word count
+  const entropyMap = {
+    12: 16,   // 128 bits = 16 bytes
+    15: 20,   // 160 bits = 20 bytes
+    18: 24,   // 192 bits = 24 bytes
+    21: 28,   // 224 bits = 28 bytes
+    24: 32    // 256 bits = 32 bytes
+  };
+  
+  const entropyBytes = entropyMap[strength];
+  const entropy = randomBytes(entropyBytes);
   
   return entropyToMnemonic(entropy);
 }

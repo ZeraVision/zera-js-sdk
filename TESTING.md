@@ -1,340 +1,240 @@
-# Testing Guide for ZERA JS SDK
+# Testing Guide
 
-This document explains how to use the comprehensive testing structure that allows you to run all tests across the entire project while maintaining a clean modular structure.
+## Overview
 
-## 🚀 Quick Start
+This project uses a custom test runner (`test-runner.js`) that discovers and executes test files throughout the codebase. The test structure has been refactored to follow modern testing best practices.
+
+## Test Structure
+
+### Individual Test Functions
+
+Each test file now contains individual test functions that can be run independently:
+
+```javascript
+/**
+ * Test 1: Basic functionality
+ */
+async function testBasicFunctionality() {
+  // Test implementation
+  assert.ok(true, 'Basic functionality should work');
+}
+
+/**
+ * Test 2: Error handling
+ */
+async function testErrorHandling() {
+  // Test implementation
+  assert.throws(() => {
+    throw new Error('Expected error');
+  }, Error, 'Should throw an error');
+}
+
+/**
+ * Main test runner that executes all tests in sequence
+ */
+async function runAllTests() {
+  console.log('🧪 Testing Module');
+  
+  try {
+    await testBasicFunctionality();
+    await testErrorHandling();
+    console.log('✅ All tests passed');
+  } catch (error) {
+    console.error('❌ Test failed:', error.message);
+    throw error;
+  }
+}
+
+// Export individual test functions for selective testing
+export {
+  testBasicFunctionality,
+  testErrorHandling
+};
+
+// Export the main test function
+export default async function test() {
+  return runAllTests();
+}
+```
+
+### Benefits of This Structure
+
+1. **Maintainability**: Each test is isolated and easier to understand
+2. **Debugging**: Individual tests can be run in isolation
+3. **Selective Testing**: Specific test functions can be imported and run
+4. **Better Organization**: Clear separation of concerns
+5. **Easier Maintenance**: Adding/removing tests is straightforward
+6. **Parallel Execution**: Tests can potentially be run in parallel in the future
+
+## Running Tests
 
 ### Run All Tests
 ```bash
 npm test
+# or
+node test-runner.js
 ```
 
-### Run Tests for a Specific Module
+### Run Specific Module
 ```bash
-npm run test:wallet      # Run wallet-creation tests
-npm run test:api         # Run API tests
-npm run test:transfer    # Run transfer tests
-npm run test:proto       # Run proto tests
+npm run test:wallet-creation
+npm run test:transfer
+npm run test:api
+# or
+node test-runner.js --module=wallet-creation
+node test-runner.js --module=transfer
+node test-runner.js --module=api
 ```
 
-### Run Tests by Type
+### Run by Test Type
 ```bash
-npm run test:unit        # Run only unit tests
-npm run test:integration # Run only integration tests
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests only
+# or
+node test-runner.js --type=unit
+node test-runner.js --type=integration
 ```
 
-### Advanced Options
+### Other Options
 ```bash
-npm run test -- --verbose    # Verbose output
-npm run test -- --watch      # Watch mode (rerun on changes)
-npm run test -- --coverage   # Enable coverage reporting
-npm run test -- --module=wallet-creation  # Filter by module
+node test-runner.js --verbose    # Verbose output
+node test-runner.js --watch      # Watch mode
+node test-runner.js --coverage   # With coverage
 ```
 
-## 📁 Project Structure
+## Test File Organization
 
 ```
-zera-js-sdk/
-├── test-runner.js          # Main test runner
-├── test.config.js          # Test configuration
-├── test-utils.js           # Common testing utilities
-├── package.json            # Test scripts and dependencies
-├── src/
-│   ├── wallet-creation/
-│   │   ├── test.js         # Main test file
-│   │   └── tests/          # Individual test files
-│   │       ├── test-constants.js
-│   │       ├── test-ed25519.js
-│   │       ├── test-ed448.js
-│   │       ├── test-shared.js
-│   │       └── test-integration.js
-│   ├── api/
-│   │   └── [test files]
-│   └── transfer/
-│       └── [test files]
-└── proto/
-    └── [test files]
+src/
+├── wallet-creation/
+│   └── tests/
+│       ├── test-constants.js      # Constants tests
+│       ├── test-ed25519.js        # ed25519 wallet tests
+│       ├── test-ed448.js          # ed448 wallet tests
+│       ├── test-integration.js    # Integration tests
+│       ├── test-shared.js         # Shared utilities tests
+│       └── test-simple.js         # Simple example tests
+├── transfer/
+│   └── test-transfer.js           # Transfer module tests
+└── api/
+    └── test-api.js                # API module tests
 ```
 
-## 🧪 Test File Conventions
+## Writing New Tests
 
-### 1. Test File Naming
-- `test-*.js` - Test files (e.g., `test-constants.js`)
-- `*.test.js` - Alternative naming (e.g., `constants.test.js`)
-- `*.spec.js` - Specification-style tests
-- `tests/` directory - Grouped test files
+### 1. Create Test File
+Create a new test file following the naming convention: `test-*.js`
 
-### 2. Test Function Exports
-Your test files should export one of these functions:
-
+### 2. Structure Your Tests
 ```javascript
-// Option 1: Default export
-export default async function runTests() {
-  // Your tests here
+import { assert } from '../test-utils/index.js';
+import { functionToTest } from '../module.js';
+
+/**
+ * Test 1: Description
+ */
+async function testDescription() {
+  // Test implementation
+  const result = functionToTest();
+  assert.equal(result, expectedValue, 'Description of assertion');
 }
 
-// Option 2: Named exports
-export async function test() {
-  // Your tests here
+/**
+ * Main test runner
+ */
+async function runAllTests() {
+  console.log('🧪 Testing Module');
+  
+  try {
+    await testDescription();
+    console.log('✅ All tests passed');
+  } catch (error) {
+    console.error('❌ Test failed:', error.message);
+    throw error;
+  }
 }
 
-export async function runTests() {
-  // Your tests here
-}
+// Export individual tests
+export { testDescription };
 
-// Option 3: Integration test
-export async function testIntegration() {
-  // Your tests here
+// Export main function
+export default async function test() {
+  return runAllTests();
 }
 ```
 
-### 3. Using Test Utilities
+### 3. Use Assertions
 ```javascript
-import { assert, describe, utils } from '../../test-utils.js';
+import { assert } from '../test-utils/index.js';
 
 // Basic assertions
-assert.ok(condition, 'message');
-assert.equal(actual, expected, 'message');
-assert.deepEqual(actual, expected, 'message');
-assert.throws(() => fn(), Error, 'message');
+assert.ok(condition, 'Message');
+assert.equal(actual, expected, 'Message');
+assert.deepEqual(actual, expected, 'Message');
 
-// Test groups
-describe('Wallet Creation', (group) => {
-  group.beforeAll(async () => {
-    // Setup before all tests
-  });
+// Error handling
+assert.throws(() => {
+  // Code that should throw
+}, ErrorType, 'Message');
 
-  group.test('should create ed25519 wallet', async () => {
-    // Test implementation
-    assert.ok(true);
-  });
-
-  group.afterEach(async () => {
-    // Cleanup after each test
-  });
-});
-
-// Utility functions
-await utils.delay(100); // Wait 100ms
-const randomString = utils.random.string(20);
+assert.doesNotThrow(() => {
+  // Code that should not throw
+}, 'Message');
 ```
 
-## 🔧 Configuration
+## Test Runner Features
 
-### Test Configuration (`test.config.js`)
-```javascript
-export default {
-  // Test discovery patterns
-  testPatterns: [
-    '**/test-*.js',
-    '**/tests/**/*.js',
-    '**/*.test.js',
-    '**/*.spec.js'
-  ],
-  
-  // Module-specific settings
-  modules: {
-    'wallet-creation': {
-      testFiles: ['src/wallet-creation/test.js', 'src/wallet-creation/tests/**/*.js'],
-      dependencies: ['@noble/ed25519', '@noble/hashes', 'bip32', 'bip39'],
-      timeout: 30000
-    }
-  },
-  
-  // Execution settings
-  execution: {
-    parallel: false,
-    timeout: 30000,
-    retries: 1,
-    bail: false
-  }
-};
-```
+### Automatic Discovery
+- Finds all `test-*.js` files in `src/**/` and `proto/**/`
+- Groups tests by module
+- Supports nested test directories
 
-## 📊 Test Results and Reporting
+### Filtering
+- Filter by module: `--module=wallet-creation`
+- Filter by type: `--type=unit|integration`
+- Combine filters for precise test selection
 
-### Console Output
-The test runner provides:
-- ✅ Passed tests
-- ❌ Failed tests
-- ⏭️ Skipped tests
-- 📊 Test summary with success rates
-- 📁 Module breakdown
-- ⏱️ Execution time
+### Reporting
+- Clear test execution output
+- Module breakdown with success rates
+- Error details for failed tests
+- Execution time tracking
 
-### Example Output
-```
-🚀 ZERA JS SDK - Test Runner
+### Compatibility
+- Maintains backward compatibility with existing test structure
+- Supports both default and named exports
+- Flexible test function detection
 
-🔍 Discovering test files...
-✅ Found 8 test files
+## Best Practices
 
-🏃 Starting test execution...
+1. **Test Isolation**: Each test should be independent
+2. **Clear Naming**: Use descriptive test function names
+3. **Proper Assertions**: Include meaningful assertion messages
+4. **Error Handling**: Test both success and failure cases
+5. **Async Support**: Use async/await for asynchronous tests
+6. **Documentation**: Add JSDoc comments for complex tests
 
-🧪 Running: src/wallet-creation/test.js
-✅ src/wallet-creation/test.js passed (245ms)
+## Troubleshooting
 
-🧪 Running: src/wallet-creation/tests/test-constants.js
-✅ src/wallet-creation/tests/test-constants.js passed (45ms)
+### Test Not Found
+- Ensure file follows naming convention: `test-*.js`
+- Check file is in correct directory structure
+- Verify file has proper exports
 
-📊 Test Summary
+### Import Errors
+- Check import paths are correct
+- Ensure dependencies are installed
+- Verify module exports
 
-Total Tests: 8
-✅ Passed: 8
-❌ Failed: 0
-⏭️ Skipped: 0
-📈 Success Rate: 100.0%
-⏱️ Duration: 1250ms
+### Test Failures
+- Check console output for detailed error messages
+- Verify test dependencies are working
+- Test individual functions in isolation
 
-📁 Module Breakdown
-wallet-creation: 8/8 passed (100.0%)
+## Future Enhancements
 
-🎉 All tests passed successfully!
-```
-
-## 🎯 Best Practices
-
-### 1. Test Organization
-- Keep tests close to the code they test
-- Use descriptive test names
-- Group related tests together
-- Separate unit tests from integration tests
-
-### 2. Test Structure
-```javascript
-import { assert, describe } from '../../test-utils.js';
-
-describe('Feature Name', (group) => {
-  group.beforeAll(async () => {
-    // Setup
-  });
-
-  group.test('should do something specific', async () => {
-    // Arrange
-    const input = 'test';
-    
-    // Act
-    const result = await functionUnderTest(input);
-    
-    // Assert
-    assert.equal(result, 'expected');
-  });
-
-  group.afterEach(async () => {
-    // Cleanup
-  });
-});
-```
-
-### 3. Error Handling
-```javascript
-group.test('should handle errors gracefully', async () => {
-  // Test that errors are thrown
-  assert.throws(
-    () => functionThatShouldThrow(),
-    Error,
-    'Should throw an error'
-  );
-  
-  // Test that errors are not thrown
-  assert.doesNotThrow(
-    () => functionThatShouldNotThrow(),
-    'Should not throw an error'
-  );
-});
-```
-
-### 4. Async Testing
-```javascript
-group.test('should handle async operations', async () => {
-  const result = await asyncFunction();
-  assert.ok(result);
-});
-```
-
-## 🔄 Continuous Integration
-
-### GitHub Actions Example
-```yaml
-name: Tests
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - run: npm ci
-      - run: npm test
-      - run: npm run test:coverage
-```
-
-### Pre-commit Hook
-```json
-{
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm test"
-    }
-  }
-}
-```
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-1. **Test not discovered**
-   - Check file naming convention
-   - Verify file is not in excluded directories
-   - Check test function exports
-
-2. **Module import errors**
-   - Ensure `"type": "module"` in package.json
-   - Use correct import paths
-   - Check file extensions
-
-3. **Test timeout**
-   - Increase timeout in test.config.js
-   - Check for infinite loops
-   - Verify async operations complete
-
-4. **Permission denied**
-   - Make test-runner.js executable: `chmod +x test-runner.js`
-   - Check file permissions
-
-### Debug Mode
-```bash
-npm run test -- --verbose
-```
-
-This will show:
-- All discovered test files
-- Detailed error information
-- Stack traces for failures
-
-## 📈 Future Enhancements
-
-- [ ] Code coverage reporting
-- [ ] Parallel test execution
-- [ ] Test result caching
-- [ ] Performance benchmarking
-- [ ] Visual test reports
-- [ ] Integration with CI/CD platforms
-
-## 🤝 Contributing
-
-When adding new tests:
-1. Follow the naming conventions
-2. Use the provided test utilities
-3. Add tests to the appropriate module
-4. Update test configuration if needed
-5. Ensure all tests pass before committing
-
-## 📚 Additional Resources
-
-- [Node.js Testing Best Practices](https://nodejs.org/en/docs/guides/testing-and-debugging/)
-- [JavaScript Testing Patterns](https://javascript.info/testing)
-- [Async Testing in JavaScript](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous/Async_await)
+- **Parallel Execution**: Run tests concurrently for faster execution
+- **Test Coverage**: Integrate with coverage tools
+- **Test Reporting**: Generate detailed HTML reports
+- **Performance Testing**: Add performance benchmarks
+- **Mocking**: Enhanced mocking capabilities for external dependencies

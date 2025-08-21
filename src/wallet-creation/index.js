@@ -1,6 +1,6 @@
 import { 
-  ZERA_COIN_TYPE, 
-  ZERA_COIN_TYPE_HEX, 
+  ZERA_TYPE, 
+  ZERA_TYPE_HEX, 
   ZERA_SYMBOL, 
   ZERA_NAME, 
   DERIVATION_PATH, 
@@ -12,8 +12,21 @@ import {
   validateZeraAddress 
 } from './shared.js';
 
-import { createEd25519Wallet, getEd25519WalletInfo } from './ed25519.js';
-import { createEd448Wallet, getEd448WalletInfo } from './ed448.js';
+import { 
+  createEd25519Wallet, 
+  getEd25519WalletInfo,
+  importEd25519WalletFromSeed,
+  importEd25519WalletFromPrivateKey,
+  importEd25519WalletFromPublicKey
+} from './ed25519.js';
+
+import { 
+  createEd448Wallet, 
+  getEd448WalletInfo,
+  importEd448WalletFromSeed,
+  importEd448WalletFromPrivateKey,
+  importEd448WalletFromPublicKey
+} from './ed448.js';
 
 /**
  * ZERA Network Wallet Creation Class
@@ -21,8 +34,8 @@ import { createEd448Wallet, getEd448WalletInfo } from './ed448.js';
  */
 export class ZeraWallet {
   constructor() {
-    this.coinType = ZERA_COIN_TYPE;
-    this.coinTypeHex = ZERA_COIN_TYPE_HEX;
+    this.coinType = ZERA_TYPE;
+    this.coinTypeHex = ZERA_TYPE_HEX;
     this.symbol = ZERA_SYMBOL;
     this.name = ZERA_NAME;
   }
@@ -45,6 +58,64 @@ export class ZeraWallet {
    */
   async createEd448Wallet(mnemonic, passphrase = '') {
     return await createEd448Wallet(mnemonic, passphrase);
+  }
+
+  /**
+   * Import ed25519 wallet from seed phrase (supports HD wallets)
+   * @param {string} mnemonic - BIP39 mnemonic phrase
+   * @param {string} passphrase - Optional passphrase for additional security
+   * @param {string} derivationPath - Optional custom derivation path
+   * @returns {Object} Wallet object with keys and addresses
+   */
+  async importEd25519WalletFromSeed(mnemonic, passphrase = '', derivationPath = DERIVATION_PATH) {
+    return await importEd25519WalletFromSeed(mnemonic, passphrase, derivationPath);
+  }
+
+  /**
+   * Import ed25519 wallet from private key
+   * @param {string} privateKeyHex - Private key in hexadecimal format
+   * @returns {Object} Wallet object with keys and addresses
+   */
+  async importEd25519WalletFromPrivateKey(privateKeyHex) {
+    return await importEd25519WalletFromPrivateKey(privateKeyHex);
+  }
+
+  /**
+   * Import ed25519 wallet from public key
+   * @param {string} publicKeyHex - Public key in hexadecimal format
+   * @returns {Object} Wallet object with public key and address (read-only)
+   */
+  async importEd25519WalletFromPublicKey(publicKeyHex) {
+    return await importEd25519WalletFromPublicKey(publicKeyHex);
+  }
+
+  /**
+   * Import ed448 wallet from seed phrase (supports HD wallets)
+   * @param {string} mnemonic - BIP39 mnemonic phrase
+   * @param {string} passphrase - Optional passphrase for additional security
+   * @param {string} derivationPath - Optional custom derivation path
+   * @returns {Object} Wallet object with keys and addresses
+   */
+  async importEd448WalletFromSeed(mnemonic, passphrase = '', derivationPath = DERIVATION_PATH) {
+    return await importEd448WalletFromSeed(mnemonic, passphrase, derivationPath);
+  }
+
+  /**
+   * Import ed448 wallet from private key
+   * @param {string} privateKeyHex - Private key in hexadecimal format
+   * @returns {Object} Wallet object with keys and addresses
+   */
+  async importEd448WalletFromPrivateKey(privateKeyHex) {
+    return await importEd448WalletFromPrivateKey(privateKeyHex);
+  }
+
+  /**
+   * Import ed448 wallet from public key
+   * @param {string} publicKeyHex - Public key in hexadecimal format
+   * @returns {Object} Wallet object with public key and address (read-only)
+   */
+  async importEd448WalletFromPublicKey(publicKeyHex) {
+    return await importEd448WalletFromPublicKey(publicKeyHex);
   }
 
   /**
@@ -109,13 +180,24 @@ export async function createZeraWallet(keyType, mnemonic, passphrase = '') {
 export { validateMnemonicPhrase, validateZeraAddress } from './shared.js';
 
 // Re-export specific wallet creation functions
-export { createEd25519Wallet } from './ed25519.js';
-export { createEd448Wallet } from './ed448.js';
+export { 
+  createEd25519Wallet,
+  importEd25519WalletFromSeed,
+  importEd25519WalletFromPrivateKey,
+  importEd25519WalletFromPublicKey
+} from './ed25519.js';
+
+export { 
+  createEd448Wallet,
+  importEd448WalletFromSeed,
+  importEd448WalletFromPrivateKey,
+  importEd448WalletFromPublicKey
+} from './ed448.js';
 
 // Re-export constants
 export { 
-  ZERA_COIN_TYPE, 
-  ZERA_COIN_TYPE_HEX, 
+  ZERA_TYPE, 
+  ZERA_TYPE_HEX, 
   ZERA_SYMBOL, 
   ZERA_NAME, 
   DERIVATION_PATH, 
