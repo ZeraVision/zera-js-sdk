@@ -59,14 +59,14 @@ async function runCompleteDemo() {
   console.log('===================================================\n');
   
   try {
-    // Section 1: BIP32 HD Wallet Implementation
-    await demonstrateBIP32HDWallet();
+          // Section 1: HD Wallet Implementation
+    await demonstrateHDWallet();
     
-    // Section 2: Ed25519 Implementation
-    await demonstrateEd25519();
+          // Section 2: Ed25519 Wallet
+          await demonstrateEd25519Wallet();
     
-    // Section 3: Ed448 Implementation
-    await demonstrateEd448();
+          // Section 3: Ed448 Wallet
+          await demonstrateEd448Wallet();
     
     // Section 4: BIP44 Compliance
     await demonstrateBIP44Compliance();
@@ -93,17 +93,17 @@ async function runCompleteDemo() {
 }
 
 /**
- * Demonstrate BIP32 HD Wallet implementation
+ * Demonstrate HD Wallet implementation
  */
-async function demonstrateBIP32HDWallet() {
-  console.log('🔐 Section 1: BIP32 HD Wallet Implementation');
+async function demonstrateHDWallet() {
+  console.log('🔐 Section 1: HD Wallet Implementation');
   console.log('--------------------------------------------');
   
   // Generate mnemonic and seed
-  const mnemonic = generateMnemonicPhrase(24);
+  const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
   
-  console.log('✅ Generated 24-word BIP39 mnemonic');
+      console.log('✅ Generated 12-word BIP39 mnemonic');
   console.log('✅ Generated seed from mnemonic');
   
   // Create master node
@@ -136,10 +136,10 @@ async function demonstrateBIP32HDWallet() {
 }
 
 /**
- * Demonstrate Ed25519 implementation
+ * Demonstrate Ed25519 wallet
  */
-async function demonstrateEd25519() {
-  console.log('🔑 Section 2: Ed25519 Implementation');
+async function demonstrateEd25519Wallet() {
+  console.log('🔑 Section 2: Ed25519 Wallet');
   console.log('------------------------------------');
   
   // Create Ed25519 key pair from random private key
@@ -160,7 +160,7 @@ async function demonstrateEd25519() {
   console.log('   Verification result:', isValid);
   
   // Create from HD node
-  const mnemonic = generateMnemonicPhrase(24);
+  const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
   const hdNode = BIP32HDWallet.fromSeed(seed);
   const bip44Node = hdNode.derivePath('m/44\'/1110\'/0\'/0/0');
@@ -181,10 +181,10 @@ async function demonstrateEd25519() {
 }
 
 /**
- * Demonstrate Ed448 implementation
+ * Demonstrate Ed448 wallet
  */
-async function demonstrateEd448() {
-  console.log('🔐 Section 3: Ed448 Implementation');
+async function demonstrateEd448Wallet() {
+  console.log('🔐 Section 3: Ed448 Wallet');
   console.log('----------------------------------');
   
   // Create Ed448 key pair from random private key
@@ -206,7 +206,7 @@ async function demonstrateEd448() {
   console.log('   Verification result:', isValid);
   
   // Create from HD node
-  const mnemonic = generateMnemonicPhrase(24);
+  const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
   const hdNode = BIP32HDWallet.fromSeed(seed);
   const bip44Node = hdNode.derivePath('m/44\'/1110\'/0\'/0/0');
@@ -225,7 +225,7 @@ async function demonstrateBIP44Compliance() {
   console.log('🛣️ Section 4: BIP44 Compliance');
   console.log('--------------------------------');
   
-  const mnemonic = generateMnemonicPhrase(24);
+  const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
   const masterNode = BIP32HDWallet.fromSeed(seed);
   
@@ -315,7 +315,7 @@ async function demonstrateWalletCreation() {
   const ed25519Wallet = await createWallet({
     keyType: KEY_TYPE.ED25519,
     hashTypes: [HASH_TYPE.SHA3_256],
-    mnemonic: generateMnemonicPhrase(24)
+    mnemonic: generateMnemonicPhrase(12)
   });
   
   console.log('✅ Created Ed25519 wallet with SHA3-256 hash');
@@ -331,7 +331,7 @@ async function demonstrateWalletCreation() {
   const ed448Wallet = await createWallet({
     keyType: KEY_TYPE.ED448,
     hashTypes: [HASH_TYPE.BLAKE3],
-    mnemonic: generateMnemonicPhrase(24)
+    mnemonic: generateMnemonicPhrase(12)
   });
   
   console.log('✅ Created Ed448 wallet with BLAKE3 hash');
@@ -343,7 +343,7 @@ async function demonstrateWalletCreation() {
   
   // Derive multiple wallets
   const multipleWallets = await deriveMultipleWallets({
-    mnemonic: generateMnemonicPhrase(24),
+    mnemonic: generateMnemonicPhrase(12),
     keyType: KEY_TYPE.ED25519,
     hashTypes: [HASH_TYPE.SHA3_256],
     count: 3
@@ -389,7 +389,7 @@ async function demonstrateAdvancedFeatures() {
   console.log('   Test address valid:', isValidAddress);
   
   // Wallet export
-  const mnemonic = generateMnemonicPhrase(24);
+  const mnemonic = generateMnemonicPhrase(12);
   const wallet = await createWallet({
     keyType: KEY_TYPE.ED25519,
     hashTypes: [HASH_TYPE.SHA3_256],
@@ -418,4 +418,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   runCompleteDemo();
 }
 
-export { runCompleteDemo };
+export { 
+  runCompleteDemo,
+  demonstrateHDWallet,
+  demonstrateEd25519Wallet,
+  demonstrateEd448Wallet
+};

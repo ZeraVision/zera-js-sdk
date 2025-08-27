@@ -24,8 +24,8 @@ async function demoUnifiedCurves() {
     console.log('🔑 Creating Ed25519 Wallet...');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
-    const mnemonic1 = generateMnemonicPhrase(24);
-    console.log('📝 Generated 24-word mnemonic for Ed25519');
+    const mnemonic1 = generateMnemonicPhrase(12);
+    console.log('📝 Generated 12-word mnemonic for Ed25519');
     
     const ed25519Wallet = await createWallet({
       keyType: KEY_TYPE.ED25519,
@@ -50,8 +50,8 @@ async function demoUnifiedCurves() {
     console.log('🔑 Creating Ed448 Wallet...');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
-    const mnemonic2 = generateMnemonicPhrase(24);
-    console.log('📝 Generated 24-word mnemonic for Ed448');
+    const mnemonic2 = generateMnemonicPhrase(12);
+    console.log('📝 Generated 12-word mnemonic for Ed448');
     
     const ed448Wallet = await createWallet({
       keyType: KEY_TYPE.ED448,

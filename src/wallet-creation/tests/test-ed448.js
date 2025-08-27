@@ -17,7 +17,7 @@ async function testEd448Implementation() {
   try {
     // Test 1: Basic ED448 wallet creation
     console.log('1️⃣ Creating ED448 wallet...');
-    const words = generateWords(24);
+    const words = generateWords(12);
     console.log('   📝 Generated words:', words);
     
     const ed448Wallet = await createWallet({
@@ -106,7 +106,7 @@ async function testEd448Implementation() {
       await createWallet({
         keyType: KEY_TYPE.ED25519,
         hashTypes: [HASH_TYPE.SHA3_256],
-        mnemonic: generateWords(24)
+        mnemonic: generateWords(12)
       });
     }
     const ed25519Time = Date.now() - ed25519Start;
@@ -117,7 +117,7 @@ async function testEd448Implementation() {
       await createWallet({
         keyType: KEY_TYPE.ED448,
         hashTypes: [HASH_TYPE.SHA3_256],
-        mnemonic: generateWords(24)
+        mnemonic: generateWords(12)
       });
     }
     const ed448Time = Date.now() - ed448Start;

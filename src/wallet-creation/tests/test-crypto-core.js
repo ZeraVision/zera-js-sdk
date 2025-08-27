@@ -19,7 +19,7 @@ export async function testBIP32HDWallet() {
   
   try {
     // Test 1: Create master node from seed
-    const mnemonic = generateMnemonicPhrase(24);
+    const mnemonic = generateMnemonicPhrase(12);
     const seed = generateSeed(mnemonic);
     const masterNode = BIP32HDWallet.fromSeed(seed);
     
@@ -110,7 +110,7 @@ export async function testEd25519() {
     console.log('   Public key (base58):', publicKeyBase58.substring(0, 10) + '...');
     
     // Test 5: Create from HD node
-    const mnemonic = generateMnemonicPhrase(24);
+    const mnemonic = generateMnemonicPhrase(12);
     const seed = generateSeed(mnemonic);
     const hdNode = BIP32HDWallet.fromSeed(seed);
     const hdKeyPair = Ed25519KeyPair.fromHDNode(hdNode);
@@ -159,7 +159,7 @@ export async function testEd448() {
     console.log('   Public key (base58):', publicKeyBase58.substring(0, 10) + '...');
     
     // Test 4: Create from HD node
-    const mnemonic = generateMnemonicPhrase(24);
+    const mnemonic = generateMnemonicPhrase(12);
     const seed = generateSeed(mnemonic);
     const hdNode = BIP32HDWallet.fromSeed(seed);
     const hdKeyPair = Ed448KeyPair.fromHDNode(hdNode);
@@ -184,7 +184,7 @@ export async function testBIP44Compliance() {
   
   try {
     // Test 1: Generate mnemonic and seed
-    const mnemonic = generateMnemonicPhrase(24);
+    const mnemonic = generateMnemonicPhrase(12);
     const seed = generateSeed(mnemonic);
     console.log('✅ BIP39 mnemonic and seed generated');
     
@@ -285,7 +285,7 @@ export async function testWalletCreation() {
   
   try {
     // Test 1: Create Ed25519 wallet
-    const mnemonic1 = generateMnemonicPhrase(24);
+    const mnemonic1 = generateMnemonicPhrase(12);
     const seed1 = generateSeed(mnemonic1);
     const hdNode1 = BIP32HDWallet.fromSeed(seed1);
     const bip44Node1 = hdNode1.derivePath('m/44\'/1110\'/0\'/0/0');
@@ -297,7 +297,7 @@ export async function testWalletCreation() {
     console.log('   Extended private key:', bip44Node1.getExtendedPrivateKey().substring(0, 10) + '...');
     
     // Test 2: Create Ed448 wallet
-    const mnemonic2 = generateMnemonicPhrase(24);
+    const mnemonic2 = generateMnemonicPhrase(12);
     const seed2 = generateSeed(mnemonic2);
     const hdNode2 = BIP32HDWallet.fromSeed(seed2);
     const bip44Node2 = hdNode2.derivePath('m/44\'/1110\'/0\'/0/0');
