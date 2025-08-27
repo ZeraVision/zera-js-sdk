@@ -1,207 +1,164 @@
-import { 
-  ZERA_TYPE, 
-  ZERA_TYPE_HEX, 
-  ZERA_SYMBOL, 
-  ZERA_NAME, 
-  DERIVATION_PATH, 
-  SUPPORTED_KEY_TYPES 
+import {
+  ZERA_TYPE, ZERA_TYPE_HEX, ZERA_SYMBOL, ZERA_NAME, DERIVATION_PATH,
+  SUPPORTED_KEY_TYPES, KEY_TYPE, HASH_TYPE, VALID_KEY_TYPES, VALID_HASH_TYPES, MNEMONIC_LENGTHS
 } from './constants.js';
 
-import { 
-  validateMnemonicPhrase, 
-  validateZeraAddress 
-} from './shared.js';
+// Import the new unified wallet factory system
+import {
+  WalletFactory, createWallet, deriveMultipleWallets
+} from './wallet-factory.js';
 
-import { 
-  createEd25519Wallet, 
-  getEd25519WalletInfo,
-  importEd25519WalletFromSeed,
-  importEd25519WalletFromPrivateKey,
-  importEd25519WalletFromPublicKey
-} from './ed25519.js';
+// Import HD wallet utilities
+import {
+  generateMnemonicPhrase, buildDerivationPath, getHDWalletInfo
+} from './hd-utils.js';
 
-import { 
-  createEd448Wallet, 
-  getEd448WalletInfo,
-  importEd448WalletFromSeed,
-  importEd448WalletFromPrivateKey,
-  importEd448WalletFromPublicKey
-} from './ed448.js';
+// Import hash utilities
+import {
+  getAllHashInfo, getSupportedHashTypes
+} from './hash-utils.js';
 
 /**
- * ZERA Network Wallet Creation Class
- * Main interface for wallet creation operations
+ * Main ZeraWallet class - provides a clean interface to the wallet creation system
  */
 export class ZeraWallet {
   constructor() {
-    this.coinType = ZERA_TYPE;
-    this.coinTypeHex = ZERA_TYPE_HEX;
-    this.symbol = ZERA_SYMBOL;
-    this.name = ZERA_NAME;
+    this.factory = new WalletFactory();
   }
 
   /**
-   * Create ed25519 wallet from mnemonic
-   * @param {string} mnemonic - BIP39 mnemonic phrase
-   * @param {string} passphrase - Optional passphrase for additional security
-   * @returns {Object} Wallet object with keys and addresses
+   * Create a new wallet with specified parameters
+   * @param {Object} options - Wallet creation options
+   * @param {string} options.keyType - Key type from KEY_TYPE enum
+   * @param {Array<string>} options.hashTypes - Array of hash types from HASH_TYPE enum (required)
+   * @param {string} options.mnemonic - Required mnemonic phrase (must be provided)
+   * @param {string} options.passphrase - Optional passphrase for additional security
+   * @param {Object} options.hdOptions - HD wallet derivation options
+   * @returns {Object} Created wallet object
    */
-  async createEd25519Wallet(mnemonic, passphrase = '') {
-    return await createEd25519Wallet(mnemonic, passphrase);
+  async createWallet(options) {
+    return await this.factory.createWallet(options);
+  }
+
+
+
+  /**
+   * Derive multiple addresses from the same mnemonic
+   * @param {Object} options - Derivation options
+   * @param {string} options.mnemonic - BIP39 mnemonic phrase
+   * @param {string} options.keyType - Key type from KEY_TYPE enum
+   * @param {Array<string>} options.hashTypes - Array of hash types from HASH_TYPE enum (required)
+   * @param {string} options.passphrase - Optional passphrase
+   * @param {Object} options.hdOptions - HD wallet derivation options
+   * @param {number} options.count - Number of addresses to derive (default: 1)
+   * @returns {Array} Array of wallet objects
+   */
+  async deriveMultipleWallets(options) {
+    return await this.factory.deriveMultipleWallets(options);
   }
 
   /**
-   * Create ed448 wallet from mnemonic
-   * @param {string} mnemonic - BIP39 mnemonic phrase
-   * @param {string} passphrase - Optional passphrase for additional security
-   * @returns {Object} Wallet object with keys and addresses
+   * Generate a new BIP39 mnemonic phrase
+   * @param {number} length - Length of mnemonic (12, 15, 18, 21, or 24)
+   * @returns {string} Generated mnemonic phrase
    */
-  async createEd448Wallet(mnemonic, passphrase = '') {
-    return await createEd448Wallet(mnemonic, passphrase);
+  generateMnemonic(length = 24) {
+    return generateMnemonicPhrase(length);
   }
 
   /**
-   * Import ed25519 wallet from seed phrase (supports HD wallets)
-   * @param {string} mnemonic - BIP39 mnemonic phrase
-   * @param {string} passphrase - Optional passphrase for additional security
-   * @param {string} derivationPath - Optional custom derivation path
-   * @returns {Object} Wallet object with keys and addresses
+   * Generate words for wallet creation
+   * @param {number} length - Length of mnemonic (12, 15, 18, 21, or 24)
+   * @returns {string} Generated mnemonic phrase
    */
-  async importEd25519WalletFromSeed(mnemonic, passphrase = '', derivationPath = DERIVATION_PATH) {
-    return await importEd25519WalletFromSeed(mnemonic, passphrase, derivationPath);
+  generateWords(length = 24) {
+    return generateMnemonicPhrase(length);
   }
 
   /**
-   * Import ed25519 wallet from private key
-   * @param {string} privateKeyHex - Private key in hexadecimal format
-   * @returns {Object} Wallet object with keys and addresses
+   * Build BIP44 derivation path for ZERA
+   * @param {Object} options - Derivation options
+   * @param {number} options.accountIndex - Account index (default: 0)
+   * @param {number} options.changeIndex - Change index (0 for external, 1 for internal) (default: 0)
+   * @param {number} options.addressIndex - Address index (default: 0)
+   * @returns {string} Derivation path
    */
-  async importEd25519WalletFromPrivateKey(privateKeyHex) {
-    return await importEd25519WalletFromPrivateKey(privateKeyHex);
+  buildDerivationPath(options = {}) {
+    return buildDerivationPath(options);
   }
 
   /**
-   * Import ed25519 wallet from public key
-   * @param {string} publicKeyHex - Public key in hexadecimal format
-   * @returns {Object} Wallet object with public key and address (read-only)
+   * Get wallet factory information
+   * @returns {Object} Factory information
    */
-  async importEd25519WalletFromPublicKey(publicKeyHex) {
-    return await importEd25519WalletFromPublicKey(publicKeyHex);
+  getFactoryInfo() {
+    return this.factory.getInfo();
   }
 
   /**
-   * Import ed448 wallet from seed phrase (supports HD wallets)
-   * @param {string} mnemonic - BIP39 mnemonic phrase
-   * @param {string} passphrase - Optional passphrase for additional security
-   * @param {string} derivationPath - Optional custom derivation path
-   * @returns {Object} Wallet object with keys and addresses
+   * Get HD wallet information
+   * @returns {Object} HD wallet information
    */
-  async importEd448WalletFromSeed(mnemonic, passphrase = '', derivationPath = DERIVATION_PATH) {
-    return await importEd448WalletFromSeed(mnemonic, passphrase, derivationPath);
+  getHDWalletInfo() {
+    return getHDWalletInfo();
   }
 
   /**
-   * Import ed448 wallet from private key
-   * @param {string} privateKeyHex - Private key in hexadecimal format
-   * @returns {Object} Wallet object with keys and addresses
+   * Get hash algorithm information
+   * @returns {Object} Hash algorithm information
    */
-  async importEd448WalletFromPrivateKey(privateKeyHex) {
-    return await importEd448WalletFromPrivateKey(privateKeyHex);
+  getHashInfo() {
+    return getAllHashInfo();
   }
 
   /**
-   * Import ed448 wallet from public key
-   * @param {string} publicKeyHex - Public key in hexadecimal format
-   * @returns {Object} Wallet object with public key and address (read-only)
+   * Get supported key types
+   * @returns {Array} Array of supported key types
    */
-  async importEd448WalletFromPublicKey(publicKeyHex) {
-    return await importEd448WalletFromPublicKey(publicKeyHex);
+  getSupportedKeyTypes() {
+    return VALID_KEY_TYPES;
   }
 
   /**
-   * Validate ZERA address format
-   * @param {string} address - Address to validate
-   * @returns {boolean} True if valid
+   * Get supported hash types
+   * @returns {Array} Array of supported hash types
    */
-  validateAddress(address) {
-    return validateZeraAddress(address);
+  getSupportedHashTypes() {
+    return VALID_HASH_TYPES;
   }
 
   /**
-   * Get wallet information
-   * @returns {Object} Wallet information
+   * Get supported mnemonic lengths
+   * @returns {Array} Array of supported mnemonic lengths
    */
-  getWalletInfo() {
-    return {
-      network: this.name,
-      symbol: this.symbol,
-      coinType: this.coinType,
-      coinTypeHex: this.coinTypeHex,
-      derivationPath: DERIVATION_PATH,
-      supportedKeyTypes: SUPPORTED_KEY_TYPES,
-      standard: 'BIP44 + SLIP44'
-    };
-  }
-
-  /**
-   * Get detailed information about supported key types
-   * @returns {Object} Key type information
-   */
-  getKeyTypeInfo() {
-    return {
-      ed25519: getEd25519WalletInfo(),
-      ed448: getEd448WalletInfo()
-    };
+  getSupportedMnemonicLengths() {
+    return MNEMONIC_LENGTHS;
   }
 }
 
-/**
- * Create a new ZERA wallet with specified key type
- * @param {string} keyType - 'ed25519' or 'ed448'
- * @param {string} mnemonic - BIP39 mnemonic phrase (required)
- * @param {string} passphrase - Optional passphrase
- * @returns {Object} Wallet object
- */
-export async function createZeraWallet(keyType, mnemonic, passphrase = '') {
-  if (!mnemonic) {
-    throw new Error('Mnemonic phrase is required');
-  }
+// Re-export the new unified factory functions and utilities
+export {
+  WalletFactory, createWallet, deriveMultipleWallets
+} from './wallet-factory.js';
 
-  if (keyType === 'ed25519') {
-    return await createEd25519Wallet(mnemonic, passphrase);
-  } else if (keyType === 'ed448') {
-    return await createEd448Wallet(mnemonic, passphrase);
-  } else {
-    throw new Error('Unsupported key type. Use "ed25519" or "ed448"');
-  }
-}
+export {
+  generateMnemonicPhrase, buildDerivationPath, getHDWalletInfo
+} from './hd-utils.js';
 
-// Re-export shared functions for convenience
-export { validateMnemonicPhrase, validateZeraAddress } from './shared.js';
+// Re-export the generateWords function for convenience
+export { generateMnemonicPhrase as generateWords } from './hd-utils.js';
 
-// Re-export specific wallet creation functions
-export { 
-  createEd25519Wallet,
-  importEd25519WalletFromSeed,
-  importEd25519WalletFromPrivateKey,
-  importEd25519WalletFromPublicKey
-} from './ed25519.js';
+export {
+  getAllHashInfo, getSupportedHashTypes
+} from './hash-utils.js';
 
-export { 
-  createEd448Wallet,
-  importEd448WalletFromSeed,
-  importEd448WalletFromPrivateKey,
-  importEd448WalletFromPublicKey
-} from './ed448.js';
-
-// Re-export constants
-export { 
-  ZERA_TYPE, 
-  ZERA_TYPE_HEX, 
-  ZERA_SYMBOL, 
-  ZERA_NAME, 
-  DERIVATION_PATH, 
-  SUPPORTED_KEY_TYPES 
+// Re-export constants and enums
+export {
+  ZERA_TYPE, ZERA_TYPE_HEX, ZERA_SYMBOL, ZERA_NAME, DERIVATION_PATH,
+  SUPPORTED_KEY_TYPES, KEY_TYPE, HASH_TYPE, VALID_KEY_TYPES, VALID_HASH_TYPES, MNEMONIC_LENGTHS
 } from './constants.js';
+
+// Re-export error classes
+export * from './errors.js';
 
 export default ZeraWallet;
