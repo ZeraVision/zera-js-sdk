@@ -1,9 +1,9 @@
 import { 
-  validateMnemonicPhrase, 
-  validateZeraAddress, 
+  validateMnemonic, 
+  validateAddress, 
   createBaseWallet, 
   validateKeyType, 
-  validateWalletParams 
+  validateHashTypesArray 
 } from '../shared.js';
 
 /**
@@ -14,8 +14,8 @@ async function testMnemonicValidation() {
   const validMnemonic = 'abandon ability able about above absent absorb abstract absurd abuse access accident';
   const invalidMnemonic = 'invalid mnemonic phrase';
   
-  console.log('Valid mnemonic:', validateMnemonicPhrase(validMnemonic));
-  console.log('Invalid mnemonic:', validateMnemonicPhrase(invalidMnemonic));
+  console.log('Valid mnemonic:', validateMnemonic(validMnemonic));
+  console.log('Invalid mnemonic:', validateMnemonic(invalidMnemonic));
   console.log('');
 }
 
@@ -56,7 +56,7 @@ async function testCreateBaseWallet() {
 async function testAddressValidation() {
   console.log('🏠 Test 4: Address Validation');
   // Note: This will fail with placeholder addresses since we're using a simple validation
-  console.log('Address validation function exists:', typeof validateZeraAddress === 'function');
+  console.log('Address validation function exists:', typeof validateAddress === 'function');
   console.log('');
 }
 
@@ -68,22 +68,22 @@ async function testParameterValidation() {
   const validMnemonic = 'abandon ability able about above absent absorb abstract absurd abuse access accident';
   
   try {
-    validateWalletParams(validMnemonic, 'ed25519');
-    console.log('Valid parameters passed validation');
+    validateHashTypesArray(['sha3_256']);
+    console.log('Valid hash types passed validation');
   } catch (error) {
     console.log('Unexpected error:', error.message);
   }
   
   try {
-    validateWalletParams('', 'ed25519');
-    console.log('Missing mnemonic should fail');
+    validateHashTypesArray([]);
+    console.log('Empty hash types should fail');
   } catch (error) {
     console.log('Expected error caught:', error.message);
   }
   
   try {
-    validateWalletParams(validMnemonic, 'invalid');
-    console.log('Invalid key type should fail');
+    validateHashTypesArray(['invalid']);
+    console.log('Invalid hash type should fail');
   } catch (error) {
     console.log('Expected error caught:', error.message);
   }

@@ -1,15 +1,6 @@
 // Zera JavaScript SDK - Main Entry Point
 // This file demonstrates how to use the generated Protocol Buffer classes
 
-// Import the generated protobuf classes
-import { 
-  CoinTXN, 
-  BaseTXN, 
-  PublicKey, 
-  TXN_STATUS,
-  TRANSACTION_TYPE 
-} from './proto/generated/index.js';
-
 // Import wallet creation functionality
 import { 
   ZeraWallet, 
@@ -18,56 +9,48 @@ import {
   generateZeraAddress 
 } from './src/wallet-creation/index.js';
 
-// Export all protobuf classes for easy importing
+// Export all wallet creation classes and functions
 export {
-  // Protocol Buffer Classes
-  CoinTXN,
-  BaseTXN,
-  PublicKey,
-  TXN_STATUS,
-  TRANSACTION_TYPE,
-  
-  // Wallet Creation Classes and Functions
   ZeraWallet,
   createWallet,
   generateMnemonicPhrase,
-  generateZeraAddress,
-  
-  // Version info
-  version: '1.0.0',
-  description: 'Zera JavaScript SDK with Protocol Buffers and Wallet Creation'
+  generateZeraAddress
 };
 
-// Utility function for creating transactions
+// Export version info as constants
+export const VERSION = '1.0.0';
+export const DESCRIPTION = 'Zera JavaScript SDK with Modern ESM and Wallet Creation';
+
+// Utility function for creating transactions (placeholder for now)
 export function createTransaction(feeAmount, feeId, contractId) {
-  const baseTxn = new BaseTXN();
-  baseTxn.setFeeAmount(feeAmount);
-  baseTxn.setFeeId(feeId);
-  baseTxn.setNonce(Date.now());
+  // This will be implemented once protobufs are properly generated
+  console.log('Creating transaction with:', { feeAmount, feeId, contractId });
   
-  const publicKey = new PublicKey();
-  publicKey.setSingle(new Uint8Array([1, 2, 3, 4, 5])); // Example key
-  
-  baseTxn.setPublicKey(publicKey);
-  
-  const coinTxn = new CoinTXN();
-  coinTxn.setBase(baseTxn);
-  coinTxn.setContractId(contractId);
-  
-  return coinTxn;
+  // Return a simple transaction object for now
+  return {
+    feeAmount,
+    feeId,
+    contractId,
+    nonce: Date.now(),
+    timestamp: new Date().toISOString()
+  };
 }
 
 // Example usage (when run directly)
 if (import.meta.url === `file://${process.argv[1]}`) {
   console.log('=== Zera JavaScript SDK ===');
-  console.log('Version:', '1.0.0');
-  console.log('Description:', 'Zera JavaScript SDK with Protocol Buffers and Wallet Creation');
+  console.log('Version:', VERSION);
+  console.log('Description:', DESCRIPTION);
   
   try {
     // Create a sample transaction
     const txn = createTransaction("1000000", "ZERA", "SAMPLE_CONTRACT");
     console.log('\n✅ Sample transaction created successfully!');
-    console.log('Transaction size:', txn.serializeBinary().length, 'bytes');
+    console.log('Transaction:', txn);
+    
+    // Generate a sample mnemonic
+    const mnemonic = generateMnemonicPhrase();
+    console.log('\n✅ Sample mnemonic generated:', mnemonic);
     
   } catch (error) {
     console.error('\n❌ Error:', error.message);

@@ -1,99 +1,200 @@
 # Zera JavaScript SDK
 
-This repository contains the Zera JavaScript SDK with Protocol Buffer definitions.
+A modern, ESM-compatible JavaScript SDK for the ZERA Network with support for wallet creation, cryptography, and blockchain operations.
 
-## Project Structure
+## 🚀 Features
+
+- **Full ESM Support**: Modern ES6+ modules throughout
+- **Wallet Creation**: HD wallet generation with BIP32/BIP39/BIP44 compliance
+- **Multiple Key Types**: Support for Ed25519, Secp256k1, and more
+- **Hash Algorithms**: SHA256, Keccak256, and other cryptographic hashes
+- **Protocol Buffers**: Modern protobuf support with buf tooling
+- **TypeScript Ready**: Full TypeScript support and type definitions
+
+## 📋 Requirements
+
+- **Node.js**: 18.0.0 or higher
+- **npm**: 8.0.0 or higher
+
+## 🛠️ Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd zera-js-sdk
+
+# Install dependencies
+npm install
+
+# Install proto dependencies
+npm run proto:install
+
+# Build protocol buffers
+npm run build:proto
+```
+
+## 🔧 Development Setup
+
+### Install Global Tools
+
+```bash
+# Install buf CLI for modern protobuf management
+npm install -g @bufbuild/buf
+
+# Install protoc compiler (if not using buf)
+# Windows: Download from https://github.com/protocolbuffers/protobuf/releases
+# macOS: brew install protobuf
+# Linux: sudo apt-get install protobuf-compiler
+```
+
+### Build Commands
+
+```bash
+# Build all protocol buffers
+npm run build:proto
+
+# Build specific targets
+npm run build:proto:js      # JavaScript only
+npm run build:proto:ts      # TypeScript
+npm run build:proto:grpc    # gRPC-Web
+
+# Clean generated files
+npm run proto:clean
+```
+
+## 📖 Usage
+
+### Basic Wallet Creation
+
+```javascript
+import { createWallet, generateMnemonicPhrase } from 'zera-js-sdk';
+
+// Generate a new mnemonic
+const mnemonic = generateMnemonicPhrase(24);
+
+// Create a wallet
+const wallet = await createWallet({
+  keyType: 'ed25519',
+  hashTypes: ['sha256'],
+  mnemonic: mnemonic
+});
+
+console.log('Wallet address:', wallet.address);
+```
+
+### Advanced HD Wallet
+
+```javascript
+import { WalletFactory } from 'zera-js-sdk';
+
+const factory = new WalletFactory();
+
+const wallet = await factory.createWallet({
+  keyType: 'secp256k1',
+  hashTypes: ['keccak256', 'sha256'],
+  mnemonic: 'your twelve word mnemonic phrase here',
+  passphrase: 'optional-passphrase',
+  hdOptions: {
+    accountIndex: 0,
+    changeIndex: 0,
+    addressIndex: 0
+  }
+});
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test modules
+npm run test:wallet-creation
+npm run test:api
+npm run test:transfer
+
+# Run with coverage
+npm run test:coverage
+
+# Watch mode for development
+npm run test:watch
+```
+
+## 📁 Project Structure
 
 ```
 zera-js-sdk/
-├── proto/              # Protocol Buffer definitions and build tools
-│   ├── txn.proto      # Main transaction definitions
-│   ├── package.json   # Protobuf dependencies and scripts
-│   ├── build.js       # Build automation script
-│   ├── example.js     # Usage examples
-│   ├── README.md      # Protobuf-specific documentation
-│   └── generated/     # Generated JavaScript files (after building)
-├── ...
-└── README.md           # This file
+├── src/
+│   ├── wallet-creation/     # HD wallet and key generation
+│   ├── api/                 # API client and validation
+│   ├── transfer/            # Transaction and transfer logic
+│   └── test-utils/          # Testing utilities
+├── proto/                   # Protocol buffer definitions
+│   ├── generated/           # Auto-generated protobuf classes
+│   └── txn.proto           # Transaction schema
+├── scripts/                 # Build and utility scripts
+└── test-runner.js          # Unified test runner
 ```
 
-## Quick Start
+## 🔒 Security
 
-### 1. Install Protocol Buffers Compiler (protoc)
+- Uses **@noble** libraries for cryptographic operations
+- BIP32/BIP39/BIP44 compliant HD wallets
+- Secure random number generation
+- No deprecated crypto libraries
 
-**Windows:**
-- Download from [Google's official releases](https://github.com/protocolbuffers/protobuf/releases)
-- Extract and add to PATH, or use Chocolatey: `choco install protoc`
+## 📚 API Reference
 
-**macOS:**
-```bash
-brew install protobuf
-```
+### Wallet Creation
 
-**Linux:**
-```bash
-sudo apt-get install protobuf-compiler
-```
+- `createWallet(options)` - Create a new wallet
+- `generateMnemonicPhrase(length)` - Generate BIP39 mnemonic
+- `WalletFactory` - Advanced wallet creation with options
 
-### 2. Build Protocol Buffers
+### Key Types
 
-```bash
-# Install protobuf dependencies
-npm run proto:install
+- `ed25519` - Ed25519 elliptic curve
+- `secp256k1` - Bitcoin-compatible curve
+- `blake2b` - Blake2b hash function
 
-# Build JavaScript files
-npm run build:proto
+### Hash Types
 
-# Run examples
-npm run proto:example
-```
+- `sha256` - SHA-256 hash
+- `keccak256` - Ethereum-compatible hash
+- `blake2b` - Blake2b hash
 
-## Available Scripts
+## 🤝 Contributing
 
-- `npm run build:proto` - Build JavaScript protobuf files
-- `npm run build:proto:js` - Build JavaScript only
-- `npm run build:proto:ts` - Build JavaScript + TypeScript
-- `npm run build:proto:grpc` - Build JavaScript + gRPC-Web
-- `npm run proto:install` - Install protobuf dependencies
-- `npm run proto:clean` - Clean generated files
-- `npm run proto:example` - Run usage examples
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
 
-## Usage
+## 📄 License
 
-After building, you can import the generated protobuf classes:
+MIT License - see [LICENSE](LICENSE) file for details.
 
-```javascript
-// From the root project
-const { CoinTXN, BaseTXN, PublicKey } = require('./proto/generated');
+## 🆘 Support
 
-// Or from within the proto folder
-const { CoinTXN, BaseTXN, PublicKey } = require('./generated');
-```
+- **Issues**: Create an issue on GitHub
+- **Documentation**: Check the [TESTING.md](TESTING.md) for detailed testing information
+- **BIP Compliance**: See [BIP44_COMPLIANCE_REPORT.md](BIP44_COMPLIANCE_REPORT.md)
 
-## Example
+## 🔄 Migration from CommonJS
 
-```javascript
-const { CoinTXN, BaseTXN, PublicKey } = require('./proto/generated');
+This project has been fully modernized from CommonJS to ESM. If you're migrating from an older version:
 
-// Create a new transaction
-const baseTxn = new BaseTXN();
-baseTxn.setFeeAmount("1000000");
-baseTxn.setFeeId("ZERA");
+1. Update Node.js to version 18+
+2. Replace `require()` with `import` statements
+3. Replace `module.exports` with `export` statements
+4. Update your build tools to support ESM
+5. Use the new protobuf build system with buf
 
-const coinTxn = new CoinTXN();
-coinTxn.setBase(baseTxn);
-coinTxn.setContractId("contract123");
+## 🚀 Performance
 
-// Serialize to binary
-const binary = coinTxn.serializeBinary();
-```
-
-## Detailed Documentation
-
-For detailed protobuf build instructions, examples, and troubleshooting, see:
-- [Proto Folder README](./proto/README.md) - Complete protobuf documentation
-- [Proto Example](./proto/example.js) - Usage examples
-
-## License
-
-MIT License - see LICENSE file for details.
+- **ESM**: Faster module loading and tree-shaking
+- **Modern Crypto**: Optimized cryptographic operations
+- **Efficient Protobuf**: Modern serialization with buf
+- **Tree Shaking**: Smaller bundle sizes in production

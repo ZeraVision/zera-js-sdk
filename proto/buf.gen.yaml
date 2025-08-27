@@ -1,0 +1,17 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: buf.build/zera/proto/gen/go
+    override:
+      buf.build/googleapis/googleapis: google.golang.org/genproto/googleapis
+plugins:
+  - plugin: es
+    out: generated
+    opt: target=ts
+  - plugin: ts-proto
+    out: generated
+    opt: esModuleInterop=true,forceLong=string,useOptionals=messages
+  - plugin: grpc-web
+    out: generated
+    opt: import_style=es6,mode=grpcwebtext

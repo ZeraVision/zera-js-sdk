@@ -152,6 +152,11 @@ export {
   getAllHashInfo, getSupportedHashTypes
 } from './hash-utils.js';
 
+// Re-export shared utilities
+export {
+  generateZeraAddress, generateZeraPublicKeyFormat, createBaseWallet
+} from './shared.js';
+
 // Re-export constants and enums
 export {
   ZERA_TYPE, ZERA_TYPE_HEX, ZERA_SYMBOL, ZERA_NAME, DERIVATION_PATH,

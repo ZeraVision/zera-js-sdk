@@ -1,6 +1,5 @@
 import {
   createWallet,
-  importWallet,
   generateMnemonicPhrase,
   buildDerivationPath,
   KEY_TYPE,
@@ -11,19 +10,37 @@ export async function testBasicFunctionality() {
   console.log('🧪 Testing basic wallet creation functionality...');
   
   // Test 1: Create basic Ed25519 wallet
-  const wallet1 = await createWallet({ keyType: KEY_TYPE.ED25519, mnemonicLength: 12 });
+  const mnemonic1 = generateMnemonicPhrase(12);
+  const wallet1 = await createWallet({ 
+    keyType: KEY_TYPE.ED25519, 
+    hashTypes: [HASH_TYPE.SHA3_256],
+    mnemonic: mnemonic1
+  });
   console.log('✅ Created Ed25519 wallet:', wallet1.type);
   
   // Test 2: Create Ed25519 wallet with Blake3 hash
-  const wallet2 = await createWallet({ keyType: KEY_TYPE.ED25519, hashTypes: [HASH_TYPE.BLAKE3], mnemonicLength: 15 });
+  const mnemonic2 = generateMnemonicPhrase(15);
+  const wallet2 = await createWallet({ 
+    keyType: KEY_TYPE.ED25519, 
+    hashTypes: [HASH_TYPE.BLAKE3], 
+    mnemonic: mnemonic2
+  });
   console.log('✅ Created Ed25519 wallet with Blake3 hash:', wallet2.type);
   
-  // Test 3: Import wallet using existing mnemonic
-  const importedWallet = await importWallet({ mnemonic: wallet1.mnemonic, keyType: KEY_TYPE.ED25519, hashTypes: [HASH_TYPE.SHA3_256] });
-  console.log('✅ Imported wallet successfully:', importedWallet.type);
+  // Test 3: Create wallet using existing mnemonic (instead of import)
+  const walletWithExistingMnemonic = await createWallet({ 
+    keyType: KEY_TYPE.ED25519, 
+    hashTypes: [HASH_TYPE.SHA3_256], 
+    mnemonic: wallet1.mnemonic 
+  });
+  console.log('✅ Created wallet with existing mnemonic:', walletWithExistingMnemonic.type);
   
   // Test 4: Create wallet with multiple hashes
-  const wallet3 = await createWallet({ keyType: KEY_TYPE.ED25519, hashTypes: [HASH_TYPE.SHA3_512, HASH_TYPE.BLAKE3], mnemonic: wallet1.mnemonic });
+  const wallet3 = await createWallet({ 
+    keyType: KEY_TYPE.ED25519, 
+    hashTypes: [HASH_TYPE.SHA3_512, HASH_TYPE.BLAKE3], 
+    mnemonic: wallet1.mnemonic 
+  });
   console.log('✅ Created wallet with multiple hashes:', wallet3.type);
   
   // Test 5: Test derivation path building
@@ -43,12 +60,22 @@ export async function testWalletTypes() {
   console.log('🧪 Testing different wallet types...');
   
   // Test Ed25519 wallets
-  const ed25519Wallet = await createWallet({ keyType: KEY_TYPE.ED25519, mnemonicLength: 18 });
+  const mnemonic1 = generateMnemonicPhrase(18);
+  const ed25519Wallet = await createWallet({ 
+    keyType: KEY_TYPE.ED25519, 
+    hashTypes: [HASH_TYPE.SHA3_256],
+    mnemonic: mnemonic1
+  });
   console.log('✅ Ed25519 wallet created:', ed25519Wallet.keyType);
   
   // Test Ed448 wallet (placeholder for now)
   try {
-    const ed448Wallet = await createWallet({ keyType: KEY_TYPE.ED448, mnemonicLength: 21 });
+    const mnemonic2 = generateMnemonicPhrase(21);
+    const ed448Wallet = await createWallet({ 
+      keyType: KEY_TYPE.ED448, 
+      hashTypes: [HASH_TYPE.SHA3_256],
+      mnemonic: mnemonic2
+    });
     console.log('✅ Ed448 wallet created:', ed448Wallet.keyType);
   } catch (error) {
     console.log('⚠️ Ed448 wallet creation failed (expected for now):', error.message);
@@ -61,15 +88,30 @@ export async function testHashChaining() {
   console.log('🧪 Testing hash chaining functionality...');
   
   // Test single hash
-  const singleHashWallet = await createWallet({ keyType: KEY_TYPE.ED25519, hashTypes: [HASH_TYPE.SHA3_256], mnemonicLength: 15 });
+  const mnemonic1 = generateMnemonicPhrase(15);
+  const singleHashWallet = await createWallet({ 
+    keyType: KEY_TYPE.ED25519, 
+    hashTypes: [HASH_TYPE.SHA3_256], 
+    mnemonic: mnemonic1
+  });
   console.log('✅ Single hash wallet created:', singleHashWallet.hashTypes);
   
   // Test multiple hashes (right to left)
-  const multiHashWallet = await createWallet({ keyType: KEY_TYPE.ED25519, hashTypes: [HASH_TYPE.SHA3_512, HASH_TYPE.BLAKE3], mnemonicLength: 18 });
+  const mnemonic2 = generateMnemonicPhrase(18);
+  const multiHashWallet = await createWallet({ 
+    keyType: KEY_TYPE.ED25519, 
+    hashTypes: [HASH_TYPE.SHA3_512, HASH_TYPE.BLAKE3], 
+    mnemonic: mnemonic2
+  });
   console.log('✅ Multi-hash wallet created:', multiHashWallet.hashTypes);
   
   // Test complex hash chain
-  const complexHashWallet = await createWallet({ keyType: KEY_TYPE.ED25519, hashTypes: [HASH_TYPE.SHA3_256, HASH_TYPE.SHA3_512, HASH_TYPE.BLAKE3], mnemonicLength: 24 });
+  const mnemonic3 = generateMnemonicPhrase(24);
+  const complexHashWallet = await createWallet({ 
+    keyType: KEY_TYPE.ED25519, 
+    hashTypes: [HASH_TYPE.SHA3_256, HASH_TYPE.SHA3_512, HASH_TYPE.BLAKE3], 
+    mnemonic: mnemonic3
+  });
   console.log('✅ Complex hash chain wallet created:', complexHashWallet.hashTypes);
   
   console.log('🎉 Hash chaining tests completed!');
@@ -80,7 +122,7 @@ export async function testErrorHandling() {
   
   // Test invalid key type
   try {
-    await createWallet({ keyType: 'invalid', mnemonicLength: 12 });
+    await createWallet({ keyType: 'invalid', mnemonic: generateMnemonicPhrase(12) });
     throw new Error('Should have failed with invalid key type');
   } catch (error) {
     console.log('✅ Correctly caught invalid key type error:', error.message);
@@ -88,7 +130,7 @@ export async function testErrorHandling() {
   
   // Test invalid hash type
   try {
-    await createWallet({ keyType: KEY_TYPE.ED25519, hashTypes: ['invalid-hash'], mnemonicLength: 12 });
+    await createWallet({ keyType: KEY_TYPE.ED25519, hashTypes: ['invalid-hash'], mnemonic: generateMnemonicPhrase(12) });
     throw new Error('Should have failed with invalid hash type');
   } catch (error) {
     console.log('✅ Correctly caught invalid hash type error:', error.message);
@@ -96,7 +138,7 @@ export async function testErrorHandling() {
   
   // Test invalid mnemonic length
   try {
-    await createWallet({ keyType: KEY_TYPE.ED25519, mnemonicLength: 13 });
+    generateMnemonicPhrase(13);
     throw new Error('Should have failed with invalid mnemonic length');
   } catch (error) {
     console.log('✅ Correctly caught invalid mnemonic length error:', error.message);

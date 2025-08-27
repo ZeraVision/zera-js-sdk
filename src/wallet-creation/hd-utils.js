@@ -10,6 +10,7 @@ import {
   InvalidHDParameterError,
   InvalidDerivationPathError
 } from './errors.js';
+import { BIP32HDWallet } from './crypto-core.js';
 
 /**
  * Generate a new BIP39 mnemonic phrase
@@ -140,29 +141,25 @@ export function parseDerivationPath(path) {
 }
 
 /**
- * Create a simple HD wallet node (simplified version)
- * @param {Buffer} seed - Seed bytes
+ * Create HD wallet using proper BIP32 implementation
+ * @param {Buffer|Uint8Array} seed - Seed bytes
  * @param {string} path - Derivation path
- * @returns {Object} HD wallet node
+ * @returns {BIP32HDWallet} HD wallet node
  */
 export function createHDWallet(seed, path) {
   try {
-    // For now, create a simple node structure
-    // In a full implementation, this would use BIP32 derivation
-    const privateKey = seed.slice(0, 32);
-    const publicKey = Buffer.alloc(33); // Placeholder
+    // Convert Buffer to Uint8Array if needed
+    const seedArray = seed instanceof Buffer ? new Uint8Array(seed) : seed;
     
-    return {
-      privateKey,
-      publicKey,
-      derivePath: (path) => {
-        // Simple path derivation - in real implementation this would be more complex
-        return {
-          privateKey: privateKey,
-          publicKey: publicKey
-        };
-      }
-    };
+    // Create master node from seed
+    const masterNode = BIP32HDWallet.fromSeed(seedArray);
+    
+    // Derive to the specified path
+    if (path && path !== 'm') {
+      return masterNode.derivePath(path);
+    }
+    
+    return masterNode;
   } catch (error) {
     throw new InvalidDerivationPathError(path, `derivation failed: ${error.message}`);
   }
@@ -207,12 +204,75 @@ export function deriveMultipleAddresses(mnemonic, passphrase = '', options = {})
  */
 export function getHDWalletInfo() {
   return {
-    standard: 'BIP44',
+    standard: 'BIP32 + BIP39 + BIP44',
     purpose: 44,
     coinType: ZERA_TYPE,
-    coinTypeHex: `0x${ZERA_TYPE.toString(16).padStart(8, '0')}`,
-    supportedMnemonicLengths: MNEMONIC_LENGTHS,
-    defaultDerivationPath: buildDerivationPath(),
-    description: 'Hierarchical Deterministic wallet following BIP44 standard for ZERA Network (simplified implementation)'
+    coinName: 'ZERA',
+    derivationPath: `m/44'/${ZERA_TYPE}'/0'/0/0`,
+    supportedFeatures: [
+      'Hierarchical Deterministic Wallets',
+      'BIP39 Mnemonics',
+      'BIP32 Key Derivation',
+      'BIP44 Multi-Account Structure',
+      'Hardened Derivation',
+      'Extended Keys (xpub/xpriv)',
+      'Ed25519 Support',
+      'Ed448 Support (placeholder)'
+    ],
+    securityFeatures: [
+      'Cryptographically Secure Random Generation',
+      'HMAC-SHA512 for Key Derivation',
+      'Proper BIP32 Chain Code Handling',
+      'Overflow Protection',
+      'Fingerprint Validation'
+    ]
+  };
+}
+
+/**
+ * Validate HD wallet parameters
+ * @param {Object} options - HD wallet options
+ * @returns {boolean} True if valid
+ */
+export function validateHDWalletOptions(options) {
+  const { accountIndex, changeIndex, addressIndex } = options;
+  
+  if (accountIndex !== undefined && (!Number.isInteger(accountIndex) || accountIndex < 0)) {
+    return false;
+  }
+  
+  if (changeIndex !== undefined && ![0, 1].includes(changeIndex)) {
+    return false;
+  }
+  
+  if (addressIndex !== undefined && (!Number.isInteger(addressIndex) || addressIndex < 0)) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Get extended key information
+ * @param {BIP32HDWallet} hdNode - HD wallet node
+ * @returns {Object} Extended key information
+ */
+export function getExtendedKeyInfo(hdNode) {
+  if (!(hdNode instanceof BIP32HDWallet)) {
+    throw new Error('Invalid HD wallet node');
+  }
+  
+  return {
+    depth: hdNode.depth,
+    index: hdNode.index,
+    parentFingerprint: hdNode.parentFingerprint,
+    fingerprint: hdNode.getFingerprint(),
+    extendedPrivateKey: hdNode.getExtendedPrivateKey(),
+    extendedPublicKey: hdNode.getExtendedPublicKey(),
+    derivationPath: buildDerivationPath({
+      accountIndex: hdNode.depth >= 3 ? hdNode.index : 0,
+      changeIndex: hdNode.depth >= 4 ? hdNode.index : 0,
+      addressIndex: hdNode.depth >= 5 ? hdNode.index : 0
+    })
   };
 }

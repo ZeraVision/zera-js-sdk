@@ -1,141 +1,249 @@
-import { sha256 } from '@noble/hashes/sha256';
-import { ripemd160 } from '@noble/hashes/ripemd160';
-import bs58 from 'bs58';
-import { validateMnemonic } from 'bip39';
 import { 
-  ADDRESS_VERSIONS, 
-  MIN_ADDRESS_LENGTH,
-  KEY_TYPE,
-  KEY_TYPE_PREFIXES,
+  KEY_TYPE, 
+  HASH_TYPE, 
+  KEY_TYPE_PREFIXES, 
+  HASH_TYPE_PREFIXES,
   isValidKeyType,
-  getKeyTypePrefix
+  isValidHashType
 } from './constants.js';
-import { generateHashPrefix, applyHashChain } from './hash-utils.js';
-import { MissingParameterError } from './errors.js';
+import { createHashChain } from './hash-utils.js';
+import { CryptoUtils } from './crypto-core.js';
+import bs58 from 'bs58';
 
 /**
- * Validate a BIP39 mnemonic phrase
- * @param {string} mnemonic - Mnemonic phrase to validate
- * @returns {boolean} True if valid
- */
-export function validateMnemonicPhrase(mnemonic) {
-  return validateMnemonic(mnemonic);
-}
-
-/**
- * Generate ZERA Network address from public key with key type and hash type prefixes
- * @param {Buffer|Uint8Array} publicKey - Public key bytes
+ * Generate ZERA address from public key and hash types
+ * @param {Uint8Array} publicKey - Public key bytes
  * @param {string} keyType - Key type from KEY_TYPE enum
  * @param {Array<string>} hashTypes - Array of hash types from HASH_TYPE enum
- * @returns {string} ZERA address (final hash encoded to base58)
+ * @returns {string} Generated ZERA address
  */
 export function generateZeraAddress(publicKey, keyType, hashTypes = []) {
-  if (!publicKey) {
-    throw new MissingParameterError('publicKey');
+  if (!publicKey || !(publicKey instanceof Uint8Array)) {
+    throw new Error('Public key must be a Uint8Array');
   }
-  
-  if (!keyType) {
-    throw new MissingParameterError('keyType');
-  }
-  
+
   if (!isValidKeyType(keyType)) {
     throw new Error(`Invalid key type: ${keyType}`);
   }
-  
-  // Apply hash chain if hash types are provided
-  let finalHash;
-  if (hashTypes && hashTypes.length > 0) {
-    finalHash = applyHashChain(publicKey, hashTypes);
-  } else {
-    // Default to SHA256 if no hash types specified
-    finalHash = sha256(publicKey);
+
+  if (!Array.isArray(hashTypes) || hashTypes.length === 0) {
+    throw new Error('Hash types must be a non-empty array');
   }
+
+  // Validate all hash types
+  for (const hashType of hashTypes) {
+    if (!isValidHashType(hashType)) {
+      throw new Error(`Invalid hash type: ${hashType}`);
+    }
+  }
+
+  // Apply hash chain to public key
+  const hashedPublicKey = createHashChain(hashTypes, publicKey);
   
-  // Encode the final hash to base58 - this is the address
-  return bs58.encode(finalHash);
+  // Add key type prefix
+  const keyPrefix = KEY_TYPE_PREFIXES[keyType];
+  
+  // Add hash chain prefix
+  const hashPrefix = hashTypes.map(hashType => HASH_TYPE_PREFIXES[hashType]).join('');
+  
+  // Combine prefixes with hashed public key
+  const addressData = new Uint8Array(keyPrefix.length + hashPrefix.length + hashedPublicKey.length);
+  let offset = 0;
+  
+  // Add key type prefix
+  addressData.set(new TextEncoder().encode(keyPrefix), offset);
+  offset += keyPrefix.length;
+  
+  // Add hash chain prefix
+  addressData.set(new TextEncoder().encode(hashPrefix), offset);
+  offset += hashPrefix.length;
+  
+  // Add hashed public key
+  addressData.set(hashedPublicKey, offset);
+  
+  // Encode to base58
+  return bs58.encode(addressData);
 }
 
 /**
- * Generate ZERA public key display format: KeyType_HashTypes_base58publickey
- * @param {Buffer|Uint8Array} publicKey - Public key bytes
+ * Generate ZERA public key format
+ * @param {Uint8Array} publicKey - Public key bytes
  * @param {string} keyType - Key type from KEY_TYPE enum
  * @param {Array<string>} hashTypes - Array of hash types from HASH_TYPE enum
- * @returns {string} Public key display format
+ * @returns {string} Generated ZERA public key format
  */
 export function generateZeraPublicKeyFormat(publicKey, keyType, hashTypes = []) {
-  if (!publicKey) {
-    throw new MissingParameterError('publicKey');
+  if (!publicKey || !(publicKey instanceof Uint8Array)) {
+    throw new Error('Public key must be a Uint8Array');
   }
-  
-  if (!keyType) {
-    throw new MissingParameterError('keyType');
-  }
-  
+
   if (!isValidKeyType(keyType)) {
     throw new Error(`Invalid key type: ${keyType}`);
   }
+
+  if (!Array.isArray(hashTypes) || hashTypes.length === 0) {
+    throw new Error('Hash types must be a non-empty array');
+  }
+
+  // Validate all hash types
+  for (const hashType of hashTypes) {
+    if (!isValidHashType(hashType)) {
+      throw new Error(`Invalid hash type: ${hashType}`);
+    }
+  }
+
+  // Add key type prefix
+  const keyPrefix = KEY_TYPE_PREFIXES[keyType];
   
-  // Get key type prefix
-  const keyPrefix = getKeyTypePrefix(keyType);
+  // Add hash chain prefix
+  const hashPrefix = hashTypes.map(hashType => HASH_TYPE_PREFIXES[hashType]).join('');
   
-  // Get hash type prefix
-  const hashPrefix = generateHashPrefix(hashTypes);
+  // Combine prefixes with public key
+  const formatData = new Uint8Array(keyPrefix.length + hashPrefix.length + publicKey.length);
+  let offset = 0;
   
-  // Encode public key to base58
-  const publicKeyBase58 = bs58.encode(publicKey);
+  // Add key type prefix
+  formatData.set(new TextEncoder().encode(keyPrefix), offset);
+  offset += keyPrefix.length;
   
-  // Combine: KeyType_HashTypes_base58publickey
-  return `${keyPrefix}${hashPrefix}${publicKeyBase58}`;
+  // Add hash chain prefix
+  formatData.set(new TextEncoder().encode(hashPrefix), offset);
+  offset += hashPrefix.length;
+  
+  // Add public key
+  formatData.set(publicKey, offset);
+  
+  // Encode to base58
+  return bs58.encode(formatData);
 }
 
 /**
- * Validate ZERA address format
+ * Create base wallet object
+ * @param {string} type - Wallet type
+ * @param {string} mnemonic - BIP39 mnemonic phrase
+ * @param {string} privateKeyBase58 - Private key in base58 format
+ * @param {Uint8Array} publicKey - Public key bytes
+ * @param {string} address - ZERA address
+ * @param {string} publicKeyFormat - ZERA public key format
+ * @param {number} coinType - Coin type (SLIP44)
+ * @param {string} symbol - Coin symbol
+ * @param {string} derivationPath - BIP44 derivation path
+ * @param {string} keyType - Key type used
+ * @param {Array<string>} hashTypes - Hash types used
+ * @returns {Object} Base wallet object
+ */
+export function createBaseWallet(
+  type,
+  mnemonic,
+  privateKeyBase58,
+  publicKey,
+  address,
+  publicKeyFormat,
+  coinType,
+  symbol,
+  derivationPath,
+  keyType,
+  hashTypes
+) {
+  return {
+    type,
+    mnemonic,
+    privateKeyBase58,
+    publicKey,
+    address,
+    publicKeyFormat,
+    coinType,
+    symbol,
+    derivationPath,
+    keyType,
+    hashTypes,
+    createdAt: new Date().toISOString(),
+    version: '1.0.0',
+    standard: 'BIP32 + BIP39 + BIP44 + SLIP44'
+  };
+}
+
+/**
+ * Validate address format
  * @param {string} address - Address to validate
  * @returns {boolean} True if valid
  */
-export function validateZeraAddress(address) {
+export function validateAddress(address) {
+  if (!address || typeof address !== 'string') {
+    return false;
+  }
+
   try {
+    // Decode base58
     const decoded = bs58.decode(address);
-    return decoded.length >= MIN_ADDRESS_LENGTH;
-  } catch {
+    
+    // Check minimum length
+    if (decoded.length < 10) {
+      return false;
+    }
+
+    // Check if it starts with a valid key type prefix
+    const keyPrefixes = Object.values(KEY_TYPE_PREFIXES);
+    const addressStr = address;
+    
+    return keyPrefixes.some(prefix => addressStr.startsWith(prefix));
+  } catch (error) {
     return false;
   }
 }
 
 /**
- * Create base wallet object with common properties
- * @param {string} type - Wallet type
- * @param {string} mnemonic - BIP39 mnemonic phrase
- * @param {string} privateKey - Private key in base58 format
- * @param {Uint8Array} publicKey - Public key in bytes (Uint8Array)
- * @param {string} address - ZERA address
- * @param {string} publicKeyFormat - Public key display format
- * @param {number} coinType - Coin type
- * @param {string} symbol - Symbol
- * @param {string} derivationPath - Derivation path
- * @param {string} keyType - Key type used (from KEY_TYPE enum)
- * @param {Array<string>} hashTypes - Hash types used (from HASH_TYPE enum)
- * @returns {Object} Base wallet object
+ * Validate public key format
+ * @param {string} publicKeyFormat - Public key format to validate
+ * @returns {boolean} True if valid
  */
-export function createBaseWallet(type, mnemonic, privateKey, publicKey, address, publicKeyFormat, coinType, symbol, derivationPath, keyType, hashTypes) {
-  return {
-    type,
-    mnemonic,
-    privateKey,
-    publicKey,
-    address,
-    publicKeyFormat,
-    derivationPath,
-    coinType,
-    symbol,
-    keyType,
-    hashTypes,
-    createdAt: new Date().toISOString()
-  };
+export function validatePublicKeyFormat(publicKeyFormat) {
+  if (!publicKeyFormat || typeof publicKeyFormat !== 'string') {
+    return false;
+  }
+
+  try {
+    // Decode base58
+    const decoded = bs58.decode(publicKeyFormat);
+    
+    // Check minimum length
+    if (decoded.length < 10) {
+      return false;
+    }
+
+    // Check if it starts with a valid key type prefix
+    const keyPrefixes = Object.values(KEY_TYPE_PREFIXES);
+    const formatStr = publicKeyFormat;
+    
+    return keyPrefixes.some(prefix => formatStr.startsWith(prefix));
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
- * Validate key type parameter
+ * Validate mnemonic phrase
+ * @param {string} mnemonic - Mnemonic phrase to validate
+ * @returns {boolean} True if valid
+ */
+export function validateMnemonic(mnemonic) {
+  if (!mnemonic || typeof mnemonic !== 'string') {
+    return false;
+  }
+
+  const words = mnemonic.trim().split(/\s+/);
+  const validLengths = [12, 15, 18, 21, 24];
+  
+  if (!validLengths.includes(words.length)) {
+    return false;
+  }
+
+  // Basic word validation (in production, use proper BIP39 wordlist validation)
+  return words.every(word => /^[a-z]+$/.test(word));
+}
+
+/**
+ * Validate key type
  * @param {string} keyType - Key type to validate
  * @returns {boolean} True if valid
  */
@@ -144,20 +252,93 @@ export function validateKeyType(keyType) {
 }
 
 /**
- * Validate required parameters
- * @param {string} mnemonic - Mnemonic to validate
- * @param {string} keyType - Key type to validate
+ * Validate hash types array
+ * @param {Array<string>} hashTypes - Hash types array to validate
+ * @returns {boolean} True if valid
  */
-export function validateWalletParams(mnemonic, keyType) {
-  if (!mnemonic) {
-    throw new MissingParameterError('mnemonic');
+export function validateHashTypesArray(hashTypes) {
+  if (!Array.isArray(hashTypes) || hashTypes.length === 0) {
+    return false;
   }
-  
-  if (!validateMnemonicPhrase(mnemonic)) {
-    throw new Error('Invalid BIP39 mnemonic phrase');
+
+  return hashTypes.every(hashType => isValidHashType(hashType));
+}
+
+/**
+ * Get wallet information
+ * @param {Object} wallet - Wallet object
+ * @returns {Object} Wallet information
+ */
+export function getWalletInfo(wallet) {
+  if (!wallet || typeof wallet !== 'object') {
+    throw new Error('Invalid wallet object');
   }
-  
-  if (!validateKeyType(keyType)) {
-    throw new Error(`Unsupported key type. Use one of: ${Object.values(KEY_TYPE).join(', ')}`);
+
+  return {
+    type: wallet.type,
+    coinType: wallet.coinType,
+    symbol: wallet.symbol,
+    keyType: wallet.keyType,
+    hashTypes: wallet.hashTypes,
+    derivationPath: wallet.derivationPath,
+    address: wallet.address,
+    publicKeyFormat: wallet.publicKeyFormat,
+    createdAt: wallet.createdAt,
+    version: wallet.version,
+    standard: wallet.standard,
+    // Extended key information if available
+    extendedPrivateKey: wallet.extendedPrivateKey,
+    extendedPublicKey: wallet.extendedPublicKey,
+    fingerprint: wallet.fingerprint,
+    depth: wallet.depth,
+    index: wallet.index
+  };
+}
+
+/**
+ * Export wallet to different formats
+ * @param {Object} wallet - Wallet object
+ * @param {string} format - Export format ('json', 'base58', 'hex')
+ * @returns {string} Exported wallet data
+ */
+export function exportWallet(wallet, format = 'json') {
+  if (!wallet || typeof wallet !== 'object') {
+    throw new Error('Invalid wallet object');
+  }
+
+  switch (format.toLowerCase()) {
+    case 'json':
+      return JSON.stringify(wallet, null, 2);
+    
+    case 'base58':
+      // Export as base58 encoded string
+      const exportData = {
+        type: wallet.type,
+        coinType: wallet.coinType,
+        symbol: wallet.symbol,
+        keyType: wallet.keyType,
+        hashTypes: wallet.hashTypes,
+        derivationPath: wallet.derivationPath,
+        address: wallet.address,
+        publicKeyFormat: wallet.publicKeyFormat
+      };
+      return bs58.encode(new TextEncoder().encode(JSON.stringify(exportData)));
+    
+    case 'hex':
+      // Export as hex string
+      const hexData = {
+        type: wallet.type,
+        coinType: wallet.coinType,
+        symbol: wallet.symbol,
+        keyType: wallet.keyType,
+        hashTypes: wallet.hashTypes,
+        derivationPath: wallet.derivationPath,
+        address: wallet.address,
+        publicKeyFormat: wallet.publicKeyFormat
+      };
+      return Buffer.from(JSON.stringify(hexData)).toString('hex');
+    
+    default:
+      throw new Error(`Unsupported export format: ${format}`);
   }
 }

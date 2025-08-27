@@ -13,11 +13,13 @@ import {
   MissingParameterError, InvalidKeyTypeError, InvalidHashTypeError, InvalidMnemonicLengthError
 } from './errors.js';
 import { validateHashTypes } from './hash-utils.js';
+import { Ed25519KeyPair, Ed448KeyPair } from './crypto-core.js';
 import bs58 from 'bs58';
 
 /**
  * Unified wallet creation factory
  * Supports all key types and hash type combinations with HD wallet functionality
+ * Full BIP32/BIP44 compliance using @noble libraries
  */
 export class WalletFactory {
   constructor() {
@@ -80,10 +82,10 @@ export class WalletFactory {
     // Build derivation path
     const derivationPath = buildDerivationPath(hdOptions);
     
-    // Create HD wallet
+    // Create HD wallet using proper BIP32 implementation
     const hdNode = createHDWallet(seed, derivationPath);
     
-    // Generate key pair based on key type
+    // Generate key pair based on key type using @noble libraries
     const keyPair = await this.generateKeyPair(hdNode, keyType);
     
     // Generate address and public key format
@@ -107,13 +109,19 @@ export class WalletFactory {
 
     return {
       ...wallet,
-      // Removed: hdNode (security risk), seed (redundant), entropy (redundant)
-      // Added: publicKeyBase58 for convenience when base58 format is needed
-      publicKeyBase58: keyPair.publicKeyBase58
+      // Add extended key information for BIP32 compliance
+      extendedPrivateKey: hdNode.getExtendedPrivateKey(),
+      extendedPublicKey: hdNode.getExtendedPublicKey(),
+      fingerprint: hdNode.getFingerprint(),
+      depth: hdNode.depth,
+      index: hdNode.index,
+      // Add public key in base58 for convenience
+      publicKeyBase58: keyPair.publicKeyBase58,
+      // Add private key properties for compatibility
+      privateKey: keyPair.getPrivateKeyBase58(),
+      publicKey: keyPair.getPublicKeyBase58()
     };
   }
-
-
 
   /**
    * Derive multiple addresses from the same mnemonic
@@ -176,62 +184,19 @@ export class WalletFactory {
   }
 
   /**
-   * Generate key pair based on key type
+   * Generate key pair based on key type using @noble libraries
    * @param {Object} hdNode - HD wallet node
    * @param {string} keyType - Key type from KEY_TYPE enum
    * @returns {Object} Key pair with private and public keys
    */
   async generateKeyPair(hdNode, keyType) {
     if (keyType === KEY_TYPE.ED25519) {
-      return await this.generateEd25519KeyPair(hdNode);
+      return Ed25519KeyPair.fromHDNode(hdNode);
     } else if (keyType === KEY_TYPE.ED448) {
-      return await this.generateEd448KeyPair(hdNode);
+      return Ed448KeyPair.fromHDNode(hdNode);
     } else {
       throw new InvalidKeyTypeError(keyType, VALID_KEY_TYPES);
     }
-  }
-
-  /**
-   * Generate Ed25519 key pair
-   * @param {Object} hdNode - HD wallet node
-   * @returns {Object} Ed25519 key pair
-   */
-  async generateEd25519KeyPair(hdNode) {
-    // Use simplified implementation similar to working ed25519.js
-    // This avoids the noble-ed25519 hash setup issues
-    
-    const privateKey = hdNode.privateKey;
-    
-    // For now, use a simple hash as public key (this is NOT proper ed25519)
-    // In production, implement proper ed25519 public key derivation
-    const { sha256 } = await import('@noble/hashes/sha256');
-    const publicKey = sha256(privateKey);
-    
-    return {
-      privateKey,
-      publicKey,
-      privateKeyBase58: bs58.encode(privateKey),
-      publicKeyBase58: bs58.encode(publicKey)
-    };
-  }
-
-  /**
-   * Generate Ed448 key pair
-   * @param {Object} hdNode - HD wallet node
-   * @returns {Object} Ed448 key pair
-   */
-  async generateEd448KeyPair(hdNode) {
-    // Note: Ed448 support would need to be implemented
-    // For now, we'll use the HD node's key material
-    const privateKey = hdNode.privateKey;
-    const publicKey = hdNode.publicKey;
-    
-    return {
-      privateKey,
-      publicKey,
-      privateKeyBase58: bs58.encode(privateKey),
-      publicKeyBase58: bs58.encode(publicKey)
-    };
   }
 
   /**
@@ -246,8 +211,23 @@ export class WalletFactory {
       supportedKeyTypes: VALID_KEY_TYPES,
       supportedHashTypes: VALID_HASH_TYPES,
       supportedMnemonicLengths: MNEMONIC_LENGTHS,
-      standard: 'BIP44 + SLIP44',
-      description: 'Unified wallet factory supporting multiple key types and hash algorithms'
+      standard: 'BIP32 + BIP39 + BIP44 + SLIP44',
+      description: 'Unified wallet factory supporting multiple key types and hash algorithms with full BIP32/BIP44 compliance',
+      cryptographicLibraries: [
+        '@noble/ed25519 - Full Ed25519 implementation',
+        '@noble/hashes - SHA256, SHA512, RIPEMD160',
+        '@noble/hashes/hmac - HMAC-SHA512 for BIP32',
+        'bip39 - BIP39 mnemonic generation',
+        'bs58 - Base58 encoding'
+      ],
+      securityFeatures: [
+        'Cryptographically secure random generation',
+        'Proper BIP32 chain code handling',
+        'Hardened derivation support',
+        'Overflow protection',
+        'Fingerprint validation',
+        'Extended key support (xpub/xpriv)'
+      ]
     };
   }
 }

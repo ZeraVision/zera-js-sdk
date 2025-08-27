@@ -1,77 +1,42 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+#!/usr/bin/env node
 
-// Ensure generated directory exists
-const generatedDir = './generated';
-if (!fs.existsSync(generatedDir)) {
-  fs.mkdirSync(generatedDir, { recursive: true });
-}
+import { execSync } from 'child_process';
+import { rmSync, mkdirSync } from 'fs';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
 
-console.log('Building Protocol Buffers for JavaScript...');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-// Check if protoc is available
-function checkProtoc() {
-  try {
-    execSync('protoc --version', { stdio: 'ignore' });
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
+const GENERATED_DIR = join(__dirname, 'generated');
+
+console.log('🚀 Building Zera Protocol Buffers...');
 
 try {
-  // Check for protoc
-  if (!checkProtoc()) {
-    console.error('❌ protoc compiler not found');
-    console.log('\n📋 Please install protoc:');
-    console.log('Windows: Download from https://github.com/protocolbuffers/protobuf/releases');
-    console.log('macOS: brew install protobuf');
-    console.log('Linux: sudo apt-get install protobuf-compiler');
-    process.exit(1);
+  // Clean generated directory
+  if (rmSync) {
+    rmSync(GENERATED_DIR, { recursive: true, force: true });
   }
+  mkdirSync(GENERATED_DIR, { recursive: true });
 
-  console.log('✅ protoc compiler found');
+  // Use buf for modern generation
+  console.log('📦 Using buf for modern protobuf generation...');
+  execSync('buf generate', { stdio: 'inherit', cwd: __dirname });
 
-  // Build JavaScript files
-  console.log('Generating JavaScript files...');
-  execSync('protoc --js_out=./generated --js_opt=import_style=commonjs *.proto', { 
-    stdio: 'inherit',
-    cwd: process.cwd()
+  // Fallback to protoc if buf fails
+  console.log('🔄 Fallback to protoc...');
+  execSync('protoc --js_out=./generated --js_opt=import_style=es6 *.proto', { 
+    stdio: 'inherit', 
+    cwd: __dirname 
   });
-  
-  console.log('✅ JavaScript protobuf files generated successfully!');
-  
-  // List generated files
-  const generatedFiles = fs.readdirSync(generatedDir).filter(file => file.endsWith('.js'));
-  console.log('\nGenerated files:');
-  generatedFiles.forEach(file => console.log(`  - ${file}`));
-  
-  // Create index.js for easy importing
-  createIndexFile(generatedFiles);
-  
+
+  console.log('✅ Protocol Buffers built successfully!');
+  console.log(`📁 Generated files in: ${GENERATED_DIR}`);
+
 } catch (error) {
-  console.error('❌ Error building protobufs:', error.message);
+  console.error('❌ Build failed:', error.message);
+  console.log('\n💡 Make sure you have the following installed:');
+  console.log('   - buf: npm install -g @bufbuild/buf');
+  console.log('   - protoc: https://grpc.io/docs/protoc-installation/');
   process.exit(1);
-}
-
-function createIndexFile(generatedFiles) {
-  const indexContent = `// Auto-generated index file for Protocol Buffer classes
-// This file exports all generated protobuf classes for easy importing
-
-${generatedFiles.map(file => {
-  const className = file.replace('.js', '').replace('_pb', '');
-  return `const ${className} = require('./${file}');`;
-}).join('\n')}
-
-module.exports = {
-${generatedFiles.map(file => {
-  const className = file.replace('.js', '').replace('_pb', '');
-  return `  ${className}`;
-}).join(',\n')}
-};
-`;
-
-  fs.writeFileSync(path.join(generatedDir, 'index.js'), indexContent);
-  console.log('✅ Index file created for easy importing');
 }

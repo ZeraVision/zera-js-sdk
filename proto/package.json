@@ -3,21 +3,27 @@
   "version": "1.0.0",
   "description": "Zera Protocol Buffer definitions and build tools",
   "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "build": "protoc --js_out=./generated --js_opt=import_style=commonjs *.proto",
-    "build:js": "protoc --js_out=./generated --js_opt=import_style=commonjs *.proto",
-    "build:ts": "protoc --js_out=./generated --js_opt=import_style=commonjs --ts_out=./generated *.proto",
+    "build": "protoc --js_out=./generated --js_opt=import_style=es6 *.proto",
+    "build:js": "protoc --js_out=./generated --js_opt=import_style=es6 *.proto",
+    "build:ts": "protoc --js_out=./generated --ts_out=./generated *.proto",
     "build:grpc": "protoc --js_out=./generated --grpc-web_out=./generated --plugin=protoc-gen-grpc-web=./node_modules/.bin/protoc-gen-grpc-web *.proto",
-    "clean": "rimraf generated"
+    "build:modern": "buf generate",
+    "clean": "rimraf generated",
+    "postinstall": "npm run build"
   },
   "dependencies": {
-    "google-protobuf": "^3.21.2",
+    "@bufbuild/protobuf": "^1.7.2",
     "grpc-web": "^1.4.2"
   },
   "devDependencies": {
-    "@types/google-protobuf": "^3.15.8",
     "typescript": "^5.0.0",
-    "rimraf": "^5.0.0"
+    "rimraf": "^5.0.0",
+    "buf": "^1.28.1"
   },
   "keywords": ["protobuf", "grpc", "zera", "blockchain"],
   "author": "",
