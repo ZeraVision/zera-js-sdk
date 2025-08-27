@@ -2,14 +2,21 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug Current File",
       "type": "node",
       "request": "launch",
-      "name": "Debug Current File (ES Module)",
       "program": "${file}",
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**"],
-      "runtimeArgs": ["--experimental-specifier-resolution=node"]
+      "env": {
+        "NODE_OPTIONS": "--experimental-specifier-resolution=node"
+      },
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "sourceMaps": true
     }
   ]
 }

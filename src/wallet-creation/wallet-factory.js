@@ -96,8 +96,8 @@ export class WalletFactory {
     const wallet = createBaseWallet(
       'hd',
       finalMnemonic,
-      keyPair.privateKeyBase58,
-      keyPair.publicKey,
+      keyPair.getPrivateKeyBase58(),
+      keyPair.getPublicKeyBase58(),
       address,
       publicKeyFormat,
       this.coinType,
@@ -115,11 +115,11 @@ export class WalletFactory {
       fingerprint: hdNode.getFingerprint(),
       depth: hdNode.depth,
       index: hdNode.index,
-      // Add public key in base58 for convenience
-      publicKeyBase58: keyPair.publicKeyBase58,
-      // Add private key properties for compatibility
-      privateKey: keyPair.getPrivateKeyBase58(),
-      publicKey: keyPair.getPublicKeyBase58()
+      // Add both raw bytes and base58 formats for flexibility
+      privateKey: keyPair.privateKey, // Raw bytes (Uint8Array)
+      privateKeyBase58: keyPair.getPrivateKeyBase58(), // Base58 encoded
+      publicKey: keyPair.publicKey, // Raw bytes (Uint8Array)
+      publicKeyBase58: keyPair.getPublicKeyBase58(), // Base58 encoded
     };
   }
 

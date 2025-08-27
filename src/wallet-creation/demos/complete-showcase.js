@@ -51,6 +51,8 @@ import {
 } from '../shared.js';
 import { KEY_TYPE, HASH_TYPE, ZERA_TYPE } from '../constants.js';
 
+runCompleteDemo();
+
 /**
  * Main demonstration function
  */
@@ -59,14 +61,15 @@ async function runCompleteDemo() {
   console.log('===================================================\n');
   
   try {
-          // Section 1: HD Wallet Implementation
+    
+    // Section 1: HD Wallet Implementation
     await demonstrateHDWallet();
     
-          // Section 2: Ed25519 Wallet
-          await demonstrateEd25519Wallet();
-    
-          // Section 3: Ed448 Wallet
-          await demonstrateEd448Wallet();
+    // Section 2: Ed25519 Wallet
+    await demonstrateEd25519Wallet();
+
+    // Section 3: Ed448 Wallet
+    await demonstrateEd448Wallet();
     
     // Section 4: BIP44 Compliance
     await demonstrateBIP44Compliance();
