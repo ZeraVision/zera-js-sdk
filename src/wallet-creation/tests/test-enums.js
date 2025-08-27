@@ -7,7 +7,7 @@ import {
   isValidKeyType,
   isValidHashType,
   isValidMnemonicLength
-} from './constants.js';
+} from '../constants.js';
 
 export function testEnumConstants() {
   console.log('🧪 Testing enum constants...');

@@ -6,7 +6,7 @@ import {
   buildDerivationPath,
   KEY_TYPE,
   HASH_TYPE
-} from './index.js';
+} from '../index.js';
 
 /**
  * Demo showcasing unified Ed25519 and Ed448 implementation

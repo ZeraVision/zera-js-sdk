@@ -4,7 +4,7 @@ import {
   generateWords,
   KEY_TYPE,
   HASH_TYPE
-} from './index.js';
+} from '../index.js';
 
 /**
  * Clean, simple example of the new unified wallet creation system

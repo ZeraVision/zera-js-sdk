@@ -4,7 +4,7 @@ import {
   buildDerivationPath,
   KEY_TYPE,
   HASH_TYPE
-} from './index.js';
+} from '../index.js';
 
 export async function testBasicFunctionality() {
   console.log('🧪 Testing basic wallet creation functionality...');

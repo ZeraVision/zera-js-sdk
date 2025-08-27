@@ -3,13 +3,13 @@ import {
   Ed25519KeyPair, 
   Ed448KeyPair, 
   CryptoUtils 
-} from './crypto-core.js';
+} from '../crypto-core.js';
 import { 
   generateMnemonicPhrase, 
   generateSeed, 
   buildDerivationPath 
-} from './hd-utils.js';
-import { KEY_TYPE, HASH_TYPE } from './constants.js';
+} from '../hd-utils.js';
+import { KEY_TYPE, HASH_TYPE } from '../constants.js';
 
 /**
  * Test BIP32 HD Wallet implementation

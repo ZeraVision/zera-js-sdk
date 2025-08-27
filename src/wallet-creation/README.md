@@ -11,7 +11,6 @@ A comprehensive, unified wallet creation system for the ZERA Network that suppor
 - **All BIP39 Lengths**: Support for 12, 15, 18, 21, and 24-word mnemonic phrases
 - **Flexible Derivation**: Customizable account, change, and address indices
 - **Comprehensive Error Handling**: Detailed error messages with error codes and context
-- **Backward Compatibility**: Maintains compatibility with existing wallet creation methods
 - **Type Safety**: Enum-based constants ensure valid key types and hash types
 
 ## Architecture
@@ -53,6 +52,34 @@ The final hash (after applying all hash functions) is encoded to base58, which b
 Examples:
 - `A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb` (Ed25519 + Blake3)
 - `B_b_a_5KJvsngHeMby884zrh6A5u6b4SqzZzAb` (Ed448 + SHA3-512 + SHA3-256)
+
+## Project Organization
+
+The project follows industry-standard organization:
+
+```
+src/wallet-creation/
+├── tests/           # Test files (automated testing)
+├── examples/        # Simple, focused examples
+├── demos/           # Comprehensive demonstrations
+├── *.js             # Source code and utilities
+└── README.md        # This file
+```
+
+### Running Examples and Demos
+
+```bash
+# Run examples (simple, focused)
+node examples/basic-usage.js
+
+# Run demos (comprehensive showcase)
+node demos/complete-showcase.js
+node demos/unified-curves.js
+node demos/enums-showcase.js
+
+# Run tests
+npm test -- --module=wallet-creation
+```
 
 ## Quick Start
 

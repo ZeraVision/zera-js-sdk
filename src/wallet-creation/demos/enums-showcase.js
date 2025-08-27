@@ -7,7 +7,7 @@ import {
   isValidKeyType,
   isValidHashType,
   isValidMnemonicLength
-} from './constants.js';
+} from '../constants.js';
 
 /**
  * Demonstration of the new enum-based system benefits

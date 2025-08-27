@@ -19,7 +19,7 @@ import {
   Ed25519KeyPair, 
   Ed448KeyPair, 
   CryptoUtils 
-} from './crypto-core.js';
+} from '../crypto-core.js';
 import { 
   generateMnemonicPhrase, 
   generateSeed, 
@@ -28,19 +28,19 @@ import {
   deriveMultipleAddresses,
   getHDWalletInfo,
   getExtendedKeyInfo
-} from './hd-utils.js';
+} from '../hd-utils.js';
 import { 
   createWallet, 
   deriveMultipleWallets,
   WalletFactory 
-} from './wallet-factory.js';
+} from '../wallet-factory.js';
 import { 
   hashData, 
   createHashChain, 
   createHMAC,
   getAllHashInfo,
   benchmarkHashAlgorithm 
-} from './hash-utils.js';
+} from '../hash-utils.js';
 import { 
   generateZeraAddress, 
   generateZeraPublicKeyFormat,
@@ -48,8 +48,8 @@ import {
   validatePublicKeyFormat,
   getWalletInfo,
   exportWallet
-} from './shared.js';
-import { KEY_TYPE, HASH_TYPE, ZERA_TYPE } from './constants.js';
+} from '../shared.js';
+import { KEY_TYPE, HASH_TYPE, ZERA_TYPE } from '../constants.js';
 
 /**
  * Main demonstration function
