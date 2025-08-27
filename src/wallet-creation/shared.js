@@ -37,32 +37,12 @@ export function generateZeraAddress(publicKey, keyType, hashTypes = []) {
     }
   }
 
-  // Apply hash chain to public key
+  // Apply hash chain to public key ONLY
   const hashedPublicKey = createHashChain(hashTypes, publicKey);
   
-  // Add key type prefix
-  const keyPrefix = KEY_TYPE_PREFIXES[keyType];
-  
-  // Add hash chain prefix
-  const hashPrefix = hashTypes.map(hashType => HASH_TYPE_PREFIXES[hashType]).join('');
-  
-  // Combine prefixes with hashed public key
-  const addressData = new Uint8Array(keyPrefix.length + hashPrefix.length + hashedPublicKey.length);
-  let offset = 0;
-  
-  // Add key type prefix
-  addressData.set(new TextEncoder().encode(keyPrefix), offset);
-  offset += keyPrefix.length;
-  
-  // Add hash chain prefix
-  addressData.set(new TextEncoder().encode(hashPrefix), offset);
-  offset += hashPrefix.length;
-  
-  // Add hashed public key
-  addressData.set(hashedPublicKey, offset);
-  
-  // Encode to base58
-  return bs58.encode(addressData);
+  // The address is ONLY the hashed public key - no prefixes
+  // Prefixes are for display/identification, not part of the actual address
+  return bs58.encode(hashedPublicKey);
 }
 
 /**

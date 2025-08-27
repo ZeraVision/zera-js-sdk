@@ -83,12 +83,7 @@ async function runCompleteDemo() {
     // Section 7: Advanced Features
     await demonstrateAdvancedFeatures();
     
-    console.log('\n🎉 Demo completed successfully!');
-    console.log('✅ All cryptographic operations are working with full BIP32/BIP44 compliance');
-    console.log('✅ Ed25519 is fully implemented using @noble/ed25519');
-    console.log('✅ Ed448 has proper interface for future implementation');
-    console.log('✅ No shortcuts, no placeholders in core functionality');
-    
+    console.log('\n🎉 Demo completed successfully!');    
   } catch (error) {
     console.error('❌ Demo failed:', error.message);
     console.error('Stack trace:', error.stack);
@@ -106,7 +101,7 @@ async function demonstrateHDWallet() {
   const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
   
-      console.log('✅ Generated 12-word BIP39 mnemonic');
+  console.log('✅ Generated 12-word BIP39 mnemonic');
   console.log('✅ Generated seed from mnemonic');
   
   // Create master node
@@ -190,9 +185,12 @@ async function demonstrateEd448Wallet() {
   console.log('🔐 Section 3: Ed448 Wallet');
   console.log('----------------------------------');
   
-  // Create Ed448 key pair from random private key
-  const privateKey = CryptoUtils.randomBytes(57); // Ed448 uses 57-byte private keys
-  const keyPair = Ed448KeyPair.fromPrivateKey(privateKey);
+  // Create Ed448 key pair from HD wallet (more secure than random bytes)
+  const ed448Mnemonic = generateMnemonicPhrase(12);
+  const ed448Seed = generateSeed(ed448Mnemonic);
+  const ed448HdNode = BIP32HDWallet.fromSeed(ed448Seed);
+  const ed448Bip44Node = ed448HdNode.derivePath('m/44\'/1110\'/0\'/0/0');
+  const keyPair = Ed448KeyPair.fromHDNode(ed448Bip44Node);
   
   console.log('✅ Created Ed448 key pair (placeholder implementation)');
   console.log('   Private key length:', keyPair.privateKey.length, 'bytes');

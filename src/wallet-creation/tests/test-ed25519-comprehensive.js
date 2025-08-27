@@ -31,7 +31,7 @@ async function testEd25519Comprehensive() {
     console.log('   ✅ Hash types:', ed25519Wallet.hashTypes);
     console.log('   ✅ Address:', ed25519Wallet.address.substring(0, 20) + '...');
     console.log('   ✅ Public key (bytes):', ed25519Wallet.publicKey.length, 'bytes');
-    console.log('   ✅ Private key (base58):', ed25519Wallet.privateKey.substring(0, 20) + '...');
+    console.log('   ✅ Private key (base58):', ed25519Wallet.privateKeyBase58.substring(0, 20) + '...');
     console.log('   ✅ Derivation path:', ed25519Wallet.derivationPath);
     console.log('   ✅ Extended private key:', ed25519Wallet.extendedPrivateKey.substring(0, 20) + '...');
     console.log('   ✅ Extended public key:', ed25519Wallet.extendedPublicKey.substring(0, 20) + '...');
