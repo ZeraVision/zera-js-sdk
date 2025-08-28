@@ -287,10 +287,8 @@ export function getExtendedKeyInfo(hdNode) {
     fingerprint: hdNode.getFingerprint(hdNode.curve),
     extendedPrivateKey: hdNode.getExtendedPrivateKey(),
     extendedPublicKey: hdNode.getExtendedPublicKey(),
-    derivationPath: buildDerivationPath({
-      accountIndex: hdNode.depth >= 3 ? hdNode.index : 0,
-      changeIndex: hdNode.depth >= 4 ? hdNode.index : 0,
-      addressIndex: hdNode.depth >= 5 ? hdNode.index : 0
-    })
+    derivationPath: hdNode.derivationPath, // Use the tracked derivation path
+    rawIndex: hdNode.getRawIndex(),
+    isHardened: hdNode.isHardened()
   };
 }

@@ -263,19 +263,13 @@ export function validatePublicKeyFormat(publicKeyFormat) {
   
   // Extract and validate key-type and hash-type prefixes
   // Format: [version][keyPrefix][hashPrefix][publicKey]
+  // Note: hashPrefix can be multiple characters when multiple hash types are used
   const keyPrefixStart = 1;
   const keyPrefixEnd = keyPrefixStart + 2; // Key prefixes are 2 characters (A_, B_)
-  const hashPrefixStart = keyPrefixEnd;
-  const hashPrefixEnd = hashPrefixStart + 1; // Hash prefixes are 1 character (a_, b_, c_)
-  const publicKeyStart = hashPrefixEnd;
   
-  // Extract prefixes
+  // Extract key prefix first
   const keyPrefixBytes = dataWithoutChecksum.slice(keyPrefixStart, keyPrefixEnd);
-  const hashPrefixBytes = dataWithoutChecksum.slice(hashPrefixStart, hashPrefixEnd);
-  
-  // Convert to strings for validation
   const keyPrefix = new TextDecoder().decode(keyPrefixBytes);
-  const hashPrefix = new TextDecoder().decode(hashPrefixBytes);
   
   // Validate key-type prefix
   const validKeyPrefixes = Object.values(KEY_TYPE_PREFIXES);
@@ -283,15 +277,55 @@ export function validatePublicKeyFormat(publicKeyFormat) {
     return false;
   }
   
-  // Validate hash-type prefix
+  // For hash prefixes, we need to find where the public key starts
+  // We know the total data length and can calculate the hash prefix length
+  const totalDataLength = dataWithoutChecksum.length;
+  const versionLength = 1;
+  const keyPrefixLength = 2;
+  
+  // Calculate expected public key length based on key type
+  const expectedKeyLength = keyPrefix === KEY_TYPE_PREFIXES[KEY_TYPE.ED25519] ? 32 : 57;
+  
+  // Calculate hash prefix length: total - version - keyPrefix - publicKey
+  const hashPrefixLength = totalDataLength - versionLength - keyPrefixLength - expectedKeyLength;
+  
+  if (hashPrefixLength < 0) {
+    return false; // Invalid data structure
+  }
+  
+  const hashPrefixStart = keyPrefixEnd;
+  const hashPrefixEnd = hashPrefixStart + hashPrefixLength;
+  const publicKeyStart = hashPrefixEnd;
+  
+  // Extract hash prefix
+  const hashPrefixBytes = dataWithoutChecksum.slice(hashPrefixStart, hashPrefixEnd);
+  const hashPrefix = new TextDecoder().decode(hashPrefixBytes);
+  
+  // Validate hash-type prefix by checking if it's composed of valid hash prefixes
+  // Multiple hash types can be concatenated (e.g., "ba" for SHA3-512 + SHA3-256)
   const validHashPrefixes = Object.values(HASH_TYPE_PREFIXES);
-  if (!validHashPrefixes.includes(hashPrefix)) {
+  let isValidHashPrefix = true;
+  
+  // Check if the hash prefix is composed of valid single-character prefixes
+  // Note: Each hash prefix is 2 characters (e.g., "a_", "b_", "c_")
+  for (let i = 0; i < hashPrefix.length; i += 2) {
+    if (i + 1 >= hashPrefix.length) {
+      isValidHashPrefix = false;
+      break;
+    }
+    const singleHashPrefix = hashPrefix[i] + hashPrefix[i + 1];
+    if (!validHashPrefixes.includes(singleHashPrefix)) {
+      isValidHashPrefix = false;
+      break;
+    }
+  }
+  
+  if (!isValidHashPrefix) {
     return false;
   }
   
-  // Validate public key length (should be 32 bytes for Ed25519, 57 bytes for Ed448)
+  // Validate public key length
   const publicKey = dataWithoutChecksum.slice(publicKeyStart);
-  const expectedKeyLength = keyPrefix === KEY_TYPE_PREFIXES[KEY_TYPE.ED25519] ? 32 : 57;
   if (publicKey.length !== expectedKeyLength) {
     return false;
   }

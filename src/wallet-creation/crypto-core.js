@@ -79,13 +79,14 @@ const ByteUtils = {
  * Full compliance with SLIP-0010 standard
  */
 export class SLIP0010HDWallet {
-  constructor(privateKey, chainCode, depth = 0, index = 0, parentFingerprint = 0x00000000, curve = 'ed25519') {
+  constructor(privateKey, chainCode, depth = 0, index = 0, parentFingerprint = 0x00000000, curve = 'ed25519', derivationPath = 'm') {
     this.privateKey = privateKey;
     this.chainCode = chainCode;
     this.depth = depth;
     this.index = index;
     this.parentFingerprint = parentFingerprint;
     this.curve = curve;
+    this.derivationPath = derivationPath; // Track the full derivation path
   }
 
   /**
@@ -103,7 +104,7 @@ export class SLIP0010HDWallet {
     const privateKey = hmacResult.slice(0, SLIP0010_PRIVATE_KEY_LENGTH);
     const chainCode = hmacResult.slice(SLIP0010_PRIVATE_KEY_LENGTH);
 
-    return new SLIP0010HDWallet(privateKey, chainCode, 0, 0, 0x00000000, curve);
+    return new SLIP0010HDWallet(privateKey, chainCode, 0, 0, 0x00000000, curve, 'm');
   }
 
   /**
@@ -134,8 +135,12 @@ export class SLIP0010HDWallet {
     const childDepth = this.depth + 1;
     const childFingerprint = this.getFingerprint(this.curve);
 
+    // Build the child's derivation path
+    const rawIndex = index; // Use the original (unhardened) index for the path
+    const childDerivationPath = `${this.derivationPath}/${rawIndex}'`;
+    
     // Store the hardened index directly to maintain consistency with derivation path
-    return new SLIP0010HDWallet(newPrivateKey, childChainCode, childDepth, hardenedIndex, childFingerprint, this.curve);
+    return new SLIP0010HDWallet(newPrivateKey, childChainCode, childDepth, hardenedIndex, childFingerprint, this.curve, childDerivationPath);
   }
 
   /**
