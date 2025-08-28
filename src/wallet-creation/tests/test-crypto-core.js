@@ -57,12 +57,32 @@ export async function testSLIP0010HDWallet() {
     console.log('   Path:', fullPath);
     console.log('   Final depth:', derivedNode.depth);
     
-    // Test 8: Extended keys
-    const xpriv = derivedNode.getExtendedPrivateKey();
-    const xpub = derivedNode.getExtendedPublicKey();
-    console.log('✅ Extended keys generated');
-    console.log('   xpriv length:', xpriv.length);
-    console.log('   xpub length:', xpub.length);
+         // Test 8: Extended keys with checksums
+     const xpriv = derivedNode.getExtendedPrivateKey();
+     const xpub = derivedNode.getExtendedPublicKey();
+     console.log('✅ Extended keys generated with checksums');
+     console.log('   xpriv length:', xpriv.length);
+     console.log('   xpub length:', xpub.length);
+     
+     // Test 8a: Verify checksums are present and valid
+     console.log('✅ Verifying extended key checksums...');
+     try {
+       const decodedXpriv = SLIP0010HDWallet.decodeExtendedPrivateKey(xpriv);
+       const decodedXpub = SLIP0010HDWallet.decodeExtendedPublicKey(xpub);
+       console.log('   ✅ Checksums validated successfully');
+       console.log('   ✅ xpriv index (should be hardened):', decodedXpriv.index.toString(16));
+       console.log('   ✅ xpub index (should be hardened):', decodedXpub.index.toString(16));
+       
+       // Verify that indices are properly hardened (should have high bit set)
+       const isHardened = (decodedXpriv.index & 0x80000000) !== 0;
+       console.log('   ✅ Indices preserve hardened bit:', isHardened);
+       
+       if (!isHardened) {
+         throw new Error('Extended key indices do not preserve hardened bit');
+       }
+     } catch (error) {
+       throw new Error(`Extended key checksum validation failed: ${error.message}`);
+     }
     
     // Test 9: Verify hardened vs unhardened indices produce different results
     console.log('✅ Testing hardened vs unhardened index differentiation...');

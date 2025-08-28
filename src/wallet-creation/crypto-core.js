@@ -184,6 +184,105 @@ export class SLIP0010HDWallet {
   }
 
   /**
+   * Calculate Base58Check checksum (4-byte double SHA256)
+   * @param {Uint8Array} data - Data to checksum
+   * @returns {Uint8Array} 4-byte checksum
+   */
+  calculateChecksum(data) {
+    const firstHash = sha256(data);
+    const secondHash = sha256(firstHash);
+    return secondHash.slice(0, 4);
+  }
+
+  /**
+   * Decode and validate extended private key with checksum verification
+   * @param {string} xpriv - Extended private key string
+   * @returns {Object} Decoded key data
+   * @throws {Error} If checksum validation fails
+   */
+  static decodeExtendedPrivateKey(xpriv) {
+    try {
+      const decoded = bs58.decode(xpriv);
+      
+      if (decoded.length !== 82) {
+        throw new Error('Invalid extended private key length (expected 82 bytes)');
+      }
+      
+      const data = decoded.slice(0, 78);
+      const checksum = decoded.slice(78);
+      
+      // Verify checksum
+      const expectedChecksum = new SLIP0010HDWallet().calculateChecksum(data);
+      if (!checksum.every((byte, i) => byte === expectedChecksum[i])) {
+        throw new Error('Extended private key checksum validation failed');
+      }
+      
+      // Parse the data
+      const version = ByteUtils.bytesToUint32(data.slice(0, 4), false);
+      const depth = data[4];
+      const parentFingerprint = ByteUtils.bytesToUint32(data.slice(5, 9), false);
+      const index = ByteUtils.bytesToUint32(data.slice(9, 13), false);
+      const chainCode = data.slice(13, 45);
+      const privateKey = data.slice(46, 78);
+      
+      return {
+        version,
+        depth,
+        parentFingerprint,
+        index,
+        chainCode,
+        privateKey
+      };
+    } catch (error) {
+      throw new Error(`Failed to decode extended private key: ${error.message}`);
+    }
+  }
+
+  /**
+   * Decode and validate extended public key with checksum verification
+   * @param {string} xpub - Extended public key string
+   * @returns {Object} Decoded key data
+   * @throws {Error} If checksum validation fails
+   */
+  static decodeExtendedPublicKey(xpub) {
+    try {
+      const decoded = bs58.decode(xpub);
+      
+      if (decoded.length !== 82) {
+        throw new Error('Invalid extended public key length (expected 82 bytes)');
+      }
+      
+      const data = decoded.slice(0, 78);
+      const checksum = decoded.slice(78);
+      
+      // Verify checksum
+      const expectedChecksum = new SLIP0010HDWallet().calculateChecksum(data);
+      if (!checksum.every((byte, i) => byte === expectedChecksum[i])) {
+        throw new Error('Extended public key checksum validation failed');
+      }
+      
+      // Parse the data
+      const version = ByteUtils.bytesToUint32(data.slice(0, 4), false);
+      const depth = data[4];
+      const parentFingerprint = ByteUtils.bytesToUint32(data.slice(5, 9), false);
+      const index = ByteUtils.bytesToUint32(data.slice(9, 13), false);
+      const chainCode = data.slice(13, 45);
+      const publicKey = data.slice(46, 79);
+      
+      return {
+        version,
+        depth,
+        parentFingerprint,
+        index,
+        chainCode,
+        publicKey
+      };
+    } catch (error) {
+      throw new Error(`Failed to decode extended public key: ${error.message}`);
+    }
+  }
+
+  /**
    * Get extended private key (SLIP-0010 format)
    * @returns {string} Extended private key
    */
@@ -200,8 +299,9 @@ export class SLIP0010HDWallet {
     // Parent fingerprint (4 bytes)
     data.set(ByteUtils.uint32ToBytes(this.parentFingerprint, false), 5);
     
-    // Index (4 bytes)
-    data.set(ByteUtils.uint32ToBytes(this.index, false), 9);
+    // Index (4 bytes) - Store the hardened index value, not the raw index
+    const hardenedIndex = this.index >= SLIP0010_HARDENED_OFFSET ? this.index : this.index + SLIP0010_HARDENED_OFFSET;
+    data.set(ByteUtils.uint32ToBytes(hardenedIndex, false), 9);
     
     // Chain code (32 bytes)
     data.set(this.chainCode, 13);
@@ -210,7 +310,13 @@ export class SLIP0010HDWallet {
     data[45] = 0x00;
     data.set(this.privateKey, 46);
     
-    return bs58.encode(data);
+    // Add Base58Check checksum (4-byte double SHA256)
+    const checksum = this.calculateChecksum(data);
+    const dataWithChecksum = new Uint8Array(82);
+    dataWithChecksum.set(data, 0);
+    dataWithChecksum.set(checksum, 78);
+    
+    return bs58.encode(dataWithChecksum);
   }
 
   /**
@@ -230,8 +336,9 @@ export class SLIP0010HDWallet {
     // Parent fingerprint (4 bytes)
     data.set(ByteUtils.uint32ToBytes(this.parentFingerprint, false), 5);
     
-    // Index (4 bytes)
-    data.set(ByteUtils.uint32ToBytes(this.index, false), 9);
+    // Index (4 bytes) - Store the hardened index value, not the raw index
+    const hardenedIndex = this.index >= SLIP0010_HARDENED_OFFSET ? this.index : this.index + SLIP0010_HARDENED_OFFSET;
+    data.set(ByteUtils.uint32ToBytes(hardenedIndex, false), 9);
     
     // Chain code (32 bytes)
     data.set(this.chainCode, 13);
@@ -240,7 +347,13 @@ export class SLIP0010HDWallet {
     const publicKey = this.getPublicKey();
     data.set(publicKey, 46);
     
-    return bs58.encode(data);
+    // Add Base58Check checksum (4-byte double SHA256)
+    const checksum = this.calculateChecksum(data);
+    const dataWithChecksum = new Uint8Array(82);
+    dataWithChecksum.set(data, 0);
+    dataWithChecksum.set(checksum, 78);
+    
+    return bs58.encode(dataWithChecksum);
   }
 }
 
