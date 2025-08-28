@@ -71,7 +71,7 @@ async function quickStart() {
     console.log(`   • Created ${3} Ed448 wallets with BLAKE3 hash`);
     console.log(`   • All wallets derived from the same 12-word mnemonic`);
     console.log(`   • Each wallet has a unique address and derivation path`);
-    console.log(`   • Full BIP44 compliance with hardened derivation`);
+    console.log(`   • Full SLIP-0010 compliance with hardened derivation`);
     console.log(`   • Extended keys (xpub/xpriv) for each wallet`);
     console.log('\n💡 You now have 6 fully functional HD wallets!');
 

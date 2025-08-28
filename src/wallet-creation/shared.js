@@ -145,7 +145,7 @@ export function generateZeraPublicKeyFormat(publicKey, keyType, hashTypes = []) 
  * @param {string} publicKeyFormat - ZERA public key format
  * @param {number} coinType - Coin type (SLIP44)
  * @param {string} symbol - Coin symbol
- * @param {string} derivationPath - BIP44 derivation path
+ * @param {string} derivationPath - SLIP-0010 hardened derivation path
  * @param {string} keyType - Key type used
  * @param {Array<string>} hashTypes - Hash types used
  * @returns {Object} Base wallet object

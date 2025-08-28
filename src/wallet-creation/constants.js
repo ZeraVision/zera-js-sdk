@@ -1,3 +1,20 @@
+/**
+ * ZERA Wallet Creation Constants
+ * 
+ * IMPORTANT: Naming and Implementation Clarification
+ * 
+ * This implementation uses SLIP-0010 hardened derivation paths, NOT BIP44.
+ * While both standards use purpose 44', they differ significantly:
+ * 
+ * BIP44: Allows both hardened (') and normal derivation
+ * SLIP-0010: Requires ALL components to be hardened (') for Ed25519/Ed448 curves
+ * 
+ * Our paths: m/44'/1110'/0'/0'/0' (all hardened)
+ * BIP44 equivalent: m/44/1110/0/0/0 (mixed hardened/normal)
+ * 
+ * This distinction is critical for Ed25519/Ed448 security and compatibility.
+ */
+
 // ZERA Network constants
 export const ZERA_TYPE = 1110; // SLIP44 coin type for ZRA
 export const ZERA_TYPE_HEX = '0x80000456';
@@ -5,6 +22,8 @@ export const ZERA_SYMBOL = 'ZRA';
 export const ZERA_NAME = 'ZERA';
 
 // SLIP-0010 derivation path for Ed25519/Ed448 (fully hardened)
+// Note: While this uses purpose 44' (BIP44 structure), it follows SLIP-0010 
+// which requires all components to be hardened for Ed25519/Ed448 curves
 export const DERIVATION_PATH = `m/44'/${ZERA_TYPE}'/0'/0'/0'`;
 
 // Legacy name for backward compatibility

@@ -81,8 +81,8 @@ async function testEd448Implementation() {
     }
     console.log('');
 
-    // Test 4: BIP44 compliance verification
-    console.log('4️⃣ BIP44 Compliance Verification...');
+    // Test 4: SLIP-0010 compliance verification
+console.log('4️⃣ SLIP-0010 Compliance Verification...');
     const complianceChecks = [
       { name: 'Purpose (44)', value: '44', hardened: true },
       { name: 'Coin Type (1110)', value: '1110', hardened: true },
@@ -129,7 +129,7 @@ async function testEd448Implementation() {
 
     console.log('🎉 ED448 implementation test completed successfully!');
     console.log('\n📊 ED448 Implementation Summary:');
-    console.log('   ✅ Full BIP44 compliance with hardened derivation');
+    console.log('   ✅ Full SLIP-0010 compliance with hardened derivation');
     console.log('   ✅ Proper key expansion from 32-byte SLIP-0010 to 57-byte Ed448');
     console.log('   ✅ Deterministic key generation using HMAC-SHA512');
     console.log('   ✅ Extended key support (xpub/xpriv)');

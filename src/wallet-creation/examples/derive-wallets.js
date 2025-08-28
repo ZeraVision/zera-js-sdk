@@ -4,7 +4,7 @@
  * Derive Multiple Wallets Example
  * 
  * Shows how to create wallet 1, 2, and 3 from the same mnemonic
- * Each wallet has a different address index in the BIP44 path
+ * Each wallet has a different address index in the SLIP-0010 hardened path
  */
 
 import { createWallet, deriveMultipleWallets, generateWords, KEY_TYPE, HASH_TYPE } from '../index.js';
@@ -86,8 +86,8 @@ async function deriveWalletsExample() {
     console.log(`\n🔍 Verification: ${addresses.length} wallets, ${uniqueAddresses.size} unique addresses`);
     console.log('✅ All wallets have different addresses (derivation working correctly)');
     
-    // Show the BIP44 path structure
-    console.log('\n🛣️ BIP44 Derivation Path Structure:');
+    // Show the SLIP-0010 hardened path structure
+console.log('\n🛣️ SLIP-0010 Hardened Derivation Path Structure:');
     console.log('   m/44\'/1110\'/0\'/0/0  ← Wallet 1 (Address Index 0)');
     console.log('   m/44\'/1110\'/0\'/0/1  ← Wallet 2 (Address Index 1)');
     console.log('   m/44\'/1110\'/0\'/0/2  ← Wallet 3 (Address Index 2)');
@@ -96,7 +96,7 @@ async function deriveWalletsExample() {
     console.log('   │ │   │   │ └─── Change (0 = external, 1 = internal)');
     console.log('   │ │   │   └───── Account Index (hardened)');
     console.log('   │ │   └───────── Coin Type 1110 (ZERA)');
-    console.log('   │ └───────────── Purpose 44 (BIP44)');
+    console.log('   │ └───────────── Purpose 44 (SLIP-0010 hardened)');
     console.log('   └─────────────── Master Node');
     
     console.log('\n🎉 Example completed!');

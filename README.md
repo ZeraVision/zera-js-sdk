@@ -179,7 +179,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - **Issues**: Create an issue on GitHub
 - **Documentation**: Check the [TESTING.md](TESTING.md) for detailed testing information
-- **BIP Compliance**: See [BIP44_COMPLIANCE_REPORT.md](BIP44_COMPLIANCE_REPORT.md)
+- **Standards Compliance**: See [STANDARDS_COMPLIANCE.md](STANDARDS_COMPLIANCE.md)
 
 ## 🔄 Migration from CommonJS
 

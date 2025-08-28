@@ -81,8 +81,8 @@ async function testEd25519Comprehensive() {
     }
     console.log('');
 
-    // Test 4: BIP44 compliance verification
-    console.log('4️⃣ BIP44 Compliance Verification...');
+    // Test 4: SLIP-0010 compliance verification
+console.log('4️⃣ SLIP-0010 Compliance Verification...');
     const complianceChecks = [
       { name: 'Purpose (44)', value: '44', hardened: true },
       { name: 'Coin Type (1110)', value: '1110', hardened: true },
@@ -116,7 +116,7 @@ async function testEd25519Comprehensive() {
 
     console.log('🎉 ED25519 comprehensive test completed successfully!');
     console.log('\n📊 ED25519 Implementation Summary:');
-    console.log('   ✅ Full BIP44 compliance with hardened derivation');
+    console.log('   ✅ Full SLIP-0010 compliance with hardened derivation');
     console.log('   ✅ Native 32-byte key support (no expansion needed)');
     console.log('   ✅ Deterministic key generation');
     console.log('   ✅ Extended key support (xpub/xpriv)');

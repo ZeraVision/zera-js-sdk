@@ -76,12 +76,12 @@ export class ZeraWallet {
   }
 
   /**
-   * Build BIP44 derivation path for ZERA
+   * Build SLIP-0010 hardened derivation path for ZERA
    * @param {Object} options - Derivation options
    * @param {number} options.accountIndex - Account index (default: 0)
    * @param {number} options.changeIndex - Change index (0 for external, 1 for internal) (default: 0)
    * @param {number} options.addressIndex - Address index (default: 0)
-   * @returns {string} Derivation path
+   * @returns {string} SLIP-0010 hardened derivation path
    */
   buildDerivationPath(options = {}) {
     return buildDerivationPath(options);

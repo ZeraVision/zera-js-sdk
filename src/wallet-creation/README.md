@@ -2,6 +2,84 @@
 
 A comprehensive, unified wallet creation system for the ZERA Network that supports multiple key types, hash algorithms, and HD wallet functionality following SLIP-0010 standards.
 
+## Overview
+
+The `wallet-creation` module is the core component of the ZERA SDK responsible for generating, importing, and managing cryptographic wallets. It provides a unified interface for creating wallets using different cryptographic curves (Ed25519/Ed448) and hash algorithms (SHA3-256, SHA3-512, Blake3).
+
+**Important Security Note**: This SDK intentionally exposes seed phrases and private keys in the wallet object for development and testing purposes. In production environments, these should be handled with appropriate security measures.
+
+## Standards Used
+
+The wallet creation system implements several industry standards with intentional modifications for Ed25519/Ed448 compatibility:
+
+- **BIP39**: Mnemonic phrase generation and validation (12, 15, 18, 21, 24 words)
+- **BIP44-style hierarchical paths**: Uses purpose 44' with coin type 1110' for ZERA
+- **SLIP-0010**: Hierarchical deterministic wallet structure for Ed25519/Ed448 curves
+- **SLIP44**: Coin type 1110 for ZERA network identification
+
+## Derivation Path Structure
+
+The default derivation path follows SLIP-0010 with BIP44-style structure:
+
+```
+m/44'/1110'/account'/change'/address'
+```
+
+### Path Components
+
+- **Purpose (44')**: Indicates BIP44-style hierarchical structure
+- **Coin Type (1110')**: ZERA network identifier (SLIP44 standard)
+- **Account (0')**: Account index for multi-account wallets
+- **Change (0' or 1')**: 0' for external addresses, 1' for internal/change addresses
+- **Address Index (0')**: Sequential address index within the account
+
+**Note**: All components use hardened derivation (') for Ed25519/Ed448 security.
+
+## Intentional Divergences from Standards
+
+### Full Hardening Requirement
+
+Unlike BIP44 which allows mixed hardened/normal derivation, this implementation uses **fully hardened paths** due to Ed25519/Ed448 limitations:
+
+- **BIP44 standard**: `m/44/1110/0/0/0` (mixed hardened/normal)
+- **Our implementation**: `m/44'/1110'/0'/0'/0'` (all hardened)
+
+This is **not BIP44 compliant** but follows SLIP-0010 requirements for Ed25519/Ed448 curves.
+
+### Custom Seed Label
+
+The system uses "ZERA seed" instead of the standard "ed25519 seed" for key derivation, providing network-specific identification.
+
+### Rationale for Divergences
+
+1. **Security**: Ed25519/Ed448 require full hardening to prevent public key derivation attacks
+2. **Compatibility**: SLIP-0010 is the appropriate standard for these curves
+3. **Network Identity**: Custom seed labeling provides ZERA-specific identification
+
+## Security Notes
+
+### Exposed Wallet Material
+
+This SDK intentionally exposes sensitive wallet material in memory for development purposes:
+
+- **Seed phrases**: Visible in wallet objects for testing and debugging
+- **Private keys**: Accessible for cryptographic operations
+- **Derivation paths**: Fully visible for transparency
+
+**Production Considerations**:
+- Implement secure key storage (hardware wallets, secure enclaves)
+- Use environment variables for sensitive configuration
+- Consider key derivation without full material exposure
+- Implement proper key rotation and backup procedures
+
+### Hardening Benefits
+
+Full path hardening provides several security advantages:
+
+- **Prevents public derivation**: Child keys cannot be derived from parent public keys alone
+- **Enhanced privacy**: Addresses cannot be linked through public key analysis
+- **Attack resistance**: Protects against certain cryptographic attacks
+
 ## Features
 
 - **Multiple Key Types**: Support for Ed25519 and Ed448 cryptographic curves
@@ -264,17 +342,33 @@ See `example.js` for comprehensive usage examples including:
 - HD wallet derivation
 - Error handling demonstrations
 
-## SLIP-0010 Implementation
+## Standards Compliance
+
+### SLIP-0010 Implementation
 
 The system implements SLIP-0010 standard with ZERA coin type (1110):
 
-- **Purpose**: 44' (BIP44 structure)
+- **Purpose**: 44' (SLIP-0010 hardened structure)
 - **Coin Type**: 1110' (ZERA)
 - **Account**: 0' (configurable)
-- **Change**: 0 or 1 (external/internal)
-- **Address Index**: 0+ (configurable)
+- **Change**: 0' or 1' (external/internal, both hardened)
+- **Address Index**: 0' (configurable, always hardened)
 
 Default path: `m/44'/1110'/0'/0'/0'` (all hardened for Ed25519/Ed448)
+
+### BIP39 Compliance
+
+- Full support for all standard mnemonic lengths (12, 15, 18, 21, 24 words)
+- Passphrase support for additional entropy
+- Industry-standard wordlist and validation
+
+### BIP44 vs SLIP-0010 Clarification
+
+While the path structure follows BIP44 format (`m/44'/coin'/account'/change'/address'`), the implementation strictly follows SLIP-0010 requirements:
+
+- **BIP44**: Allows mixed hardened/normal derivation
+- **SLIP-0010**: Requires full hardening for Ed25519/Ed448 curves
+- **Our Implementation**: SLIP-0010 compliant with BIP44-style path structure
 
 ## Security Features
 
@@ -333,6 +427,42 @@ Using the enum constants provides several benefits:
 3. **Runtime Validation**: Built-in validation ensures only valid types are accepted
 4. **Maintainability**: Centralized constants make updates easier
 5. **Documentation**: Constants serve as living documentation
+
+## Glossary
+
+### Cryptographic Terms
+
+- **Ed25519**: Elliptic curve digital signature algorithm using Curve25519
+- **Ed448**: Elliptic curve digital signature algorithm using Curve448
+- **Hardened Derivation**: Key derivation where parent public key cannot derive child keys (indicated by ')
+- **Hierarchical Deterministic (HD) Wallet**: Wallet that can derive multiple keys from a single seed
+- **Mnemonic Phrase**: Sequence of words used to generate a cryptographic seed
+- **Seed**: Byte array derived from mnemonic, used as root for HD key derivation
+- **SLIP-0010**: Standard for HD wallets using Ed25519/Ed448 curves
+- **BIP44**: Bitcoin Improvement Proposal defining multi-account HD wallet structure
+- **BIP39**: Bitcoin Improvement Proposal defining mnemonic generation
+
+### Path Components
+
+- **Purpose**: First component indicating wallet structure (44' for BIP44-style)
+- **Coin Type**: Network identifier (1110' for ZERA)
+- **Account**: Multi-account wallet index
+- **Change**: Address type (0' for external, 1' for internal)
+- **Address Index**: Sequential address within account
+
+## References
+
+### Standards Documentation
+
+- [BIP39 - Mnemonic Generation](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki)
+- [BIP44 - Multi-Account HD Wallet Structure](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)
+- [SLIP-0010 - HD Wallet for Ed25519/Ed448](https://github.com/satoshilabs/slips/blob/master/slip-0010.md)
+- [SLIP44 - Registered Coin Types](https://github.com/satoshilabs/slips/blob/master/slip-0044.md)
+
+### ZERA Documentation
+
+- [Standards Compliance Report](../STANDARDS_COMPLIANCE.md) - Detailed compliance analysis
+- [Naming Clarity Update](../NAMING_CLARITY_UPDATE.md) - BIP44 vs SLIP-0010 clarification
 
 ## Contributing
 

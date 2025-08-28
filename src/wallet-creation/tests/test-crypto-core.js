@@ -243,7 +243,7 @@ export async function testEd448() {
 }
 
 /**
- * Test BIP44 compliance
+ * Test SLIP-0010 compliance
  */
 export async function testSLIP0010Compliance() {
   console.log('\n🧪 Testing SLIP-0010 Compliance...');

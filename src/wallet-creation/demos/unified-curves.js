@@ -10,12 +10,12 @@ import {
 
 /**
  * Demo showcasing unified Ed25519 and Ed448 implementation
- * using @noble/curves library with full BIP44 compliance
+ * using @noble/curves library with full SLIP-0010 compliance
  */
 async function demoUnifiedCurves() {
   console.log('🚀 ZERA JS SDK - Unified Ed25519 & Ed448 Demo\n');
   console.log('📚 Using @noble/curves for both curve implementations');
-  console.log('🔐 Full BIP44 compliance with hardened derivation\n');
+  console.log('🔐 Full SLIP-0010 compliance with hardened derivation\n');
 
   try {
     // ========================================
@@ -116,9 +116,9 @@ async function demoUnifiedCurves() {
     console.log();
 
     // ========================================
-    // 5. BIP44 Compliance Verification
+    // 5. SLIP-0010 Compliance Verification
     // ========================================
-    console.log('✅ BIP44 Compliance Verification...');
+    console.log('✅ SLIP-0010 Compliance Verification...');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     const complianceChecks = [
@@ -180,7 +180,7 @@ async function demoUnifiedCurves() {
       'Ed448 Support': '✅ Full production-ready',
       'SLIP-0010 Compliance': '✅ Full HD wallet support',
       'BIP39 Compliance': '✅ Mnemonic generation & validation',
-      'BIP44 Compliance': '✅ Multi-account structure',
+      'SLIP-0010 Compliance': '✅ Multi-account structure (hardened)',
       'Key Derivation': '✅ Hardened & normal paths',
       'Extended Keys': '✅ xpub/xpriv support',
       'Hash Algorithms': '✅ SHA3-256, SHA3-512, BLAKE3',
@@ -193,7 +193,7 @@ async function demoUnifiedCurves() {
     
     console.log('\n🎉 Demo completed successfully!');
     console.log('✨ Both Ed25519 and Ed448 are now fully functional using @noble/curves');
-    console.log('🔐 Full BIP44 compliance achieved with production-ready cryptography');
+    console.log('🔐 Full SLIP-0010 compliance achieved with production-ready cryptography');
     
   } catch (error) {
     console.error('❌ Demo failed:', error.message);

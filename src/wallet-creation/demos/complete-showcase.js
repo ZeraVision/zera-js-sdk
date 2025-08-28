@@ -71,8 +71,8 @@ async function runCompleteDemo() {
     // Section 3: Ed448 Wallet
     await demonstrateEd448Wallet();
     
-    // Section 4: BIP44 Compliance
-    await demonstrateBIP44Compliance();
+    // Section 4: SLIP-0010 Compliance
+await demonstrateSLIP0010Compliance();
     
     // Section 5: Hash Algorithms
     await demonstrateHashAlgorithms();
@@ -220,17 +220,17 @@ async function demonstrateEd448Wallet() {
 }
 
 /**
- * Demonstrate BIP44 compliance
+ * Demonstrate SLIP-0010 compliance
  */
-async function demonstrateBIP44Compliance() {
-  console.log('🛣️ Section 4: BIP44 Compliance');
+async function demonstrateSLIP0010Compliance() {
+  console.log('🛣️ Section 4: SLIP-0010 Compliance');
   console.log('--------------------------------');
   
   const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
   const masterNode = SLIP0010HDWallet.fromSeed(seed);
   
-  console.log('✅ BIP44 compliance verification');
+  console.log('✅ SLIP-0010 compliance verification');
   
   // Derive multiple accounts (SLIP-0010: all components hardened)
   const accounts = [];

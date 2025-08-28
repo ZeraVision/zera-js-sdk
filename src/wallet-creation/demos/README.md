@@ -8,7 +8,7 @@ This folder contains comprehensive demonstrations showcasing the full capabiliti
   - SLIP-0010 HD Wallet implementation
   - Ed25519 implementation
   - Ed448 implementation
-  - BIP44 compliance demonstration
+  - SLIP-0010 compliance demonstration
   - Hash algorithms showcase
   - Complete wallet creation workflow
   - Advanced features demonstration
