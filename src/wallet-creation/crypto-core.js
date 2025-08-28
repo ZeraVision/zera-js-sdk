@@ -131,7 +131,8 @@ export class SLIP0010HDWallet {
     const childDepth = this.depth + 1;
     const childFingerprint = this.getFingerprint();
 
-    return new SLIP0010HDWallet(newPrivateKey, childChainCode, childDepth, index, childFingerprint);
+    // Store the hardened index directly to maintain consistency with derivation path
+    return new SLIP0010HDWallet(newPrivateKey, childChainCode, childDepth, hardenedIndex, childFingerprint);
   }
 
   /**
@@ -158,7 +159,7 @@ export class SLIP0010HDWallet {
       }
 
       // SLIP-0010 requires all indices to be hardened
-      // Pass the raw index, derive() will ensure it's hardened
+      // Pass the raw index, derive() will ensure it's hardened and store the hardened value
       current = current.derive(index);
     }
 
@@ -181,6 +182,22 @@ export class SLIP0010HDWallet {
     const publicKey = this.getPublicKey();
     const hash = ripemd160(sha256(publicKey));
     return ByteUtils.bytesToUint32(hash.slice(0, 4), false);
+  }
+
+  /**
+   * Get the raw (unhardened) index for display purposes
+   * @returns {number} Raw index without hardened bit
+   */
+  getRawIndex() {
+    return this.index >= SLIP0010_HARDENED_OFFSET ? this.index - SLIP0010_HARDENED_OFFSET : this.index;
+  }
+
+  /**
+   * Check if the current index is hardened
+   * @returns {boolean} True if hardened
+   */
+  isHardened() {
+    return (this.index & SLIP0010_HARDENED_OFFSET) !== 0;
   }
 
   /**
@@ -299,9 +316,8 @@ export class SLIP0010HDWallet {
     // Parent fingerprint (4 bytes)
     data.set(ByteUtils.uint32ToBytes(this.parentFingerprint, false), 5);
     
-    // Index (4 bytes) - Store the hardened index value, not the raw index
-    const hardenedIndex = this.index >= SLIP0010_HARDENED_OFFSET ? this.index : this.index + SLIP0010_HARDENED_OFFSET;
-    data.set(ByteUtils.uint32ToBytes(hardenedIndex, false), 9);
+    // Index (4 bytes) - The stored index is already hardened
+    data.set(ByteUtils.uint32ToBytes(this.index, false), 9);
     
     // Chain code (32 bytes)
     data.set(this.chainCode, 13);
@@ -336,9 +352,8 @@ export class SLIP0010HDWallet {
     // Parent fingerprint (4 bytes)
     data.set(ByteUtils.uint32ToBytes(this.parentFingerprint, false), 5);
     
-    // Index (4 bytes) - Store the hardened index value, not the raw index
-    const hardenedIndex = this.index >= SLIP0010_HARDENED_OFFSET ? this.index : this.index + SLIP0010_HARDENED_OFFSET;
-    data.set(ByteUtils.uint32ToBytes(hardenedIndex, false), 9);
+    // Index (4 bytes) - The stored index is already hardened
+    data.set(ByteUtils.uint32ToBytes(this.index, false), 9);
     
     // Chain code (32 bytes)
     data.set(this.chainCode, 13);

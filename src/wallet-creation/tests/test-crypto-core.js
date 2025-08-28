@@ -28,11 +28,13 @@ export async function testSLIP0010HDWallet() {
     console.log('   Index:', masterNode.index);
     console.log('   Fingerprint:', masterNode.getFingerprint().toString(16));
     
-    // Test 2: Derive hardened child (SLIP-0010 purpose)
-    const purposeNode = masterNode.derive(44 + 0x80000000);
-    console.log('✅ Purpose node derived (44\')');
-    console.log('   Depth:', purposeNode.depth);
-    console.log('   Index:', purposeNode.index);
+         // Test 2: Derive hardened child (SLIP-0010 purpose)
+     const purposeNode = masterNode.derive(44 + 0x80000000);
+     console.log('✅ Purpose node derived (44\')');
+     console.log('   Depth:', purposeNode.depth);
+     console.log('   Stored index (should be hardened):', purposeNode.index.toString(16));
+     console.log('   Raw index:', purposeNode.getRawIndex());
+     console.log('   Is hardened:', purposeNode.isHardened());
     
     // Test 3: Derive coin type (ZERA = 1110)
     const coinTypeNode = purposeNode.derive(1110 + 0x80000000);
@@ -71,7 +73,7 @@ export async function testSLIP0010HDWallet() {
        const decodedXpub = SLIP0010HDWallet.decodeExtendedPublicKey(xpub);
        console.log('   ✅ Checksums validated successfully');
        console.log('   ✅ xpriv index (should be hardened):', decodedXpriv.index.toString(16));
-       console.log('   ✅ xpub index (should be hardened):', decodedXpub.index.toString(16));
+       console.log('   ✅ xpub index (should be hardened):', decodedXpriv.index.toString(16));
        
        // Verify that indices are properly hardened (should have high bit set)
        const isHardened = (decodedXpriv.index & 0x80000000) !== 0;
@@ -80,6 +82,19 @@ export async function testSLIP0010HDWallet() {
        if (!isHardened) {
          throw new Error('Extended key indices do not preserve hardened bit');
        }
+       
+       // Test 8b: Verify internal state consistency
+       console.log('   ✅ Internal state consistency check...');
+       console.log('     Stored index:', derivedNode.index.toString(16));
+       console.log('     Raw index:', derivedNode.getRawIndex());
+       console.log('     Is hardened:', derivedNode.isHardened());
+       
+       // The stored index should match the decoded extended key index
+       if (derivedNode.index !== decodedXpriv.index) {
+         throw new Error('Internal stored index does not match extended key index');
+       }
+       
+       console.log('     ✅ Internal state is consistent with extended keys');
      } catch (error) {
        throw new Error(`Extended key checksum validation failed: ${error.message}`);
      }
