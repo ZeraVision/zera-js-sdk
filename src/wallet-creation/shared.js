@@ -3,6 +3,7 @@ import {
   HASH_TYPE, 
   KEY_TYPE_PREFIXES, 
   HASH_TYPE_PREFIXES,
+  ADDRESS_VERSIONS,
   isValidKeyType,
   isValidHashType
 } from './constants.js';
@@ -37,12 +38,22 @@ export function generateZeraAddress(publicKey, keyType, hashTypes = []) {
     }
   }
 
-  // Apply hash chain to public key ONLY
+  // Apply hash chain to public key
   const hashedPublicKey = createHashChain(hashTypes, publicKey);
   
-  // The address is ONLY the hashed public key - no prefixes
-  // Prefixes are for display/identification, not part of the actual address
-  return bs58.encode(hashedPublicKey);
+  // Get network version byte for this key type to prevent cross-chain collisions
+  const versionByte = ADDRESS_VERSIONS[keyType];
+  if (versionByte === undefined) {
+    throw new Error(`No address version defined for key type: ${keyType}`);
+  }
+  
+  // Create address with version byte: [version][hashed_public_key]
+  const addressBytes = new Uint8Array(1 + hashedPublicKey.length);
+  addressBytes[0] = versionByte;
+  addressBytes.set(hashedPublicKey, 1);
+  
+  // Encode to base58 with version byte included
+  return bs58.encode(addressBytes);
 }
 
 /**
@@ -72,15 +83,25 @@ export function generateZeraPublicKeyFormat(publicKey, keyType, hashTypes = []) 
     }
   }
 
+  // Get network version byte for this key type
+  const versionByte = ADDRESS_VERSIONS[keyType];
+  if (versionByte === undefined) {
+    throw new Error(`No address version defined for key type: ${keyType}`);
+  }
+  
   // Add key type prefix
   const keyPrefix = KEY_TYPE_PREFIXES[keyType];
   
   // Add hash chain prefix
   const hashPrefix = hashTypes.map(hashType => HASH_TYPE_PREFIXES[hashType]).join('');
   
-  // Combine prefixes with public key
-  const formatData = new Uint8Array(keyPrefix.length + hashPrefix.length + publicKey.length);
+  // Combine version byte, prefixes, and public key
+  const formatData = new Uint8Array(1 + keyPrefix.length + hashPrefix.length + publicKey.length);
   let offset = 0;
+  
+  // Add version byte first
+  formatData[offset] = versionByte;
+  offset += 1;
   
   // Add key type prefix
   formatData.set(new TextEncoder().encode(keyPrefix), offset);

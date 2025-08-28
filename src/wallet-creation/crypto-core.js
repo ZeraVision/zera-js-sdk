@@ -45,31 +45,26 @@ const ByteUtils = {
    * Generate cryptographically secure random bytes
    * @param {number} length - Number of bytes to generate
    * @returns {Uint8Array} Random bytes
+   * @throws {Error} If no secure random source is available
    */
   randomBytes(length) {
     const array = new Uint8Array(length);
     
     try {
       if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-        // Browser environment
+        // Browser environment - use Web Crypto API
         crypto.getRandomValues(array);
       } else if (typeof require !== 'undefined') {
-        // Node.js environment
+        // Node.js environment - use crypto.randomFillSync
         const nodeCrypto = require('crypto');
         nodeCrypto.randomFillSync(array);
       } else {
-        // Fallback - generate pseudo-random bytes (NOT cryptographically secure)
-        for (let i = 0; i < length; i++) {
-          array[i] = Math.floor(Math.random() * 256);
-        }
-        console.warn('Warning: Using Math.random() fallback - not cryptographically secure');
+        // No secure random source available - fail explicitly
+        throw new Error('No cryptographically secure random source available. This environment is not suitable for cryptographic operations.');
       }
     } catch (error) {
-      console.error('Error generating random bytes:', error);
-      // Fallback to pseudo-random
-      for (let i = 0; i < length; i++) {
-        array[i] = Math.floor(Math.random() * 256);
-      }
+      // Re-throw the error to prevent insecure fallbacks
+      throw new Error(`Failed to generate secure random bytes: ${error.message}. This environment is not suitable for cryptographic operations.`);
     }
     
     return array;
