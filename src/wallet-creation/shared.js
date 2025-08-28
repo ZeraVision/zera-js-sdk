@@ -177,7 +177,7 @@ export function createBaseWallet(
     hashTypes,
     createdAt: new Date().toISOString(),
     version: '1.0.0',
-    standard: 'BIP32 + BIP39 + BIP44 + SLIP44'
+    standard: 'BIP32 + BIP39 + SLIP-0010 + SLIP44'
   };
 }
 
@@ -254,7 +254,7 @@ export function validatePublicKeyFormat(publicKeyFormat) {
       return false;
     }
     
-      // Verify version byte is valid
+  // Verify version byte is valid
   const versionByte = dataWithoutChecksum[0];
   const validVersions = Object.values(ADDRESS_VERSIONS);
   if (!validVersions.includes(versionByte)) {

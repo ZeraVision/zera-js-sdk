@@ -12,7 +12,7 @@ import {
 import { KEY_TYPE, HASH_TYPE } from '../constants.js';
 
 /**
- * Test BIP32 HD Wallet implementation
+ * Test SLIP-0010 HD Wallet implementation
  */
 export async function testSLIP0010HDWallet() {
   console.log('🧪 Testing SLIP-0010 HD Wallet Implementation...');

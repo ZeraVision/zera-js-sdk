@@ -178,7 +178,7 @@ async function demoUnifiedCurves() {
       'Library Used': '@noble/curves (unified)',
       'Ed25519 Support': '✅ Full production-ready',
       'Ed448 Support': '✅ Full production-ready',
-      'BIP32 Compliance': '✅ Full HD wallet support',
+      'SLIP-0010 Compliance': '✅ Full HD wallet support',
       'BIP39 Compliance': '✅ Mnemonic generation & validation',
       'BIP44 Compliance': '✅ Multi-account structure',
       'Key Derivation': '✅ Hardened & normal paths',

@@ -6,16 +6,16 @@
  * This demo showcases the 100% complete implementation of:
  * ✅ Ed25519 using @noble/ed25519 library
  * ✅ Ed448 (placeholder implementation with proper interface)
- * ✅ Full BIP32 HD Wallet implementation
+ * ✅ Full SLIP-0010 HD Wallet implementation
  * ✅ Full BIP39 mnemonic support
- * ✅ Full BIP44 compliance with hardened derivation
- * ✅ Extended keys (xpub/xpriv) in BIP32 format
+ * ✅ Full SLIP-0010 compliance with hardened derivation
+ * ✅ Extended keys (xpub/xpriv) in SLIP-0010 format
  * ✅ Multiple hash algorithms (SHA3-256, SHA3-512, BLAKE3)
  * ✅ Proper cryptographic security
  */
 
 import { 
-  BIP32HDWallet, 
+  SLIP0010HDWallet, 
   Ed25519KeyPair, 
   Ed448KeyPair, 
   CryptoUtils 
@@ -105,20 +105,20 @@ async function demonstrateHDWallet() {
   console.log('✅ Generated seed from mnemonic');
   
   // Create master node
-  const masterNode = BIP32HDWallet.fromSeed(seed);
+  const masterNode = SLIP0010HDWallet.fromSeed(seed);
   console.log('✅ Created master HD wallet node');
   console.log('   Depth:', masterNode.depth);
   console.log('   Index:', masterNode.index);
   console.log('   Fingerprint:', masterNode.getFingerprint().toString(16));
   
-  // Demonstrate derivation
-  const purposeNode = masterNode.derive(44 + 0x80000000); // 44' (hardened)
-  const coinTypeNode = purposeNode.derive(1110 + 0x80000000); // 1110' (hardened)
-  const accountNode = coinTypeNode.derive(0 + 0x80000000); // 0' (hardened)
-  const changeNode = accountNode.derive(0); // 0 (normal)
-  const addressNode = changeNode.derive(0); // 0 (normal)
+  // Demonstrate derivation (SLIP-0010: all components hardened)
+  const purposeNode = masterNode.derive(44); // 44' (hardened)
+  const coinTypeNode = purposeNode.derive(1110); // 1110' (hardened)
+  const accountNode = coinTypeNode.derive(0); // 0' (hardened)
+  const changeNode = accountNode.derive(0); // 0' (hardened)
+  const addressNode = changeNode.derive(0); // 0' (hardened)
   
-  console.log('✅ Derived full BIP44 path: m/44\'/1110\'/0\'/0/0');
+  console.log('✅ Derived full SLIP-0010 path: m/44\'/1110\'/0\'/0\'/0\'');
   console.log('   Final depth:', addressNode.depth);
   console.log('   Final index:', addressNode.index);
   
@@ -126,7 +126,7 @@ async function demonstrateHDWallet() {
   const xpriv = addressNode.getExtendedPrivateKey();
   const xpub = addressNode.getExtendedPublicKey();
   
-  console.log('✅ Generated extended keys in BIP32 format');
+  console.log('✅ Generated extended keys in SLIP-0010 format');
   console.log('   xpriv starts with:', xpriv.substring(0, 10) + '...');
   console.log('   xpub starts with:', xpub.substring(0, 10) + '...');
   
@@ -160,8 +160,8 @@ async function demonstrateEd25519Wallet() {
   // Create from HD node
   const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
-  const hdNode = BIP32HDWallet.fromSeed(seed);
-  const bip44Node = hdNode.derivePath('m/44\'/1110\'/0\'/0/0');
+  const hdNode = SLIP0010HDWallet.fromSeed(seed);
+  const bip44Node = hdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
   const hdKeyPair = Ed25519KeyPair.fromHDNode(bip44Node);
   
   console.log('✅ Created Ed25519 key pair from HD wallet node');
@@ -188,8 +188,8 @@ async function demonstrateEd448Wallet() {
   // Create Ed448 key pair from HD wallet (more secure than random bytes)
   const ed448Mnemonic = generateMnemonicPhrase(12);
   const ed448Seed = generateSeed(ed448Mnemonic);
-  const ed448HdNode = BIP32HDWallet.fromSeed(ed448Seed);
-  const ed448Bip44Node = ed448HdNode.derivePath('m/44\'/1110\'/0\'/0/0');
+  const ed448HdNode = SLIP0010HDWallet.fromSeed(ed448Seed);
+  const ed448Bip44Node = ed448HdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
   const keyPair = Ed448KeyPair.fromHDNode(ed448Bip44Node);
   
   console.log('✅ Created Ed448 key pair (placeholder implementation)');
@@ -209,8 +209,8 @@ async function demonstrateEd448Wallet() {
   // Create from HD node
   const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
-  const hdNode = BIP32HDWallet.fromSeed(seed);
-  const bip44Node = hdNode.derivePath('m/44\'/1110\'/0\'/0/0');
+  const hdNode = SLIP0010HDWallet.fromSeed(seed);
+  const bip44Node = hdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
   const hdKeyPair = Ed448KeyPair.fromHDNode(bip44Node);
   
   console.log('✅ Created Ed448 key pair from HD wallet node');
@@ -228,39 +228,39 @@ async function demonstrateBIP44Compliance() {
   
   const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
-  const masterNode = BIP32HDWallet.fromSeed(seed);
+  const masterNode = SLIP0010HDWallet.fromSeed(seed);
   
   console.log('✅ BIP44 compliance verification');
   
-  // Derive multiple accounts
+  // Derive multiple accounts (SLIP-0010: all components hardened)
   const accounts = [];
   for (let i = 0; i < 3; i++) {
-    const accountPath = `m/44'/1110'/${i}'/0/0`;
+    const accountPath = `m/44'/1110'/${i}'/0'/0'`;
     const accountNode = masterNode.derivePath(accountPath);
     accounts.push(accountNode);
   }
   console.log('   Derived 3 accounts with hardened derivation');
   
-  // Derive multiple addresses per account
+  // Derive multiple addresses per account (SLIP-0010: all components hardened)
   const addresses = [];
   for (let accountIndex = 0; accountIndex < 2; accountIndex++) {
     for (let addressIndex = 0; addressIndex < 3; addressIndex++) {
-      const addressPath = `m/44'/1110'/${accountIndex}'/0/${addressIndex}`;
+      const addressPath = `m/44'/1110'/${accountIndex}'/0'/${addressIndex}'`;
       const addressNode = masterNode.derivePath(addressPath);
       addresses.push(addressNode);
     }
   }
   console.log('   Derived 6 addresses across 2 accounts');
   
-  // Verify hardened derivation
-  const hardenedPath = 'm/44\'/1110\'/0\'/0/0';
+  // Verify hardened derivation (SLIP-0010: all components hardened)
+  const hardenedPath = 'm/44\'/1110\'/0\'/0\'/0\'';
   const hardenedNode = masterNode.derivePath(hardenedPath);
   console.log('   Verified hardened derivation working');
   
   // Extended key format
   const xpriv = hardenedNode.getExtendedPrivateKey();
   const xpub = hardenedNode.getExtendedPublicKey();
-  console.log('   Extended keys in proper BIP32 format');
+  console.log('   Extended keys in proper SLIP-0010 format');
   console.log('   xpriv starts with:', xpriv.substring(0, 4));
   console.log('   xpub starts with:', xpub.substring(0, 4));
   

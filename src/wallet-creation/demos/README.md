@@ -5,7 +5,7 @@ This folder contains comprehensive demonstrations showcasing the full capabiliti
 ## 📁 Contents
 
 - **`complete-showcase.js`** - Complete implementation demo
-  - BIP32 HD Wallet implementation
+  - SLIP-0010 HD Wallet implementation
   - Ed25519 implementation
   - Ed448 implementation
   - BIP44 compliance demonstration
