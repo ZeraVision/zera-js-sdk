@@ -6,6 +6,7 @@ import { hmac } from '@noble/hashes/hmac';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { ed448 } from '@noble/curves/ed448.js';
 import bs58 from 'bs58';
+import { EXTENDED_KEY_VERSIONS } from './constants.js';
 
 // SLIP-0010 constants
 const SLIP0010_HARDENED_OFFSET = 0x80000000;
@@ -277,6 +278,11 @@ export class SLIP0010HDWallet {
       const chainCode = data.slice(13, 45);
       const privateKey = data.slice(46, 78);
       
+      // Validate version matches ZERA private key version
+      if (version !== EXTENDED_KEY_VERSIONS.PRIVATE) {
+        throw new Error(`Invalid extended private key version: expected ${EXTENDED_KEY_VERSIONS.PRIVATE.toString(16)}, got ${version.toString(16)}`);
+      }
+      
       return {
         version,
         depth,
@@ -324,6 +330,11 @@ export class SLIP0010HDWallet {
       const chainCode = data.slice(13, 45);
       const publicKey = data.slice(45);
       
+      // Validate version matches ZERA public key version
+      if (version !== EXTENDED_KEY_VERSIONS.PUBLIC) {
+        throw new Error(`Invalid extended public key version: expected ${EXTENDED_KEY_VERSIONS.PUBLIC.toString(16)}, got ${version.toString(16)}`);
+      }
+      
       return {
         version,
         depth,
@@ -342,7 +353,7 @@ export class SLIP0010HDWallet {
    * @returns {string} Extended private key
    */
   getExtendedPrivateKey() {
-    const version = 0x04b2430c; // ZERA custom version for private keys (0x04b2430c)
+    const version = EXTENDED_KEY_VERSIONS.PRIVATE; // Use centralized ZERA constant
     const data = new Uint8Array(78);
     
     // Version (4 bytes)
@@ -378,7 +389,7 @@ export class SLIP0010HDWallet {
    * @returns {string} Extended public key
    */
   getExtendedPublicKey() {
-    const version = 0x04b2430d; // ZERA custom version for public keys (0x04b2430d)
+    const version = EXTENDED_KEY_VERSIONS.PUBLIC; // Use centralized ZERA constant
     
     // Public key (variable length based on curve)
     const publicKey = this.getPublicKey(this.curve);

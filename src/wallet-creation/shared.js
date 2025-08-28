@@ -123,8 +123,16 @@ export function generateZeraPublicKeyFormat(publicKey, keyType, hashTypes = []) 
   // Add public key
   formatData.set(publicKey, offset);
   
-  // Encode to base58
-  return bs58.encode(formatData);
+  // Calculate checksum (first 4 bytes of double SHA256)
+  const checksum = sha256(sha256(formatData)).slice(0, 4);
+  
+  // Combine format data with checksum
+  const dataWithChecksum = new Uint8Array(formatData.length + 4);
+  dataWithChecksum.set(formatData, 0);
+  dataWithChecksum.set(checksum, formatData.length);
+  
+  // Encode to base58 with checksum included
+  return bs58.encode(dataWithChecksum);
 }
 
 /**
@@ -218,7 +226,7 @@ export function validateAddress(address) {
 }
 
 /**
- * Validate public key format
+ * Validate public key format with checksum verification
  * @param {string} publicKeyFormat - Public key format to validate
  * @returns {boolean} True if valid
  */
@@ -231,20 +239,35 @@ export function validatePublicKeyFormat(publicKeyFormat) {
     // Decode base58
     const decoded = bs58.decode(publicKeyFormat);
     
-    // Check minimum length
-    if (decoded.length < 10) {
+    // Minimum length: version(1) + keyPrefix(2) + hashPrefix(1) + publicKey(32) + checksum(4) = 40 bytes
+    if (decoded.length < 40) {
       return false;
     }
-
-    // Check if it starts with a valid key type prefix
-    const keyPrefixes = Object.values(KEY_TYPE_PREFIXES);
-    const formatStr = publicKeyFormat;
     
-    return keyPrefixes.some(prefix => formatStr.startsWith(prefix));
+    // Extract checksum (last 4 bytes)
+    const checksum = decoded.slice(-4);
+    const dataWithoutChecksum = decoded.slice(0, -4);
+    
+    // Verify checksum
+    const expectedChecksum = sha256(sha256(dataWithoutChecksum)).slice(0, 4);
+    if (!checksum.every((byte, i) => byte === expectedChecksum[i])) {
+      return false;
+    }
+    
+    // Verify version byte is valid
+    const versionByte = dataWithoutChecksum[0];
+    const validVersions = Object.values(ADDRESS_VERSIONS);
+    if (!validVersions.includes(versionByte)) {
+      return false;
+    }
+    
+    return true;
   } catch (error) {
     return false;
   }
 }
+
+
 
 /**
  * Validate mnemonic phrase
