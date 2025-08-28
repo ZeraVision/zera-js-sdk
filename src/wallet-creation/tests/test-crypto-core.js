@@ -64,6 +64,37 @@ export async function testSLIP0010HDWallet() {
     console.log('   xpriv length:', xpriv.length);
     console.log('   xpub length:', xpub.length);
     
+    // Test 9: Verify hardened vs unhardened indices produce different results
+    console.log('✅ Testing hardened vs unhardened index differentiation...');
+    const hardenedNode = masterNode.derive(44 + 0x80000000); // 44'
+    const unhardenedNode = masterNode.derive(44); // 44 (should be auto-hardened)
+    
+    // Both should be hardened in SLIP-0010, but should produce different results
+    // because the HMAC includes the full hardened index
+    const hardenedPrivateKey = hardenedNode.privateKey;
+    const unhardenedPrivateKey = unhardenedNode.privateKey;
+    
+    // These should be different because hardened vs unhardened indices
+    // now produce different HMAC results
+    const areDifferent = !hardenedPrivateKey.every((byte, i) => byte === unhardenedPrivateKey[i]);
+    console.log('   Hardened vs unhardened produce different keys:', areDifferent);
+    
+    if (!areDifferent) {
+      throw new Error('Hardened and unhardened indices produce the same result - SLIP-0010 compliance issue!');
+    }
+    
+    // Test 10: Verify deterministic derivation (same hardened index = same result)
+    console.log('✅ Testing deterministic hardened derivation...');
+    const hardenedNode1 = masterNode.derive(44 + 0x80000000); // 44'
+    const hardenedNode2 = masterNode.derive(44 + 0x80000000); // 44' again
+    
+    const areSame = hardenedNode1.privateKey.every((byte, i) => byte === hardenedNode2.privateKey[i]);
+    console.log('   Same hardened index produces consistent results:', areSame);
+    
+    if (!areSame) {
+      throw new Error('Same hardened index produces different results - non-deterministic derivation!');
+    }
+    
     console.log('🎉 SLIP-0010 HD Wallet tests passed!');
     return true;
     

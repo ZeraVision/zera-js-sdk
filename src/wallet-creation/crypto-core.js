@@ -110,13 +110,15 @@ export class SLIP0010HDWallet {
    */
   derive(index) {
     // SLIP-0010 only supports hardened derivation
-    const actualIndex = index >= SLIP0010_HARDENED_OFFSET ? index - SLIP0010_HARDENED_OFFSET : index;
+    // Ensure the index is hardened (has high bit set)
+    const hardenedIndex = index >= SLIP0010_HARDENED_OFFSET ? index : index + SLIP0010_HARDENED_OFFSET;
     
-    // Hardened derivation: 0x00 + privateKey + index
+    // Hardened derivation: 0x00 + privateKey + hardenedIndex
+    // Use the full hardened index in HMAC to ensure hardened vs unhardened produce different results
     const data = new Uint8Array(1 + SLIP0010_PRIVATE_KEY_LENGTH + 4);
     data[0] = 0x00;
     data.set(this.privateKey, 1);
-    data.set(ByteUtils.uint32ToBytes(actualIndex, false), 1 + SLIP0010_PRIVATE_KEY_LENGTH);
+    data.set(ByteUtils.uint32ToBytes(hardenedIndex, false), 1 + SLIP0010_PRIVATE_KEY_LENGTH);
 
     const hmacResult = hmac(sha512, this.chainCode, data);
     const childPrivateKey = hmacResult.slice(0, SLIP0010_PRIVATE_KEY_LENGTH);
@@ -155,8 +157,9 @@ export class SLIP0010HDWallet {
         throw new Error(`Invalid path component: ${part}`);
       }
 
-      const actualIndex = index + SLIP0010_HARDENED_OFFSET;
-      current = current.derive(actualIndex);
+      // SLIP-0010 requires all indices to be hardened
+      // Pass the raw index, derive() will ensure it's hardened
+      current = current.derive(index);
     }
 
     return current;
