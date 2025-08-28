@@ -30,7 +30,7 @@ async function testEd448Implementation() {
     console.log('   ✅ Key type:', ed448Wallet.keyType);
     console.log('   ✅ Hash types:', ed448Wallet.hashTypes);
     console.log('   ✅ Address:', ed448Wallet.address.substring(0, 20) + '...');
-    console.log('   ✅ Public key (bytes):', ed448Wallet.publicKey.length, 'bytes');
+    console.log('   ✅ Public key (base58):', ed448Wallet.publicKeyBase58.substring(0, 20) + '...');
     console.log('   ✅ Private key (base58):', ed448Wallet.privateKeyBase58.substring(0, 20) + '...');
     console.log('   ✅ Derivation path:', ed448Wallet.derivationPath);
     console.log('   ✅ Extended private key:', ed448Wallet.extendedPrivateKey.substring(0, 20) + '...');
@@ -146,9 +146,10 @@ async function testEd448Implementation() {
   }
 }
 
-// Run the test
+// Export for test runner
+export { testEd448Implementation };
+
+// Run the test if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   testEd448Implementation();
 }
-
-export default testEd448Implementation;

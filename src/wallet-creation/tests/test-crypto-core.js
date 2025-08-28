@@ -89,7 +89,7 @@ export async function testEd25519() {
     console.log('   Public key length:', keyPair.publicKey.length);
     
     // Test 2: Verify public key derivation
-    const expectedPublicKey = await import('@noble/ed25519').then(ed => ed.ed25519.getPublicKey(privateKey));
+    const expectedPublicKey = await import('@noble/curves/ed25519.js').then(ed => ed.ed25519.getPublicKey(privateKey));
     const isCorrect = keyPair.publicKey.every((byte, i) => byte === expectedPublicKey[i]);
     console.log('✅ Public key derivation correct:', isCorrect);
     
@@ -109,11 +109,11 @@ export async function testEd25519() {
     console.log('   Private key (base58):', privateKeyBase58.substring(0, 10) + '...');
     console.log('   Public key (base58):', publicKeyBase58.substring(0, 10) + '...');
     
-    // Test 5: Create from HD node
-    const mnemonic = generateMnemonicPhrase(12);
-    const seed = generateSeed(mnemonic);
-    const hdNode = BIP32HDWallet.fromSeed(seed);
-    const hdKeyPair = Ed25519KeyPair.fromHDNode(hdNode);
+         // Test 5: Create from HD node
+     const mnemonic = generateMnemonicPhrase(12);
+     const seed = generateSeed(mnemonic);
+     const hdNode = SLIP0010HDWallet.fromSeed(seed);
+     const hdKeyPair = Ed25519KeyPair.fromHDNode(hdNode);
     
     console.log('✅ Ed25519 key pair from HD node');
     console.log('   HD public key length:', hdKeyPair.publicKey.length);
@@ -135,7 +135,7 @@ export async function testEd448() {
   
   try {
     // Test 1: Create key pair from random private key
-    const privateKey = CryptoUtils.randomBytes(57); // Ed448 uses 57-byte private keys
+    const privateKey = CryptoUtils.randomBytes(32); // Ed448KeyPair expects 32-byte SLIP-0010 keys
     const keyPair = Ed448KeyPair.fromPrivateKey(privateKey);
     
     console.log('✅ Ed448 key pair created (placeholder)');
@@ -158,11 +158,11 @@ export async function testEd448() {
     console.log('   Private key (base58):', privateKeyBase58.substring(0, 10) + '...');
     console.log('   Public key (base58):', publicKeyBase58.substring(0, 10) + '...');
     
-    // Test 4: Create from HD node
-    const mnemonic = generateMnemonicPhrase(12);
-    const seed = generateSeed(mnemonic);
-    const hdNode = BIP32HDWallet.fromSeed(seed);
-    const hdKeyPair = Ed448KeyPair.fromHDNode(hdNode);
+         // Test 4: Create from HD node
+     const mnemonic = generateMnemonicPhrase(12);
+     const seed = generateSeed(mnemonic);
+     const hdNode = SLIP0010HDWallet.fromSeed(seed);
+     const hdKeyPair = Ed448KeyPair.fromHDNode(hdNode);
     
     console.log('✅ Ed448 key pair from HD node (placeholder)');
     console.log('   HD public key length:', hdKeyPair.publicKey.length);
@@ -264,7 +264,7 @@ export async function testCryptoUtils() {
     
     // Test 3: HMAC
     const key = CryptoUtils.randomBytes(32);
-    const hmacResult = CryptoUtils.hmac('sha256', key, testData);
+    const hmacResult = CryptoUtils.createHmac('sha256', key, testData);
     console.log('✅ HMAC working');
     console.log('   HMAC-SHA256:', hmacResult.length, 'bytes');
     

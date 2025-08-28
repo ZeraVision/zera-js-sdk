@@ -53,6 +53,12 @@ export const ADDRESS_VERSIONS = {
   [KEY_TYPE.ED448]: 0x1b
 };
 
+// ZERA extended key version bytes (custom to prevent cross-chain confusion)
+export const EXTENDED_KEY_VERSIONS = {
+  PRIVATE: 0x04b2430c, // ZERA private key version
+  PUBLIC: 0x04b2430d   // ZERA public key version
+};
+
 // Minimum address length for validation
 export const MIN_ADDRESS_LENGTH = 25;
 

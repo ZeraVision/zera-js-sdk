@@ -118,11 +118,18 @@ export function parseDerivationPath(path) {
   }
   
   try {
-    const purpose = parseInt(parts[1].replace("'", ""));
-    const coinType = parseInt(parts[2].replace("'", ""));
-    const accountIndex = parseInt(parts[3].replace("'", ""));
-    const changeIndex = parseInt(parts[4].replace("'", ""));
-    const addressIndex = parseInt(parts[5].replace("'", ""));
+    // Enforce hardened paths - all components must end with '
+    for (let i = 1; i < parts.length; i++) {
+      if (!parts[i].endsWith("'")) {
+        throw new InvalidDerivationPathError(path, `component ${i} must be hardened (end with ')`);
+      }
+    }
+    
+    const purpose = parseInt(parts[1].slice(0, -1));
+    const coinType = parseInt(parts[2].slice(0, -1));
+    const accountIndex = parseInt(parts[3].slice(0, -1));
+    const changeIndex = parseInt(parts[4].slice(0, -1));
+    const addressIndex = parseInt(parts[5].slice(0, -1));
     
     if (purpose !== 44) {
       throw new InvalidDerivationPathError(path, 'purpose must be 44 for SLIP-0010');

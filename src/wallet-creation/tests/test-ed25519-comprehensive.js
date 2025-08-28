@@ -30,7 +30,7 @@ async function testEd25519Comprehensive() {
     console.log('   ✅ Key type:', ed25519Wallet.keyType);
     console.log('   ✅ Hash types:', ed25519Wallet.hashTypes);
     console.log('   ✅ Address:', ed25519Wallet.address.substring(0, 20) + '...');
-    console.log('   ✅ Public key (bytes):', ed25519Wallet.publicKey.length, 'bytes');
+    console.log('   ✅ Public key (base58):', ed25519Wallet.publicKeyBase58.substring(0, 20) + '...');
     console.log('   ✅ Private key (base58):', ed25519Wallet.privateKeyBase58.substring(0, 20) + '...');
     console.log('   ✅ Derivation path:', ed25519Wallet.derivationPath);
     console.log('   ✅ Extended private key:', ed25519Wallet.extendedPrivateKey.substring(0, 20) + '...');
@@ -133,9 +133,10 @@ async function testEd25519Comprehensive() {
   }
 }
 
-// Run the test
+// Export for test runner
+export { testEd25519Comprehensive };
+
+// Run the test if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   testEd25519Comprehensive();
 }
-
-export default testEd25519Comprehensive;

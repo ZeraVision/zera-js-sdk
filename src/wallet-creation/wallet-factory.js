@@ -116,10 +116,8 @@ export class WalletFactory {
       fingerprint: hdNode.getFingerprint(),
       depth: hdNode.depth,
       index: hdNode.index,
-      // Add both raw bytes and base58 formats for flexibility
-      privateKey: keyPair.privateKey, // Raw bytes (Uint8Array)
+      // Only expose base58-encoded keys for security
       privateKeyBase58: keyPair.getPrivateKeyBase58(), // Base58 encoded
-      publicKey: keyPair.publicKey, // Raw bytes (Uint8Array)
       publicKeyBase58: keyPair.getPublicKeyBase58(), // Base58 encoded
     };
   }
