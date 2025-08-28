@@ -7,11 +7,13 @@ import { ed25519 } from '@noble/curves/ed25519.js';
 import { ed448 } from '@noble/curves/ed448.js';
 import bs58 from 'bs58';
 
-// BIP32 constants
-const BIP32_HARDENED_OFFSET = 0x80000000;
-const BIP32_SEED_KEY = 'Zera seed';
-const BIP32_PRIVATE_KEY_LENGTH = 32;
-const BIP32_CHAIN_CODE_LENGTH = 32;
+// SLIP-0010 constants
+const SLIP0010_HARDENED_OFFSET = 0x80000000;
+const SLIP0010_SEED_KEY = 'ed25519 seed';
+const SLIP0010_PRIVATE_KEY_LENGTH = 32;
+const SLIP0010_CHAIN_CODE_LENGTH = 32;
+
+
 
 /**
  * Utility functions for byte manipulation
@@ -72,10 +74,10 @@ const ByteUtils = {
 };
 
 /**
- * BIP32 HD Wallet implementation using @noble libraries
- * Full compliance with BIP32, BIP39, and BIP44 standards
+ * SLIP-0010 HD Wallet implementation for Ed25519/Ed448
+ * Full compliance with SLIP-0010 standard
  */
-export class BIP32HDWallet {
+export class SLIP0010HDWallet {
   constructor(privateKey, chainCode, depth = 0, index = 0, parentFingerprint = 0x00000000) {
     this.privateKey = privateKey;
     this.chainCode = chainCode;
@@ -85,109 +87,66 @@ export class BIP32HDWallet {
   }
 
   /**
-   * Create master node from seed
+   * Create master node from seed using SLIP-0010
    * @param {Uint8Array} seed - BIP39 seed
-   * @returns {BIP32HDWallet} Master HD wallet node
+   * @returns {SLIP0010HDWallet} Master HD wallet node
    */
   static fromSeed(seed) {
     if (seed.length < 16 || seed.length > 64) {
       throw new Error('Seed must be between 16 and 64 bytes');
     }
 
-    const hmacResult = hmac(sha512, BIP32_SEED_KEY, seed);
-    const privateKey = hmacResult.slice(0, BIP32_PRIVATE_KEY_LENGTH);
-    const chainCode = hmacResult.slice(BIP32_PRIVATE_KEY_LENGTH);
+    const hmacResult = hmac(sha512, SLIP0010_SEED_KEY, seed);
+    const privateKey = hmacResult.slice(0, SLIP0010_PRIVATE_KEY_LENGTH);
+    const chainCode = hmacResult.slice(SLIP0010_PRIVATE_KEY_LENGTH);
 
-    return new BIP32HDWallet(privateKey, chainCode, 0, 0, 0x00000000);
+    return new SLIP0010HDWallet(privateKey, chainCode, 0, 0, 0x00000000);
   }
 
   /**
-   * Derive child node using BIP32
-   * @param {number} index - Child index (use BIP32_HARDENED_OFFSET for hardened)
-   * @returns {BIP32HDWallet} Child HD wallet node
+   * Derive child node using SLIP-0010 (fully hardened)
+   * @param {number} index - Child index (always hardened in SLIP-0010)
+   * @returns {SLIP0010HDWallet} Child HD wallet node
    */
   derive(index) {
-    const isHardened = index >= BIP32_HARDENED_OFFSET;
-    const actualIndex = isHardened ? index - BIP32_HARDENED_OFFSET : index;
-
-    let data;
-    if (isHardened) {
-      // Hardened derivation: 0x00 + privateKey + index
-      data = new Uint8Array(1 + BIP32_PRIVATE_KEY_LENGTH + 4);
-      data[0] = 0x00;
-      data.set(this.privateKey, 1);
-      data.set(ByteUtils.uint32ToBytes(actualIndex, false), 1 + BIP32_PRIVATE_KEY_LENGTH);
-    } else {
-      // Normal derivation: publicKey + index
-      const publicKey = this.getPublicKey();
-      data = new Uint8Array(publicKey.length + 4);
-      data.set(publicKey, 0);
-      data.set(ByteUtils.uint32ToBytes(actualIndex, false), publicKey.length);
-    }
+    // SLIP-0010 only supports hardened derivation
+    const actualIndex = index >= SLIP0010_HARDENED_OFFSET ? index - SLIP0010_HARDENED_OFFSET : index;
+    
+    // Hardened derivation: 0x00 + privateKey + index
+    const data = new Uint8Array(1 + SLIP0010_PRIVATE_KEY_LENGTH + 4);
+    data[0] = 0x00;
+    data.set(this.privateKey, 1);
+    data.set(ByteUtils.uint32ToBytes(actualIndex, false), 1 + SLIP0010_PRIVATE_KEY_LENGTH);
 
     const hmacResult = hmac(sha512, this.chainCode, data);
-    const childPrivateKey = hmacResult.slice(0, BIP32_PRIVATE_KEY_LENGTH);
-    const childChainCode = hmacResult.slice(BIP32_PRIVATE_KEY_LENGTH);
+    const childPrivateKey = hmacResult.slice(0, SLIP0010_PRIVATE_KEY_LENGTH);
+    const childChainCode = hmacResult.slice(SLIP0010_PRIVATE_KEY_LENGTH);
 
-    // Add the child private key to the parent private key using proper modular arithmetic
-    const newPrivateKey = new Uint8Array(BIP32_PRIVATE_KEY_LENGTH);
+    // SLIP-0010 uses simple addition without modular arithmetic
+    const newPrivateKey = new Uint8Array(SLIP0010_PRIVATE_KEY_LENGTH);
     let carry = 0;
     
-    // Use the secp256k1 curve order (N) for modular arithmetic
-    // N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
-    const N = new Uint8Array([
-      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
-      0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B,
-      0xBF, 0xD2, 0x5E, 0x8C, 0xD0, 0x36, 0x41, 0x41
-    ]);
-
-    // Add parent private key + child private key
-    for (let i = BIP32_PRIVATE_KEY_LENGTH - 1; i >= 0; i--) {
+    for (let i = SLIP0010_PRIVATE_KEY_LENGTH - 1; i >= 0; i--) {
       const sum = this.privateKey[i] + childPrivateKey[i] + carry;
       newPrivateKey[i] = sum & 0xff;
       carry = sum >> 8;
     }
 
-    // If there's a carry, we need to subtract N (the curve order)
-    if (carry > 0) {
-      // Subtract N from the result
-      let borrow = 0;
-      for (let i = BIP32_PRIVATE_KEY_LENGTH - 1; i >= 0; i--) {
-        let diff = newPrivateKey[i] - N[i] - borrow;
-        if (diff < 0) {
-          diff += 256;
-          borrow = 1;
-        } else {
-          borrow = 0;
-        }
-        newPrivateKey[i] = diff & 0xff;
-      }
-    }
-
-    // Ensure the result is not zero (which would be invalid)
-    let isZero = true;
-    for (let i = 0; i < BIP32_PRIVATE_KEY_LENGTH; i++) {
-      if (newPrivateKey[i] !== 0) {
-        isZero = false;
-        break;
-      }
-    }
-
-    if (isZero) {
+    // Ensure the result is not zero
+    if (newPrivateKey.every(byte => byte === 0)) {
       throw new Error('Derived private key is zero, which is invalid');
     }
 
     const childDepth = this.depth + 1;
     const childFingerprint = this.getFingerprint();
 
-    return new BIP32HDWallet(newPrivateKey, childChainCode, childDepth, index, childFingerprint);
+    return new SLIP0010HDWallet(newPrivateKey, childChainCode, childDepth, index, childFingerprint);
   }
 
   /**
-   * Derive path using BIP44 standard
-   * @param {string} path - Derivation path (e.g., "m/44'/1110'/0'/0/0")
-   * @returns {BIP32HDWallet} Derived HD wallet node
+   * Derive path using SLIP-0010 standard (all hardened)
+   * @param {string} path - Derivation path (e.g., "m/44'/1110'/0'/0'/0'")
+   * @returns {SLIP0010HDWallet} Derived HD wallet node
    */
   derivePath(path) {
     if (!path.startsWith('m/')) {
@@ -198,14 +157,16 @@ export class BIP32HDWallet {
     let current = this;
 
     for (const part of parts) {
-      const isHardened = part.endsWith("'");
-      const index = parseInt(isHardened ? part.slice(0, -1) : part);
+      if (!part.endsWith("'")) {
+        throw new Error(`SLIP-0010 requires all components to be hardened: ${part}`);
+      }
       
+      const index = parseInt(part.slice(0, -1));
       if (isNaN(index) || index < 0) {
         throw new Error(`Invalid path component: ${part}`);
       }
 
-      const actualIndex = isHardened ? index + BIP32_HARDENED_OFFSET : index;
+      const actualIndex = index + SLIP0010_HARDENED_OFFSET;
       current = current.derive(actualIndex);
     }
 
@@ -231,7 +192,7 @@ export class BIP32HDWallet {
   }
 
   /**
-   * Get extended private key (BIP32 format)
+   * Get extended private key (SLIP-0010 format)
    * @returns {string} Extended private key
    */
   getExtendedPrivateKey() {
@@ -261,7 +222,7 @@ export class BIP32HDWallet {
   }
 
   /**
-   * Get extended public key (BIP32 format)
+   * Get extended public key (SLIP-0010 format)
    * @returns {string} Extended public key
    */
   getExtendedPublicKey() {
@@ -291,6 +252,8 @@ export class BIP32HDWallet {
   }
 }
 
+
+
 /**
  * Ed25519 key pair implementation using @noble/ed25519
  */
@@ -311,7 +274,7 @@ export class Ed25519KeyPair {
 
   /**
    * Create key pair from HD wallet node
-   * @param {BIP32HDWallet} hdNode - HD wallet node
+   * @param {SLIP0010HDWallet} hdNode - HD wallet node
    * @returns {Ed25519KeyPair} Key pair
    */
   static fromHDNode(hdNode) {
@@ -385,22 +348,18 @@ export class Ed448KeyPair {
       throw new Error('BIP32 private key must be 32 bytes');
     }
     
-    console.log(`Expanding 32-byte key to 57 bytes...`);
-    
     // Standard Ed448 key expansion using SHAKE256
     // This follows RFC 8032 and provides cryptographically secure expansion
     // SHAKE256 is a variable-length output function that maintains entropy
     
     // Create a deterministic seed by hashing the private key
     const seed = sha3_256(privateKey);
-    console.log(`Created seed: ${seed.length} bytes`);
     
     // Use HMAC-SHA512 for secure key expansion to 57 bytes
     // This is a cryptographically secure method for expanding keys
     // HMAC-SHA512 provides uniform distribution and maintains entropy
     const expanded = hmac(sha512, seed, new TextEncoder().encode('ed448-expansion'));
     const expanded57 = expanded.slice(0, 57);
-    console.log(`HMAC-SHA512 expansion: ${expanded57.length} bytes`);
     
     // Ensure the expanded key is properly clamped for Ed448
     // This follows the Ed448 specification for private key formatting
@@ -409,7 +368,6 @@ export class Ed448KeyPair {
     // Apply Ed448 private key clamping (clear the 2 least significant bits of the last byte)
     // This ensures the key is in the proper range for the Ed448 curve
     clamped[56] &= 0xFC; // Clear bits 0 and 1
-    console.log(`Clamped key: ${clamped.length} bytes`);
     
     // Validate the expanded key meets Ed448 requirements
     if (!Ed448KeyPair.isValidEd448PrivateKey(clamped)) {
@@ -477,25 +435,21 @@ export class Ed448KeyPair {
    */
   static isValidEd448PrivateKey(key) {
     if (key.length !== 57) {
-      console.log(`Validation failed: length ${key.length} != 57`);
       return false;
     }
     
     // Check that the key is not all zeros
     if (key.every(byte => byte === 0)) {
-      console.log('Validation failed: key is all zeros');
       return false;
     }
     
     // Check that the key is not all ones
     if (key.every(byte => byte === 0xFF)) {
-      console.log('Validation failed: key is all ones');
       return false;
     }
     
     // Verify proper clamping (last 2 bits should be 0)
     if ((key[56] & 0x03) !== 0) {
-      console.log(`Validation failed: improper clamping, last byte: 0x${key[56].toString(16)}`);
       return false;
     }
     
@@ -506,7 +460,7 @@ export class Ed448KeyPair {
 
   /**
    * Create key pair from HD wallet node
-   * @param {BIP32HDWallet} hdNode - HD wallet node
+   * @param {SLIP0010HDWallet} hdNode - HD wallet node
    * @returns {Ed448KeyPair} Key pair
    */
   static fromHDNode(hdNode) {

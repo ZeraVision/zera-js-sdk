@@ -34,7 +34,7 @@ async function testZeraNetworkConstants() {
  * Test 3: Derivation path
  */
 async function testDerivationPath() {
-  assert.equal(DERIVATION_PATH, 'm/44\'/1110\'/0\'/0/0', 'DERIVATION_PATH should be correct');
+  assert.equal(DERIVATION_PATH, 'm/44\'/1110\'/0\'/0\'/0\'', 'DERIVATION_PATH should be SLIP-0010 format (all hardened)');
 }
 
 /**

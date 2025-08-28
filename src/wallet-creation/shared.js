@@ -9,6 +9,7 @@ import {
 } from './constants.js';
 import { createHashChain } from './hash-utils.js';
 import { CryptoUtils } from './crypto-core.js';
+import { sha256 } from '@noble/hashes/sha2';
 import bs58 from 'bs58';
 
 /**
@@ -47,12 +48,20 @@ export function generateZeraAddress(publicKey, keyType, hashTypes = []) {
     throw new Error(`No address version defined for key type: ${keyType}`);
   }
   
-  // Create address with version byte: [version][hashed_public_key]
-  const addressBytes = new Uint8Array(1 + hashedPublicKey.length);
-  addressBytes[0] = versionByte;
-  addressBytes.set(hashedPublicKey, 1);
+  // Create address with version byte and checksum: [version][hashed_public_key][checksum]
+  const dataWithoutChecksum = new Uint8Array(1 + hashedPublicKey.length);
+  dataWithoutChecksum[0] = versionByte;
+  dataWithoutChecksum.set(hashedPublicKey, 1);
   
-  // Encode to base58 with version byte included
+  // Calculate checksum (first 4 bytes of double SHA256)
+  const checksum = sha256(sha256(dataWithoutChecksum)).slice(0, 4);
+  
+  // Combine: [version][hashed_public_key][checksum]
+  const addressBytes = new Uint8Array(1 + hashedPublicKey.length + 4);
+  addressBytes.set(dataWithoutChecksum, 0);
+  addressBytes.set(checksum, dataWithoutChecksum.length);
+  
+  // Encode to base58 with version byte and checksum included
   return bs58.encode(addressBytes);
 }
 
@@ -165,7 +174,7 @@ export function createBaseWallet(
 }
 
 /**
- * Validate address format
+ * Validate address format with checksum verification
  * @param {string} address - Address to validate
  * @returns {boolean} True if valid
  */
@@ -178,16 +187,31 @@ export function validateAddress(address) {
     // Decode base58
     const decoded = bs58.decode(address);
     
-    // Check minimum length
-    if (decoded.length < 10) {
+    // Check minimum length (version + hash + checksum)
+    if (decoded.length < 37) { // 1 + 32 + 4 = 37 bytes minimum
       return false;
     }
 
-    // Check if it starts with a valid key type prefix
-    const keyPrefixes = Object.values(KEY_TYPE_PREFIXES);
-    const addressStr = address;
+    // Extract components: [version][hash][checksum]
+    const versionByte = decoded[0];
+    const hashedData = decoded.slice(1, -4);
+    const providedChecksum = decoded.slice(-4);
     
-    return keyPrefixes.some(prefix => addressStr.startsWith(prefix));
+    // Verify checksum
+    const dataWithoutChecksum = decoded.slice(0, -4);
+    const calculatedChecksum = sha256(sha256(dataWithoutChecksum)).slice(0, 4);
+    
+    if (!calculatedChecksum.every((byte, index) => byte === providedChecksum[index])) {
+      return false;
+    }
+    
+    // Check if version byte is valid
+    const validVersions = Object.values(ADDRESS_VERSIONS);
+    if (!validVersions.includes(versionByte)) {
+      return false;
+    }
+    
+    return true;
   } catch (error) {
     return false;
   }

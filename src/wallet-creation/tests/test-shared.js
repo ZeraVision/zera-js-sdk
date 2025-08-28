@@ -44,7 +44,7 @@ async function testCreateBaseWallet() {
     'zera-address',
     1110,
     'ZRA',
-    'm/44\'/1110\'/0\'/0/0'
+    'm/44\'/1110\'/0\'/0\'/0\''
   );
   console.log('Base wallet created:', JSON.stringify(baseWallet, null, 2));
   console.log('');

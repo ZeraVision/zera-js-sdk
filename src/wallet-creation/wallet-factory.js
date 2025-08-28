@@ -4,7 +4,8 @@ import {
   isValidKeyType, isValidMnemonicLength
 } from './constants.js';
 import {
-  generateMnemonicPhrase, generateSeed, buildDerivationPath, createHDWallet, deriveMultipleAddresses
+  generateMnemonicPhrase, generateSeed, buildDerivationPath, 
+  createHDWallet, deriveMultipleAddresses
 } from './hd-utils.js';
 import {
   generateZeraAddress, generateZeraPublicKeyFormat, createBaseWallet
@@ -19,7 +20,7 @@ import bs58 from 'bs58';
 /**
  * Unified wallet creation factory
  * Supports all key types and hash type combinations with HD wallet functionality
- * Full BIP32/BIP44 compliance using @noble libraries
+ * Full SLIP-0010 compliance using @noble libraries
  */
 export class WalletFactory {
   constructor() {
@@ -79,10 +80,10 @@ export class WalletFactory {
     // Generate seed from mnemonic
     const seed = generateSeed(finalMnemonic, passphrase);
     
-    // Build derivation path
+    // Build derivation path (SLIP-0010 for Ed25519/Ed448)
     const derivationPath = buildDerivationPath(hdOptions);
     
-    // Create HD wallet using proper BIP32 implementation
+    // Create HD wallet using SLIP-0010
     const hdNode = createHDWallet(seed, derivationPath);
     
     // Generate key pair based on key type using @noble libraries
@@ -109,7 +110,7 @@ export class WalletFactory {
 
     return {
       ...wallet,
-      // Add extended key information for BIP32 compliance
+      // Add extended key information for SLIP-0010 compliance
       extendedPrivateKey: hdNode.getExtendedPrivateKey(),
       extendedPublicKey: hdNode.getExtendedPublicKey(),
       fingerprint: hdNode.getFingerprint(),
@@ -211,19 +212,19 @@ export class WalletFactory {
       supportedKeyTypes: VALID_KEY_TYPES,
       supportedHashTypes: VALID_HASH_TYPES,
       supportedMnemonicLengths: MNEMONIC_LENGTHS,
-      standard: 'BIP32 + BIP39 + BIP44 + SLIP44',
-      description: 'Unified wallet factory supporting multiple key types and hash algorithms with full BIP32/BIP44 compliance',
+      standard: 'BIP32 + BIP39 + SLIP-0010',
+      description: 'Unified wallet factory supporting multiple key types and hash algorithms with full SLIP-0010 compliance',
       cryptographicLibraries: [
         '@noble/ed25519 - Full Ed25519 implementation',
         '@noble/hashes - SHA256, SHA512, RIPEMD160',
-        '@noble/hashes/hmac - HMAC-SHA512 for BIP32',
+        '@noble/hashes/hmac - HMAC-SHA512 for SLIP-0010',
         'bip39 - BIP39 mnemonic generation',
         'bs58 - Base58 encoding'
       ],
       securityFeatures: [
         'Cryptographically secure random generation',
-        'Proper BIP32 chain code handling',
-        'Hardened derivation support',
+        'Proper SLIP-0010 chain code handling',
+        'Fully hardened derivation support',
         'Overflow protection',
         'Fingerprint validation',
         'Extended key support (xpub/xpriv)'

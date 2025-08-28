@@ -1,5 +1,5 @@
 import { 
-  BIP32HDWallet, 
+  SLIP0010HDWallet, 
   Ed25519KeyPair, 
   Ed448KeyPair, 
   CryptoUtils 
@@ -14,21 +14,21 @@ import { KEY_TYPE, HASH_TYPE } from '../constants.js';
 /**
  * Test BIP32 HD Wallet implementation
  */
-export async function testBIP32HDWallet() {
-  console.log('🧪 Testing BIP32 HD Wallet Implementation...');
+export async function testSLIP0010HDWallet() {
+  console.log('🧪 Testing SLIP-0010 HD Wallet Implementation...');
   
   try {
     // Test 1: Create master node from seed
     const mnemonic = generateMnemonicPhrase(12);
     const seed = generateSeed(mnemonic);
-    const masterNode = BIP32HDWallet.fromSeed(seed);
+    const masterNode = SLIP0010HDWallet.fromSeed(seed);
     
     console.log('✅ Master node created successfully');
     console.log('   Depth:', masterNode.depth);
     console.log('   Index:', masterNode.index);
     console.log('   Fingerprint:', masterNode.getFingerprint().toString(16));
     
-    // Test 2: Derive hardened child (BIP44 purpose)
+    // Test 2: Derive hardened child (SLIP-0010 purpose)
     const purposeNode = masterNode.derive(44 + 0x80000000);
     console.log('✅ Purpose node derived (44\')');
     console.log('   Depth:', purposeNode.depth);
@@ -42,16 +42,16 @@ export async function testBIP32HDWallet() {
     const accountNode = coinTypeNode.derive(0 + 0x80000000);
     console.log('✅ Account node derived (0\')');
     
-    // Test 5: Derive change
-    const changeNode = accountNode.derive(0);
-    console.log('✅ Change node derived (0)');
+    // Test 5: Derive change (hardened in SLIP-0010)
+    const changeNode = accountNode.derive(0 + 0x80000000);
+    console.log('✅ Change node derived (0\')');
     
-    // Test 6: Derive address
-    const addressNode = changeNode.derive(0);
-    console.log('✅ Address node derived (0)');
+    // Test 6: Derive address (hardened in SLIP-0010)
+    const addressNode = changeNode.derive(0 + 0x80000000);
+    console.log('✅ Address node derived (0\')');
     
-    // Test 7: Verify full path
-    const fullPath = 'm/44\'/1110\'/0\'/0/0';
+    // Test 7: Verify full path (all hardened)
+    const fullPath = 'm/44\'/1110\'/0\'/0\'/0\'';
     const derivedNode = masterNode.derivePath(fullPath);
     console.log('✅ Full path derivation successful');
     console.log('   Path:', fullPath);
@@ -64,11 +64,11 @@ export async function testBIP32HDWallet() {
     console.log('   xpriv length:', xpriv.length);
     console.log('   xpub length:', xpub.length);
     
-    console.log('🎉 BIP32 HD Wallet tests passed!');
+    console.log('🎉 SLIP-0010 HD Wallet tests passed!');
     return true;
     
   } catch (error) {
-    console.error('❌ BIP32 HD Wallet test failed:', error.message);
+    console.error('❌ SLIP-0010 HD Wallet test failed:', error.message);
     return false;
   }
 }
@@ -179,8 +179,8 @@ export async function testEd448() {
 /**
  * Test BIP44 compliance
  */
-export async function testBIP44Compliance() {
-  console.log('\n🧪 Testing BIP44 Compliance...');
+export async function testSLIP0010Compliance() {
+  console.log('\n🧪 Testing SLIP-0010 Compliance...');
   
   try {
     // Test 1: Generate mnemonic and seed
@@ -189,20 +189,20 @@ export async function testBIP44Compliance() {
     console.log('✅ BIP39 mnemonic and seed generated');
     
     // Test 2: Create master node
-    const masterNode = BIP32HDWallet.fromSeed(seed);
+    const masterNode = SLIP0010HDWallet.fromSeed(seed);
     console.log('✅ Master node created from seed');
     
-    // Test 3: Derive BIP44 path for ZERA
-    const bip44Path = 'm/44\'/1110\'/0\'/0/0';
-    const bip44Node = masterNode.derivePath(bip44Path);
-    console.log('✅ BIP44 path derived:', bip44Path);
-    console.log('   Final depth:', bip44Node.depth);
-    console.log('   Final index:', bip44Node.index);
+    // Test 3: Derive SLIP-0010 path for ZERA (all hardened)
+    const slip0010Path = 'm/44\'/1110\'/0\'/0\'/0\'';
+    const slip0010Node = masterNode.derivePath(slip0010Path);
+    console.log('✅ SLIP-0010 path derived:', slip0010Path);
+    console.log('   Final depth:', slip0010Node.depth);
+    console.log('   Final index:', slip0010Node.index);
     
     // Test 4: Derive multiple accounts
     const accounts = [];
     for (let i = 0; i < 3; i++) {
-      const accountPath = `m/44'/1110'/${i}'/0/0`;
+      const accountPath = `m/44'/1110'/${i}'/0'/0'`;
       const accountNode = masterNode.derivePath(accountPath);
       accounts.push(accountNode);
     }
@@ -212,30 +212,30 @@ export async function testBIP44Compliance() {
     const addresses = [];
     for (let accountIndex = 0; accountIndex < 2; accountIndex++) {
       for (let addressIndex = 0; addressIndex < 3; addressIndex++) {
-        const addressPath = `m/44'/1110'/${accountIndex}'/0/${addressIndex}`;
+        const addressPath = `m/44'/1110'/${accountIndex}'/0'/${addressIndex}'`;
         const addressNode = masterNode.derivePath(addressPath);
         addresses.push(addressNode);
       }
     }
     console.log('✅ Multiple addresses derived:', addresses.length);
     
-    // Test 6: Verify hardened derivation
-    const hardenedPath = 'm/44\'/1110\'/0\'/0/0';
+    // Test 6: Verify all hardened derivation
+    const hardenedPath = 'm/44\'/1110\'/0\'/0\'/0\'';
     const hardenedNode = masterNode.derivePath(hardenedPath);
-    console.log('✅ Hardened derivation verified');
+    console.log('✅ All hardened derivation verified');
     
     // Test 7: Extended key format
     const xpriv = hardenedNode.getExtendedPrivateKey();
     const xpub = hardenedNode.getExtendedPublicKey();
-    console.log('✅ Extended keys in BIP32 format');
+    console.log('✅ Extended keys in SLIP-0010 format');
     console.log('   xpriv starts with:', xpriv.substring(0, 4));
     console.log('   xpub starts with:', xpub.substring(0, 4));
     
-    console.log('🎉 BIP44 compliance tests passed!');
+    console.log('🎉 SLIP-0010 compliance tests passed!');
     return true;
     
   } catch (error) {
-    console.error('❌ BIP44 compliance test failed:', error.message);
+    console.error('❌ SLIP-0010 compliance test failed:', error.message);
     return false;
   }
 }
@@ -287,30 +287,30 @@ export async function testWalletCreation() {
     // Test 1: Create Ed25519 wallet
     const mnemonic1 = generateMnemonicPhrase(12);
     const seed1 = generateSeed(mnemonic1);
-    const hdNode1 = BIP32HDWallet.fromSeed(seed1);
-    const bip44Node1 = hdNode1.derivePath('m/44\'/1110\'/0\'/0/0');
-    const ed25519KeyPair = Ed25519KeyPair.fromHDNode(bip44Node1);
+    const hdNode1 = SLIP0010HDWallet.fromSeed(seed1);
+    const slip0010Node1 = hdNode1.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
+    const ed25519KeyPair = Ed25519KeyPair.fromHDNode(slip0010Node1);
     
     console.log('✅ Ed25519 wallet created');
-    console.log('   Address node depth:', bip44Node1.depth);
+    console.log('   Address node depth:', slip0010Node1.depth);
     console.log('   Public key length:', ed25519KeyPair.publicKey.length);
-    console.log('   Extended private key:', bip44Node1.getExtendedPrivateKey().substring(0, 10) + '...');
+    console.log('   Extended private key:', slip0010Node1.getExtendedPrivateKey().substring(0, 10) + '...');
     
     // Test 2: Create Ed448 wallet
     const mnemonic2 = generateMnemonicPhrase(12);
     const seed2 = generateSeed(mnemonic2);
-    const hdNode2 = BIP32HDWallet.fromSeed(seed2);
-    const bip44Node2 = hdNode2.derivePath('m/44\'/1110\'/0\'/0/0');
-    const ed448KeyPair = Ed448KeyPair.fromHDNode(bip44Node2);
+    const hdNode2 = SLIP0010HDWallet.fromSeed(seed2);
+    const slip0010Node2 = hdNode2.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
+    const ed448KeyPair = Ed448KeyPair.fromHDNode(slip0010Node2);
     
     console.log('✅ Ed448 wallet created (placeholder)');
-    console.log('   Address node depth:', bip44Node2.depth);
+    console.log('   Address node depth:', slip0010Node2.depth);
     console.log('   Public key length:', ed448KeyPair.publicKey.length);
     
-    // Test 3: Verify BIP44 compliance
+    // Test 3: Verify SLIP-0010 compliance
     const derivationPath = buildDerivationPath({ accountIndex: 1, changeIndex: 1, addressIndex: 5 });
     const customNode = hdNode1.derivePath(derivationPath);
-    console.log('✅ Custom BIP44 path derived:', derivationPath);
+    console.log('✅ Custom SLIP-0010 path derived:', derivationPath);
     console.log('   Custom node depth:', customNode.depth);
     
     console.log('🎉 Wallet creation tests passed!');
@@ -329,10 +329,10 @@ export async function runAllCryptoTests() {
   console.log('🚀 Running Comprehensive Crypto Core Tests...\n');
   
   const tests = [
-    testBIP32HDWallet,
+    testSLIP0010HDWallet,
     testEd25519,
     testEd448,
-    testBIP44Compliance,
+    testSLIP0010Compliance,
     testCryptoUtils,
     testWalletCreation
   ];

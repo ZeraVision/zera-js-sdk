@@ -2,7 +2,8 @@ import { generateMnemonic, validateMnemonic, mnemonicToSeedSync } from 'bip39';
 import { 
   ZERA_TYPE, 
   MNEMONIC_LENGTHS, 
-  DEFAULT_HD_SETTINGS
+  DEFAULT_HD_SETTINGS,
+  validateSLIP0010Path
 } from './constants.js';
 import {
   InvalidMnemonicLengthError,
@@ -10,7 +11,7 @@ import {
   InvalidHDParameterError,
   InvalidDerivationPathError
 } from './errors.js';
-import { BIP32HDWallet } from './crypto-core.js';
+import { SLIP0010HDWallet } from './crypto-core.js';
 
 /**
  * Generate a new BIP39 mnemonic phrase
@@ -67,8 +68,10 @@ export function generateSeed(mnemonic, passphrase = '') {
   return mnemonicToSeedSync(mnemonic, passphrase);
 }
 
+
+
 /**
- * Build BIP44 derivation path for ZERA
+ * Build derivation path for ZERA (SLIP-0010 - fully hardened)
  * @param {Object} options - Derivation options
  * @param {number} options.accountIndex - Account index (default: 0)
  * @param {number} options.changeIndex - Change index (0 for external, 1 for internal) (default: 0)
@@ -95,7 +98,8 @@ export function buildDerivationPath(options = {}) {
     throw new InvalidHDParameterError('addressIndex', addressIndex, 'must be a non-negative integer');
   }
   
-  return `m/44'/${ZERA_TYPE}'/${accountIndex}'/${changeIndex}/${addressIndex}`;
+  // SLIP-0010: all components are hardened for Ed25519/Ed448
+  return `m/44'/${ZERA_TYPE}'/${accountIndex}'/${changeIndex}'/${addressIndex}'`;
 }
 
 /**
@@ -110,18 +114,18 @@ export function parseDerivationPath(path) {
   
   const parts = path.split('/');
   if (parts.length !== 6 || parts[0] !== 'm') {
-    throw new InvalidDerivationPathError(path, 'invalid BIP44 path format');
+    throw new InvalidDerivationPathError(path, 'invalid SLIP-0010 path format');
   }
   
   try {
     const purpose = parseInt(parts[1].replace("'", ""));
     const coinType = parseInt(parts[2].replace("'", ""));
     const accountIndex = parseInt(parts[3].replace("'", ""));
-    const changeIndex = parseInt(parts[4]);
-    const addressIndex = parseInt(parts[5]);
+    const changeIndex = parseInt(parts[4].replace("'", ""));
+    const addressIndex = parseInt(parts[5].replace("'", ""));
     
     if (purpose !== 44) {
-      throw new InvalidDerivationPathError(path, 'purpose must be 44 for BIP44');
+      throw new InvalidDerivationPathError(path, 'purpose must be 44 for SLIP-0010');
     }
     
     if (coinType !== ZERA_TYPE) {
@@ -141,18 +145,24 @@ export function parseDerivationPath(path) {
 }
 
 /**
- * Create HD wallet using proper BIP32 implementation
+ * Create HD wallet using SLIP-0010 (correct for Ed25519/Ed448)
  * @param {Buffer|Uint8Array} seed - Seed bytes
  * @param {string} path - Derivation path
- * @returns {BIP32HDWallet} HD wallet node
+ * @returns {SLIP0010HDWallet} HD wallet node
  */
 export function createHDWallet(seed, path) {
   try {
     // Convert Buffer to Uint8Array if needed
     const seedArray = seed instanceof Buffer ? new Uint8Array(seed) : seed;
     
-    // Create master node from seed
-    const masterNode = BIP32HDWallet.fromSeed(seedArray);
+    // Validate SLIP-0010 path (all hardened)
+    const isValidPath = validateSLIP0010Path(path);
+    if (!isValidPath) {
+      throw new InvalidDerivationPathError(path, 'invalid path - all components must be hardened for Ed25519/Ed448');
+    }
+    
+    // Create master node using SLIP-0010
+    const masterNode = SLIP0010HDWallet.fromSeed(seedArray);
     
     // Derive to the specified path
     if (path && path !== 'm') {
@@ -204,25 +214,25 @@ export function deriveMultipleAddresses(mnemonic, passphrase = '', options = {})
  */
 export function getHDWalletInfo() {
   return {
-    standard: 'BIP32 + BIP39 + BIP44',
+    standard: 'BIP32 + BIP39 + SLIP-0010',
     purpose: 44,
     coinType: ZERA_TYPE,
     coinName: 'ZERA',
-    derivationPath: `m/44'/${ZERA_TYPE}'/0'/0/0`,
+    derivationPath: `m/44'/${ZERA_TYPE}'/0'/0'/0'`,
     supportedFeatures: [
       'Hierarchical Deterministic Wallets',
       'BIP39 Mnemonics',
-      'BIP32 Key Derivation',
-      'BIP44 Multi-Account Structure',
-      'Hardened Derivation',
+      'SLIP-0010 Key Derivation',
+      'SLIP-0010 Multi-Account Structure',
+      'Fully Hardened Derivation',
       'Extended Keys (xpub/xpriv)',
       'Ed25519 Support',
-      'Ed448 Support (placeholder)'
+      'Ed448 Support'
     ],
     securityFeatures: [
       'Cryptographically Secure Random Generation',
       'HMAC-SHA512 for Key Derivation',
-      'Proper BIP32 Chain Code Handling',
+      'Proper SLIP-0010 Chain Code Handling',
       'Overflow Protection',
       'Fingerprint Validation'
     ]
@@ -254,11 +264,11 @@ export function validateHDWalletOptions(options) {
 
 /**
  * Get extended key information
- * @param {BIP32HDWallet} hdNode - HD wallet node
+ * @param {SLIP0010HDWallet} hdNode - HD wallet node
  * @returns {Object} Extended key information
  */
 export function getExtendedKeyInfo(hdNode) {
-  if (!(hdNode instanceof BIP32HDWallet)) {
+  if (!(hdNode instanceof SLIP0010HDWallet)) {
     throw new Error('Invalid HD wallet node');
   }
   

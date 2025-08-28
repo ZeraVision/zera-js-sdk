@@ -4,8 +4,14 @@ export const ZERA_TYPE_HEX = '0x80000456';
 export const ZERA_SYMBOL = 'ZRA';
 export const ZERA_NAME = 'ZERA';
 
-// BIP44 derivation path: m/44'/1110'/0'/0/0
-export const DERIVATION_PATH = `m/44'/${ZERA_TYPE}'/0'/0/0`;
+// SLIP-0010 derivation path for Ed25519/Ed448 (fully hardened)
+export const DERIVATION_PATH = `m/44'/${ZERA_TYPE}'/0'/0'/0'`;
+
+// Legacy name for backward compatibility
+export const SLIP0010_DERIVATION_PATH = DERIVATION_PATH;
+
+// Only valid derivation scheme for Ed25519/Ed448
+export const DERIVATION_SCHEME = 'slip0010'; // SLIP-0010 (fully hardened for Ed25519/Ed448)
 
 // Key type enums - these are the only valid key types
 export const KEY_TYPE = {
@@ -86,6 +92,30 @@ export function isValidHashType(hashType) {
 
 export function isValidMnemonicLength(length) {
   return MNEMONIC_LENGTHS.includes(length);
+}
+
+
+
+export function validateSLIP0010Path(path) {
+  if (!path || typeof path !== 'string') return false;
+  if (!path.startsWith('m/')) return false;
+  
+  const parts = path.split('/');
+  if (parts.length !== 6) return false;
+  
+  try {
+    // All components must be hardened
+    for (let i = 1; i < parts.length; i++) {
+      if (!parts[i].endsWith("'")) return false;
+    }
+    
+    // Purpose must be 44
+    if (parseInt(parts[1].slice(0, -1)) !== 44) return false;
+    
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 // Get key type prefix
