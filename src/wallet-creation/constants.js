@@ -118,6 +118,9 @@ export function validateSLIP0010Path(path) {
     // Purpose must be 44
     if (parseInt(parts[1].slice(0, -1)) !== 44) return false;
     
+    // Coin type must be ZERA (1110)
+    if (parseInt(parts[2].slice(0, -1)) !== ZERA_TYPE) return false;
+    
     return true;
   } catch (error) {
     return false;

@@ -83,8 +83,8 @@ export class WalletFactory {
     // Build derivation path (SLIP-0010 for Ed25519/Ed448)
     const derivationPath = buildDerivationPath(hdOptions);
     
-    // Create HD wallet using SLIP-0010
-    const hdNode = createHDWallet(seed, derivationPath);
+    // Create HD wallet using SLIP-0010 with the specified key type
+    const hdNode = createHDWallet(seed, derivationPath, keyType);
     
     // Generate key pair based on key type using @noble libraries
     const keyPair = await this.generateKeyPair(hdNode, keyType);
@@ -113,7 +113,7 @@ export class WalletFactory {
       // Add extended key information for SLIP-0010 compliance
       extendedPrivateKey: hdNode.getExtendedPrivateKey(),
       extendedPublicKey: hdNode.getExtendedPublicKey(),
-      fingerprint: hdNode.getFingerprint(),
+      fingerprint: hdNode.getFingerprint(keyType),
       depth: hdNode.depth,
       index: hdNode.index,
       // Only expose base58-encoded keys for security

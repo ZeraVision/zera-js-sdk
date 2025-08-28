@@ -78,20 +78,22 @@ const ByteUtils = {
  * Full compliance with SLIP-0010 standard
  */
 export class SLIP0010HDWallet {
-  constructor(privateKey, chainCode, depth = 0, index = 0, parentFingerprint = 0x00000000) {
+  constructor(privateKey, chainCode, depth = 0, index = 0, parentFingerprint = 0x00000000, curve = 'ed25519') {
     this.privateKey = privateKey;
     this.chainCode = chainCode;
     this.depth = depth;
     this.index = index;
     this.parentFingerprint = parentFingerprint;
+    this.curve = curve;
   }
 
   /**
    * Create master node from seed using SLIP-0010
    * @param {Uint8Array} seed - BIP39 seed
+   * @param {string} curve - Curve type ('ed25519' or 'ed448')
    * @returns {SLIP0010HDWallet} Master HD wallet node
    */
-  static fromSeed(seed) {
+  static fromSeed(seed, curve = 'ed25519') {
     if (seed.length < 16 || seed.length > 64) {
       throw new Error('Seed must be between 16 and 64 bytes');
     }
@@ -100,7 +102,7 @@ export class SLIP0010HDWallet {
     const privateKey = hmacResult.slice(0, SLIP0010_PRIVATE_KEY_LENGTH);
     const chainCode = hmacResult.slice(SLIP0010_PRIVATE_KEY_LENGTH);
 
-    return new SLIP0010HDWallet(privateKey, chainCode, 0, 0, 0x00000000);
+    return new SLIP0010HDWallet(privateKey, chainCode, 0, 0, 0x00000000, curve);
   }
 
   /**
@@ -129,10 +131,10 @@ export class SLIP0010HDWallet {
     const newPrivateKey = new Uint8Array(childPrivateKey);
 
     const childDepth = this.depth + 1;
-    const childFingerprint = this.getFingerprint();
+    const childFingerprint = this.getFingerprint(this.curve);
 
     // Store the hardened index directly to maintain consistency with derivation path
-    return new SLIP0010HDWallet(newPrivateKey, childChainCode, childDepth, hardenedIndex, childFingerprint);
+    return new SLIP0010HDWallet(newPrivateKey, childChainCode, childDepth, hardenedIndex, childFingerprint, this.curve);
   }
 
   /**
@@ -167,19 +169,52 @@ export class SLIP0010HDWallet {
   }
 
   /**
-   * Get public key for Ed25519
+   * Get public key for the specified curve
+   * @param {string} curve - Curve type ('ed25519' or 'ed448')
    * @returns {Uint8Array} Public key
    */
-  getPublicKey() {
-    return ed25519.getPublicKey(this.privateKey);
+  getPublicKey(curve = 'ed25519') {
+    switch (curve) {
+      case 'ed25519':
+        return ed25519.getPublicKey(this.privateKey);
+      case 'ed448':
+        // For Ed448, we need to expand the private key first
+        const expandedKey = this.expandPrivateKeyForEd448(this.privateKey);
+        return ed448.getPublicKey(expandedKey);
+      default:
+        throw new Error(`Unsupported curve: ${curve}`);
+    }
+  }
+
+  /**
+   * Expand 32-byte SLIP-0010 private key to 57-byte Ed448 private key
+   * @param {Uint8Array} privateKey - 32-byte SLIP-0010 private key
+   * @returns {Uint8Array} 57-byte Ed448 private key
+   */
+  expandPrivateKeyForEd448(privateKey) {
+    if (privateKey.length !== 32) {
+      throw new Error('SLIP-0010 private key must be 32 bytes');
+    }
+    
+    // Standard Ed448 key expansion using SHAKE256
+    const seed = sha3_256(privateKey);
+    const expanded = hmac(sha512, seed, new TextEncoder().encode('ed448-expansion'));
+    const expanded57 = expanded.slice(0, 57);
+    
+    // Apply Ed448 private key clamping
+    const clamped = new Uint8Array(expanded57);
+    clamped[56] &= 0xFC; // Clear bits 0 and 1
+    
+    return clamped;
   }
 
   /**
    * Get fingerprint (first 4 bytes of public key hash)
+   * @param {string} curve - Curve type ('ed25519' or 'ed448')
    * @returns {number} Fingerprint
    */
-  getFingerprint() {
-    const publicKey = this.getPublicKey();
+  getFingerprint(curve = 'ed25519') {
+    const publicKey = this.getPublicKey(curve);
     const hash = ripemd160(sha256(publicKey));
     return ByteUtils.bytesToUint32(hash.slice(0, 4), false);
   }
@@ -205,7 +240,7 @@ export class SLIP0010HDWallet {
    * @param {Uint8Array} data - Data to checksum
    * @returns {Uint8Array} 4-byte checksum
    */
-  calculateChecksum(data) {
+  static calculateChecksum(data) {
     const firstHash = sha256(data);
     const secondHash = sha256(firstHash);
     return secondHash.slice(0, 4);
@@ -228,11 +263,11 @@ export class SLIP0010HDWallet {
       const data = decoded.slice(0, 78);
       const checksum = decoded.slice(78);
       
-      // Verify checksum
-      const expectedChecksum = new SLIP0010HDWallet().calculateChecksum(data);
-      if (!checksum.every((byte, i) => byte === expectedChecksum[i])) {
-        throw new Error('Extended private key checksum validation failed');
-      }
+             // Verify checksum
+       const expectedChecksum = SLIP0010HDWallet.calculateChecksum(data);
+       if (!checksum.every((byte, i) => byte === expectedChecksum[i])) {
+         throw new Error('Extended private key checksum validation failed');
+       }
       
       // Parse the data
       const version = ByteUtils.bytesToUint32(data.slice(0, 4), false);
@@ -261,19 +296,22 @@ export class SLIP0010HDWallet {
    * @returns {Object} Decoded key data
    * @throws {Error} If checksum validation fails
    */
-  static decodeExtendedPublicKey(xpub) {
+    static decodeExtendedPublicKey(xpub) {
     try {
       const decoded = bs58.decode(xpub);
       
-      if (decoded.length !== 82) {
-        throw new Error('Invalid extended public key length (expected 82 bytes)');
+      // Minimum size: 4 + 1 + 4 + 4 + 32 + 32 + 4 = 81 bytes
+      // Maximum size: 4 + 1 + 4 + 4 + 32 + 57 + 4 = 106 bytes
+      if (decoded.length < 81 || decoded.length > 106) {
+        throw new Error('Invalid extended public key length (expected 81-106 bytes)');
       }
       
-      const data = decoded.slice(0, 78);
-      const checksum = decoded.slice(78);
+      // Extract checksum (last 4 bytes)
+      const checksum = decoded.slice(-4);
+      const data = decoded.slice(0, -4);
       
       // Verify checksum
-      const expectedChecksum = new SLIP0010HDWallet().calculateChecksum(data);
+      const expectedChecksum = SLIP0010HDWallet.calculateChecksum(data);
       if (!checksum.every((byte, i) => byte === expectedChecksum[i])) {
         throw new Error('Extended public key checksum validation failed');
       }
@@ -284,7 +322,7 @@ export class SLIP0010HDWallet {
       const parentFingerprint = ByteUtils.bytesToUint32(data.slice(5, 9), false);
       const index = ByteUtils.bytesToUint32(data.slice(9, 13), false);
       const chainCode = data.slice(13, 45);
-      const publicKey = data.slice(46, 79);
+      const publicKey = data.slice(45);
       
       return {
         version,
@@ -327,7 +365,7 @@ export class SLIP0010HDWallet {
     data.set(this.privateKey, 46);
     
     // Add Base58Check checksum (4-byte double SHA256)
-    const checksum = this.calculateChecksum(data);
+    const checksum = SLIP0010HDWallet.calculateChecksum(data);
     const dataWithChecksum = new Uint8Array(82);
     dataWithChecksum.set(data, 0);
     dataWithChecksum.set(checksum, 78);
@@ -341,7 +379,14 @@ export class SLIP0010HDWallet {
    */
   getExtendedPublicKey() {
     const version = 0x04b2430d; // ZERA custom version for public keys (0x04b2430d)
-    const data = new Uint8Array(78);
+    
+    // Public key (variable length based on curve)
+    const publicKey = this.getPublicKey(this.curve);
+    const publicKeyLength = publicKey.length;
+    
+    // Calculate total data size: 4 + 1 + 4 + 4 + 32 + publicKeyLength
+    const dataSize = 4 + 1 + 4 + 4 + 32 + publicKeyLength;
+    const data = new Uint8Array(dataSize);
     
     // Version (4 bytes)
     data.set(ByteUtils.uint32ToBytes(version, false), 0);
@@ -358,15 +403,14 @@ export class SLIP0010HDWallet {
     // Chain code (32 bytes)
     data.set(this.chainCode, 13);
     
-    // Public key (33 bytes)
-    const publicKey = this.getPublicKey();
-    data.set(publicKey, 46);
+    // Public key (variable length based on curve)
+    data.set(publicKey, 45);
     
     // Add Base58Check checksum (4-byte double SHA256)
-    const checksum = this.calculateChecksum(data);
-    const dataWithChecksum = new Uint8Array(82);
+    const checksum = SLIP0010HDWallet.calculateChecksum(data);
+    const dataWithChecksum = new Uint8Array(dataSize + 4);
     dataWithChecksum.set(data, 0);
-    dataWithChecksum.set(checksum, 78);
+    dataWithChecksum.set(checksum, dataSize);
     
     return bs58.encode(dataWithChecksum);
   }

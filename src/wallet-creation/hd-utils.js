@@ -155,9 +155,10 @@ export function parseDerivationPath(path) {
  * Create HD wallet using SLIP-0010 (correct for Ed25519/Ed448)
  * @param {Buffer|Uint8Array} seed - Seed bytes
  * @param {string} path - Derivation path
+ * @param {string} curve - Curve type ('ed25519' or 'ed448')
  * @returns {SLIP0010HDWallet} HD wallet node
  */
-export function createHDWallet(seed, path) {
+export function createHDWallet(seed, path, curve = 'ed25519') {
   try {
     // Convert Buffer to Uint8Array if needed
     const seedArray = seed instanceof Buffer ? new Uint8Array(seed) : seed;
@@ -168,8 +169,8 @@ export function createHDWallet(seed, path) {
       throw new InvalidDerivationPathError(path, 'invalid path - all components must be hardened for Ed25519/Ed448');
     }
     
-    // Create master node using SLIP-0010
-    const masterNode = SLIP0010HDWallet.fromSeed(seedArray);
+    // Create master node using SLIP-0010 with specified curve
+    const masterNode = SLIP0010HDWallet.fromSeed(seedArray, curve);
     
     // Derive to the specified path
     if (path && path !== 'm') {
@@ -283,7 +284,7 @@ export function getExtendedKeyInfo(hdNode) {
     depth: hdNode.depth,
     index: hdNode.index,
     parentFingerprint: hdNode.parentFingerprint,
-    fingerprint: hdNode.getFingerprint(),
+    fingerprint: hdNode.getFingerprint(hdNode.curve),
     extendedPrivateKey: hdNode.getExtendedPrivateKey(),
     extendedPublicKey: hdNode.getExtendedPublicKey(),
     derivationPath: buildDerivationPath({
