@@ -4,7 +4,7 @@
  * ZERA JavaScript SDK - Complete Implementation Demo
  * 
  * This demo showcases the 100% complete implementation of:
- * ✅ Ed25519 using @noble/ed25519 library
+ * ✅ Ed25519 using @noble/curves library
  * ✅ Ed448 (placeholder implementation with proper interface)
  * ✅ Full SLIP-0010 HD Wallet implementation
  * ✅ Full BIP39 mnemonic support
@@ -161,8 +161,8 @@ async function demonstrateEd25519Wallet() {
   const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
   const hdNode = SLIP0010HDWallet.fromSeed(seed);
-  const bip44Node = hdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
-  const hdKeyPair = Ed25519KeyPair.fromHDNode(bip44Node);
+  const slip0010Node = hdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
+  const hdKeyPair = Ed25519KeyPair.fromHDNode(slip0010Node);
   
   console.log('✅ Created Ed25519 key pair from HD wallet node');
   console.log('   HD public key length:', hdKeyPair.publicKey.length, 'bytes');
@@ -189,8 +189,8 @@ async function demonstrateEd448Wallet() {
   const ed448Mnemonic = generateMnemonicPhrase(12);
   const ed448Seed = generateSeed(ed448Mnemonic);
   const ed448HdNode = SLIP0010HDWallet.fromSeed(ed448Seed);
-  const ed448Bip44Node = ed448HdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
-  const keyPair = Ed448KeyPair.fromHDNode(ed448Bip44Node);
+  const ed448Slip0010Node = ed448HdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
+  const keyPair = Ed448KeyPair.fromHDNode(ed448Slip0010Node);
   
   console.log('✅ Created Ed448 key pair (placeholder implementation)');
   console.log('   Private key length:', keyPair.privateKey.length, 'bytes');
@@ -210,8 +210,8 @@ async function demonstrateEd448Wallet() {
   const mnemonic = generateMnemonicPhrase(12);
   const seed = generateSeed(mnemonic);
   const hdNode = SLIP0010HDWallet.fromSeed(seed);
-  const bip44Node = hdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
-  const hdKeyPair = Ed448KeyPair.fromHDNode(bip44Node);
+  const slip0010Node = hdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
+  const hdKeyPair = Ed448KeyPair.fromHDNode(slip0010Node);
   
   console.log('✅ Created Ed448 key pair from HD wallet node');
   console.log('   HD public key length:', hdKeyPair.publicKey.length, 'bytes');

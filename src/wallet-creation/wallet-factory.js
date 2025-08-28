@@ -213,7 +213,7 @@ export class WalletFactory {
       standard: 'BIP32 + BIP39 + SLIP-0010',
       description: 'Unified wallet factory supporting multiple key types and hash algorithms with full SLIP-0010 compliance',
       cryptographicLibraries: [
-        '@noble/ed25519 - Full Ed25519 implementation',
+        '@noble/curves - Full Ed25519 and Ed448 implementation',
         '@noble/hashes - SHA256, SHA512, RIPEMD160',
         '@noble/hashes/hmac - HMAC-SHA512 for SLIP-0010',
         'bip39 - BIP39 mnemonic generation',

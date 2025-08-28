@@ -5,7 +5,7 @@ import {
   ZERA_TYPE_HEX,
   ZERA_SYMBOL,
   ZERA_NAME,
-  DERIVATION_PATH,
+  SLIP0010_DERIVATION_PATH,
   ADDRESS_VERSIONS,
   MIN_ADDRESS_LENGTH
 } from '../constants.js';
@@ -34,7 +34,7 @@ async function testZeraNetworkConstants() {
  * Test 3: Derivation path
  */
 async function testDerivationPath() {
-  assert.equal(DERIVATION_PATH, 'm/44\'/1110\'/0\'/0\'/0\'', 'DERIVATION_PATH should be SLIP-0010 format (all hardened)');
+  assert.equal(SLIP0010_DERIVATION_PATH, 'm/44\'/1110\'/0\'/0\'/0\'', 'SLIP0010_DERIVATION_PATH should be SLIP-0010 format (all hardened)');
 }
 
 /**

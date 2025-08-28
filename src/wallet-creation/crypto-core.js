@@ -435,7 +435,7 @@ export class SLIP0010HDWallet {
 
 
 /**
- * Ed25519 key pair implementation using @noble/ed25519
+ * Ed25519 key pair implementation using @noble/curves
  */
 export class Ed25519KeyPair {
   constructor(privateKey) {
@@ -506,7 +506,7 @@ export class Ed25519KeyPair {
 }
 
 /**
- * Ed448 key pair implementation using @noble/curves/ed448
+ * Ed448 key pair implementation using @noble/curves
  * Full production-ready implementation
  */
 export class Ed448KeyPair {
