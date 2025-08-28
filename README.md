@@ -5,9 +5,9 @@ A modern, ESM-compatible JavaScript SDK for the ZERA Network with support for wa
 ## 🚀 Features
 
 - **Full ESM Support**: Modern ES6+ modules throughout
-- **Wallet Creation**: HD wallet generation with BIP32/BIP39/BIP44 compliance
-- **Multiple Key Types**: Support for Ed25519, Secp256k1, and more
-- **Hash Algorithms**: SHA256, Keccak256, and other cryptographic hashes
+- **Wallet Creation**: HD wallet generation with BIP32/BIP39/SLIP-0010 compliance
+- **Multiple Key Types**: Support for Ed25519 and Ed448 elliptic curves
+- **Hash Algorithms**: SHA3-256, SHA3-512, and BLAKE3 cryptographic hashes
 - **Protocol Buffers**: Modern protobuf support with buf tooling
 - **TypeScript Ready**: Full TypeScript support and type definitions
 
@@ -90,8 +90,8 @@ import { WalletFactory } from 'zera-js-sdk';
 const factory = new WalletFactory();
 
 const wallet = await factory.createWallet({
-  keyType: 'secp256k1',
-  hashTypes: ['keccak256', 'sha256'],
+  keyType: 'ed25519',
+  hashTypes: ['sha3-256', 'blake3'],
   mnemonic: 'your twelve word mnemonic phrase here',
   passphrase: 'optional-passphrase',
   hdOptions: {
@@ -139,7 +139,7 @@ zera-js-sdk/
 ## 🔒 Security
 
 - Uses **@noble** libraries for cryptographic operations
-- BIP32/BIP39/BIP44 compliant HD wallets
+- BIP32/BIP39/SLIP-0010 compliant HD wallets
 - Secure random number generation
 - No deprecated crypto libraries
 
@@ -153,15 +153,14 @@ zera-js-sdk/
 
 ### Key Types
 
-- `ed25519` - Ed25519 elliptic curve
-- `secp256k1` - Bitcoin-compatible curve
-- `blake2b` - Blake2b hash function
+- `ed25519` - Ed25519 elliptic curve (32-byte keys)
+- `ed448` - Ed448 elliptic curve (57-byte keys)
 
 ### Hash Types
 
-- `sha256` - SHA-256 hash
-- `keccak256` - Ethereum-compatible hash
-- `blake2b` - Blake2b hash
+- `sha3-256` - SHA3-256 hash function
+- `sha3-512` - SHA3-512 hash function  
+- `blake3` - BLAKE3 hash function
 
 ## 🤝 Contributing
 

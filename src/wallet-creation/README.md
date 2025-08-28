@@ -1,13 +1,13 @@
 # ZERA Wallet Creation System
 
-A comprehensive, unified wallet creation system for the ZERA Network that supports multiple key types, hash algorithms, and HD wallet functionality following BIP44 standards.
+A comprehensive, unified wallet creation system for the ZERA Network that supports multiple key types, hash algorithms, and HD wallet functionality following SLIP-0010 standards.
 
 ## Features
 
 - **Multiple Key Types**: Support for Ed25519 and Ed448 cryptographic curves
 - **Flexible Hash Types**: Support for SHA3-256, SHA3-512, and Blake3 hash algorithms
 - **Hash Chaining**: Apply multiple hash functions in configurable order (right-to-left)
-- **HD Wallet Support**: Full BIP44 hierarchical deterministic wallet support
+- **HD Wallet Support**: Full SLIP-0010 hierarchical deterministic wallet support
 - **All BIP39 Lengths**: Support for 12, 15, 18, 21, and 24-word mnemonic phrases
 - **Flexible Derivation**: Customizable account, change, and address indices
 - **Comprehensive Error Handling**: Detailed error messages with error codes and context
@@ -227,7 +227,7 @@ The main factory class for creating and managing wallets.
 
 #### HD Utilities
 - `generateMnemonicPhrase(length)` - Generate new mnemonic
-- `buildDerivationPath(options)` - Build BIP44 derivation path
+- `buildDerivationPath(options)` - Build SLIP-0010 derivation path
 - `getHDWalletInfo()` - Get HD wallet information
 
 #### Hash Utilities
@@ -264,17 +264,17 @@ See `example.js` for comprehensive usage examples including:
 - HD wallet derivation
 - Error handling demonstrations
 
-## BIP44 Implementation
+## SLIP-0010 Implementation
 
-The system implements BIP44 standard with ZERA coin type (1110):
+The system implements SLIP-0010 standard with ZERA coin type (1110):
 
-- **Purpose**: 44' (BIP44)
+- **Purpose**: 44' (BIP44 structure)
 - **Coin Type**: 1110' (ZERA)
 - **Account**: 0' (configurable)
 - **Change**: 0 or 1 (external/internal)
 - **Address Index**: 0+ (configurable)
 
-Default path: `m/44'/1110'/0'/0/0`
+Default path: `m/44'/1110'/0'/0'/0'` (all hardened for Ed25519/Ed448)
 
 ## Security Features
 
@@ -289,7 +289,7 @@ Default path: `m/44'/1110'/0'/0/0`
 
 - `@noble/ed25519` - Ed25519 cryptographic operations
 - `@noble/hashes` - Hash functions (SHA3, Blake3)
-- `bip32` - HD wallet functionality
+- SLIP-0010 - HD wallet functionality for Ed25519/Ed448
 - `bip39` - Mnemonic generation and validation
 - `bs58` - Base58 encoding
 

@@ -254,14 +254,49 @@ export function validatePublicKeyFormat(publicKeyFormat) {
       return false;
     }
     
-    // Verify version byte is valid
-    const versionByte = dataWithoutChecksum[0];
-    const validVersions = Object.values(ADDRESS_VERSIONS);
-    if (!validVersions.includes(versionByte)) {
-      return false;
-    }
-    
-    return true;
+      // Verify version byte is valid
+  const versionByte = dataWithoutChecksum[0];
+  const validVersions = Object.values(ADDRESS_VERSIONS);
+  if (!validVersions.includes(versionByte)) {
+    return false;
+  }
+  
+  // Extract and validate key-type and hash-type prefixes
+  // Format: [version][keyPrefix][hashPrefix][publicKey]
+  const keyPrefixStart = 1;
+  const keyPrefixEnd = keyPrefixStart + 2; // Key prefixes are 2 characters (A_, B_)
+  const hashPrefixStart = keyPrefixEnd;
+  const hashPrefixEnd = hashPrefixStart + 1; // Hash prefixes are 1 character (a_, b_, c_)
+  const publicKeyStart = hashPrefixEnd;
+  
+  // Extract prefixes
+  const keyPrefixBytes = dataWithoutChecksum.slice(keyPrefixStart, keyPrefixEnd);
+  const hashPrefixBytes = dataWithoutChecksum.slice(hashPrefixStart, hashPrefixEnd);
+  
+  // Convert to strings for validation
+  const keyPrefix = new TextDecoder().decode(keyPrefixBytes);
+  const hashPrefix = new TextDecoder().decode(hashPrefixBytes);
+  
+  // Validate key-type prefix
+  const validKeyPrefixes = Object.values(KEY_TYPE_PREFIXES);
+  if (!validKeyPrefixes.includes(keyPrefix)) {
+    return false;
+  }
+  
+  // Validate hash-type prefix
+  const validHashPrefixes = Object.values(HASH_TYPE_PREFIXES);
+  if (!validHashPrefixes.includes(hashPrefix)) {
+    return false;
+  }
+  
+  // Validate public key length (should be 32 bytes for Ed25519, 57 bytes for Ed448)
+  const publicKey = dataWithoutChecksum.slice(publicKeyStart);
+  const expectedKeyLength = keyPrefix === KEY_TYPE_PREFIXES[KEY_TYPE.ED25519] ? 32 : 57;
+  if (publicKey.length !== expectedKeyLength) {
+    return false;
+  }
+  
+  return true;
   } catch (error) {
     return false;
   }
