@@ -9,7 +9,7 @@ import bs58 from 'bs58';
 
 // BIP32 constants
 const BIP32_HARDENED_OFFSET = 0x80000000;
-const BIP32_SEED_KEY = 'ZERA seed';
+const BIP32_SEED_KEY = 'Zera seed';
 const BIP32_PRIVATE_KEY_LENGTH = 32;
 const BIP32_CHAIN_CODE_LENGTH = 32;
 
