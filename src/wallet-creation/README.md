@@ -6,7 +6,7 @@ A comprehensive, unified wallet creation system for the ZERA Network that suppor
 
 The `wallet-creation` module is the core component of the ZERA SDK responsible for generating, importing, and managing cryptographic wallets. It provides a unified interface for creating wallets using different cryptographic curves (Ed25519/Ed448) and hash algorithms (SHA3-256, SHA3-512, Blake3).
 
-**Important Security Note**: This SDK intentionally exposes seed phrases and private keys in the wallet object for development and testing purposes. In production environments, these should be handled with appropriate security measures.
+**Important Security Note**: This SDK intentionally exposes seed phrases and private keys in the wallet object. In production environments, these should be handled with appropriate security measures.
 
 ## Standards Used
 
@@ -140,12 +140,47 @@ HASH_TYPE.BLAKE3    // 'blake3'
 ### Address Format
 The final hash (after applying all hash functions) is encoded to base58, which becomes the wallet address.
 
-### Public Key Display Format
+### Public Key Formats
+
+The wallet object includes two different public key formats:
+
+#### 1. Public Key Display Format (Human-Readable)
 `Key_Hash(es)_pubkeybase58`
 
 Examples:
 - `A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb` (Ed25519 + Blake3)
 - `B_b_a_5KJvsngHeMby884zrh6A5u6b4SqzZzAb` (Ed448 + SHA3-512 + SHA3-256)
+
+#### 2. Public Key Package (Comprehensive Binary Format)
+Base58-encoded binary package including version byte, prefixes, public key, and checksum for validation and network identification. Perfect for network transmission and storage with built-in integrity validation.
+
+**Package Structure:**
+```
+[Version(1)][KeyPrefix(2)][HashPrefix(2+)][PublicKey(32/57)][Checksum(4)]
+```
+
+**Components:**
+- **Version Byte**: Network identifier (0x1a for Ed25519, 0x1b for Ed448)
+- **Key Prefix**: Key type identifier ("A_" for Ed25519, "B_" for Ed448)
+- **Hash Prefix**: Hash type identifier(es) ("a_" for SHA3-256, "b_" for SHA3-512, "c_" for Blake3)
+- **Public Key**: Raw public key bytes (32 bytes for Ed25519, 57 bytes for Ed448)
+- **Checksum**: 4-byte double SHA256 checksum for integrity validation
+
+**Parser Function:**
+```javascript
+import { parseZeraPublicKeyPackage } from './src/wallet-creation/index.js';
+
+const parsed = parseZeraPublicKeyPackage(wallet.publicKeyPackage);
+console.log('Key Type:', parsed.keyType);        // 'ed25519' or 'ed448'
+console.log('Hash Types:', parsed.hashTypes);   // ['blake3', 'sha3-256', ...]
+console.log('Public Key:', parsed.publicKey);   // Uint8Array of raw bytes
+console.log('Is Valid:', parsed.isValid);       // boolean checksum validation
+```
+
+#### Wallet Object Fields
+- `privateKey`: Raw 32-byte private key encoded as base58 (e.g., "5KJvsngHeMby884zrh6A5u6b4SqzZzAb")
+- `publicKey`: Human-readable identifier with type prefixes (e.g., `A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb`)
+- `publicKeyPackage`: Comprehensive binary format with version byte and checksum for validation
 
 ## Project Organization
 

@@ -27,7 +27,7 @@ async function demonstrateCleanInterface() {
     console.log('   ✅ Hash types:', wallet1.hashTypes);
     console.log('   ✅ Mnemonic length:', wallet1.mnemonic.split(' ').length);
     console.log('   ✅ Public key (bytes):', wallet1.publicKey.length, 'bytes');
-    console.log('   ✅ Public key (base58):', wallet1.publicKeyFormat.substring(0, 20) + '...');
+    console.log('   ✅ Public key (package):', wallet1.publicKeyPackage.substring(0, 20) + '...');
     console.log('   ✅ Private key (base58):', wallet1.privateKey.substring(0, 20) + '...');
     console.log('');
 
@@ -45,7 +45,7 @@ async function demonstrateCleanInterface() {
     console.log('   ✅ Hash types:', wallet2.hashTypes);
     console.log('   ✅ Mnemonic length:', wallet2.mnemonic.split(' ').length);
     console.log('   ✅ Public key (bytes):', wallet2.publicKey.length, 'bytes');
-    console.log('   ✅ Public key (base58):', wallet2.publicKeyFormat.substring(0, 20) + '...');
+    console.log('   ✅ Public key (package):', wallet2.publicKeyPackage.substring(0, 20) + '...');
     console.log('   ✅ Private key (base58):', wallet2.privateKey.substring(0, 20) + '...');
     console.log('');
 
@@ -63,7 +63,7 @@ async function demonstrateCleanInterface() {
     console.log('   ✅ Hash types:', wallet3.hashTypes);
     console.log('   ✅ Mnemonic length:', wallet3.mnemonic.split(' ').length);
     console.log('   ✅ Public key (bytes):', wallet3.publicKey.length, 'bytes');
-    console.log('   ✅ Public key (base58):', wallet3.publicKeyFormat.substring(0, 20) + '...');
+    console.log('   ✅ Public key (package):', wallet3.publicKeyPackage.substring(0, 20) + '...');
     console.log('   ✅ Private key (base58):', wallet3.privateKey.substring(0, 20) + '...');
     console.log('');
 

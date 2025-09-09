@@ -154,7 +154,8 @@ export {
 
 // Re-export shared utilities
 export {
-  generateZeraAddress, generateZeraPublicKeyFormat, createBaseWallet
+  generateZeraAddress, generateZeraPublicKeyPackage, generateZeraPublicKeyIdentifier, createBaseWallet,
+  parseZeraPublicKeyPackage, validatePublicKeyPackage
 } from './shared.js';
 
 // Re-export constants and enums

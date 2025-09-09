@@ -8,7 +8,7 @@ import {
   createHDWallet, deriveMultipleAddresses
 } from './hd-utils.js';
 import {
-  generateZeraAddress, generateZeraPublicKeyFormat, createBaseWallet
+  generateZeraAddress, generateZeraPublicKeyPackage, generateZeraPublicKeyIdentifier, createBaseWallet
 } from './shared.js';
 import {
   MissingParameterError, InvalidKeyTypeError, InvalidHashTypeError, InvalidMnemonicLengthError
@@ -89,18 +89,19 @@ export class WalletFactory {
     // Generate key pair based on key type using @noble libraries
     const keyPair = await this.generateKeyPair(hdNode, keyType);
     
-    // Generate address and public key format
+    // Generate address and public key formats
     const address = generateZeraAddress(keyPair.publicKey, keyType, hashTypes);
-    const publicKeyFormat = generateZeraPublicKeyFormat(keyPair.publicKey, keyType, hashTypes);
+    const publicKeyPackage = generateZeraPublicKeyPackage(keyPair.publicKey, keyType, hashTypes);
+    const publicKey = generateZeraPublicKeyIdentifier(keyPair.publicKey, keyType, hashTypes);
     
     // Create wallet object
     const wallet = createBaseWallet(
       'hd',
       finalMnemonic,
       keyPair.getPrivateKeyBase58(),
-      keyPair.getPublicKeyBase58(),
       address,
-      publicKeyFormat,
+      publicKeyPackage,
+      publicKey,
       this.coinType,
       this.symbol,
       derivationPath,
@@ -116,9 +117,8 @@ export class WalletFactory {
       fingerprint: hdNode.getFingerprint(keyType),
       depth: hdNode.depth,
       index: hdNode.index,
-      // Only expose base58-encoded keys for security
-      privateKeyBase58: keyPair.getPrivateKeyBase58(), // Base58 encoded
-      publicKeyBase58: keyPair.getPublicKeyBase58(), // Base58 encoded
+      // Only expose base58-encoded private key for security
+      privateKey: keyPair.getPrivateKeyBase58(), // Raw 32-byte private key encoded as base58
     };
   }
 

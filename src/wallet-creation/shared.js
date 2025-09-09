@@ -66,13 +66,91 @@ export function generateZeraAddress(publicKey, keyType, hashTypes = []) {
 }
 
 /**
- * Generate ZERA public key format
+ * Generate ZERA public key identifier (human-readable with type prefixes)
+ * 
+ * This creates a self-describing public key format that includes:
+ * - Key type prefix (A_ for Ed25519, B_ for Ed448)
+ * - Hash type prefix(es) (a_ for SHA3-256, b_ for SHA3-512, c_ for Blake3)
+ * - Base58 encoded public key
+ * 
+ * Format: KeyType_HashTypes_PublicKeyBase58
+ * Example: A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb (Ed25519 + Blake3)
+ * 
+ * This format is perfect for:
+ * - Displaying keys with type information
+ * - Feeding into functions that need to parse key/hash types
+ * - Human-readable identification of key characteristics
+ * 
  * @param {Uint8Array} publicKey - Public key bytes
  * @param {string} keyType - Key type from KEY_TYPE enum
  * @param {Array<string>} hashTypes - Array of hash types from HASH_TYPE enum
- * @returns {string} Generated ZERA public key format
+ * @returns {string} Generated ZERA public key identifier
  */
-export function generateZeraPublicKeyFormat(publicKey, keyType, hashTypes = []) {
+export function generateZeraPublicKeyIdentifier(publicKey, keyType, hashTypes = []) {
+  if (!publicKey || !(publicKey instanceof Uint8Array)) {
+    throw new Error('Public key must be a Uint8Array');
+  }
+
+  if (!isValidKeyType(keyType)) {
+    throw new Error(`Invalid key type: ${keyType}`);
+  }
+
+  if (!Array.isArray(hashTypes) || hashTypes.length === 0) {
+    throw new Error('Hash types must be a non-empty array');
+  }
+
+  // Validate all hash types
+  for (const hashType of hashTypes) {
+    if (!isValidHashType(hashType)) {
+      throw new Error(`Invalid hash type: ${hashType}`);
+    }
+  }
+
+  // Get key type prefix
+  const keyPrefix = KEY_TYPE_PREFIXES[keyType];
+  
+  // Get hash chain prefix
+  const hashPrefix = hashTypes.map(hashType => HASH_TYPE_PREFIXES[hashType]).join('');
+  
+  // Get base58 encoded public key
+  const publicKeyBase58 = bs58.encode(publicKey);
+  
+  // Combine: KeyPrefix_HashPrefix_PublicKeyBase58
+  return `${keyPrefix}${hashPrefix}${publicKeyBase58}`;
+}
+
+/**
+ * Generate ZERA public key package (comprehensive binary format with validation)
+ * 
+ * This creates a self-contained binary package that includes:
+ * - Network version byte (0x1a for Ed25519, 0x1b for Ed448)
+ * - Key type prefix (A_ for Ed25519, B_ for Ed448) 
+ * - Hash type prefix(es) (a_ for SHA3-256, b_ for SHA3-512, c_ for Blake3)
+ * - Raw public key bytes (32 bytes for Ed25519, 57 bytes for Ed448)
+ * - 4-byte checksum (double SHA256) for integrity validation
+ * 
+ * Binary Structure:
+ * [Version(1)][KeyPrefix(2)][HashPrefix(2+)][PublicKey(32/57)][Checksum(4)]
+ * 
+ * Example for Ed25519 + Blake3:
+ * - Version: 0x1a
+ * - KeyPrefix: "A_" (0x41, 0x5f)
+ * - HashPrefix: "c_" (0x63, 0x5f) 
+ * - PublicKey: 32 bytes
+ * - Checksum: 4 bytes (double SHA256)
+ * 
+ * This format is perfect for:
+ * - Network transmission with integrity validation
+ * - Storage with built-in corruption detection
+ * - Cross-platform compatibility
+ * - Cryptographic verification
+ * 
+ * @param {Uint8Array} publicKey - Public key bytes
+ * @param {string} keyType - Key type from KEY_TYPE enum
+ * @param {Array<string>} hashTypes - Array of hash types from HASH_TYPE enum
+ * @returns {string} Generated ZERA public key package (base58 encoded)
+ */
+export function generateZeraPublicKeyPackage(publicKey, keyType, hashTypes = []) {
   if (!publicKey || !(publicKey instanceof Uint8Array)) {
     throw new Error('Public key must be a Uint8Array');
   }
@@ -139,10 +217,10 @@ export function generateZeraPublicKeyFormat(publicKey, keyType, hashTypes = []) 
  * Create base wallet object
  * @param {string} type - Wallet type
  * @param {string} mnemonic - BIP39 mnemonic phrase
- * @param {string} privateKeyBase58 - Private key in base58 format
- * @param {Uint8Array} publicKey - Public key bytes
+ * @param {string} privateKey - Private key in base58 format (raw 32-byte key encoded as base58)
  * @param {string} address - ZERA address
- * @param {string} publicKeyFormat - ZERA public key format
+ * @param {string} publicKeyPackage - ZERA public key package (comprehensive binary format with validation)
+ * @param {string} publicKey - ZERA public key identifier (human-readable with type prefixes)
  * @param {number} coinType - Coin type (SLIP44)
  * @param {string} symbol - Coin symbol
  * @param {string} derivationPath - SLIP-0010 hardened derivation path
@@ -153,10 +231,10 @@ export function generateZeraPublicKeyFormat(publicKey, keyType, hashTypes = []) 
 export function createBaseWallet(
   type,
   mnemonic,
-  privateKeyBase58,
-  publicKeyBase58,
+  privateKey,
   address,
-  publicKeyFormat,
+  publicKeyPackage,
+  publicKey,
   coinType,
   symbol,
   derivationPath,
@@ -166,10 +244,10 @@ export function createBaseWallet(
   return {
     type,
     mnemonic,
-    privateKeyBase58,
-    publicKeyBase58,
+    privateKey, // Raw 32-byte private key encoded as base58 (e.g., "5KJvsngHeMby884zrh6A5u6b4SqzZzAb")
     address,
-    publicKeyFormat,
+    publicKeyPackage, // Comprehensive binary format with version byte and checksum
+    publicKey, // Human-readable identifier with type prefixes (e.g., "A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb")
     coinType,
     symbol,
     derivationPath,
@@ -226,22 +304,39 @@ export function validateAddress(address) {
 }
 
 /**
- * Validate public key format with checksum verification
- * @param {string} publicKeyFormat - Public key format to validate
- * @returns {boolean} True if valid
+ * Parse ZERA public key package and extract all components
+ * 
+ * This function breaks down a public key package into its constituent parts:
+ * - Network version byte
+ * - Key type prefix
+ * - Hash type prefix(es)
+ * - Raw public key bytes
+ * - Validates checksum for integrity
+ * 
+ * @param {string} publicKeyPackage - Base58 encoded public key package
+ * @returns {Object} Parsed package components
+ * @returns {number} returns.version - Network version byte
+ * @returns {string} returns.keyTypePrefix - Key type prefix (A_, B_)
+ * @returns {string} returns.hashTypePrefix - Hash type prefix(es) (a_, b_, c_)
+ * @returns {Uint8Array} returns.publicKey - Raw public key bytes
+ * @returns {Uint8Array} returns.checksum - 4-byte checksum
+ * @returns {boolean} returns.isValid - Whether checksum validation passed
+ * @returns {string} returns.keyType - Detected key type (ed25519, ed448)
+ * @returns {Array<string>} returns.hashTypes - Detected hash types
+ * @throws {Error} If package format is invalid or checksum validation fails
  */
-export function validatePublicKeyFormat(publicKeyFormat) {
-  if (!publicKeyFormat || typeof publicKeyFormat !== 'string') {
-    return false;
+export function parseZeraPublicKeyPackage(publicKeyPackage) {
+  if (!publicKeyPackage || typeof publicKeyPackage !== 'string') {
+    throw new Error('Public key package must be a non-empty string');
   }
 
   try {
     // Decode base58
-    const decoded = bs58.decode(publicKeyFormat);
+    const decoded = bs58.decode(publicKeyPackage);
     
-    // Minimum length: version(1) + keyPrefix(2) + hashPrefix(1) + publicKey(32) + checksum(4) = 40 bytes
-    if (decoded.length < 40) {
-      return false;
+    // Minimum length: version(1) + keyPrefix(2) + hashPrefix(2) + publicKey(32) + checksum(4) = 41 bytes
+    if (decoded.length < 41) {
+      throw new Error(`Invalid package length: ${decoded.length} bytes (minimum: 41)`);
     }
     
     // Extract checksum (last 4 bytes)
@@ -250,87 +345,109 @@ export function validatePublicKeyFormat(publicKeyFormat) {
     
     // Verify checksum
     const expectedChecksum = sha256(sha256(dataWithoutChecksum)).slice(0, 4);
-    if (!checksum.every((byte, i) => byte === expectedChecksum[i])) {
-      return false;
+    const isValidChecksum = checksum.every((byte, i) => byte === expectedChecksum[i]);
+    
+    // Extract version byte
+    const version = dataWithoutChecksum[0];
+    
+    // Extract key type prefix (2 bytes)
+    const keyPrefixBytes = dataWithoutChecksum.slice(1, 3);
+    const keyTypePrefix = new TextDecoder().decode(keyPrefixBytes);
+    
+    // Determine key type from prefix
+    let keyType;
+    if (keyTypePrefix === 'A_') {
+      keyType = 'ed25519';
+    } else if (keyTypePrefix === 'B_') {
+      keyType = 'ed448';
+    } else {
+      throw new Error(`Unknown key type prefix: ${keyTypePrefix}`);
     }
     
-  // Verify version byte is valid
-  const versionByte = dataWithoutChecksum[0];
-  const validVersions = Object.values(ADDRESS_VERSIONS);
-  if (!validVersions.includes(versionByte)) {
-    return false;
-  }
-  
-  // Extract and validate key-type and hash-type prefixes
-  // Format: [version][keyPrefix][hashPrefix][publicKey]
-  // Note: hashPrefix can be multiple characters when multiple hash types are used
-  const keyPrefixStart = 1;
-  const keyPrefixEnd = keyPrefixStart + 2; // Key prefixes are 2 characters (A_, B_)
-  
-  // Extract key prefix first
-  const keyPrefixBytes = dataWithoutChecksum.slice(keyPrefixStart, keyPrefixEnd);
-  const keyPrefix = new TextDecoder().decode(keyPrefixBytes);
-  
-  // Validate key-type prefix
-  const validKeyPrefixes = Object.values(KEY_TYPE_PREFIXES);
-  if (!validKeyPrefixes.includes(keyPrefix)) {
-    return false;
-  }
-  
-  // For hash prefixes, we need to find where the public key starts
-  // We know the total data length and can calculate the hash prefix length
-  const totalDataLength = dataWithoutChecksum.length;
-  const versionLength = 1;
-  const keyPrefixLength = 2;
-  
-  // Calculate expected public key length based on key type
-  const expectedKeyLength = keyPrefix === KEY_TYPE_PREFIXES[KEY_TYPE.ED25519] ? 32 : 57;
-  
-  // Calculate hash prefix length: total - version - keyPrefix - publicKey
-  const hashPrefixLength = totalDataLength - versionLength - keyPrefixLength - expectedKeyLength;
-  
-  if (hashPrefixLength < 0) {
-    return false; // Invalid data structure
-  }
-  
-  const hashPrefixStart = keyPrefixEnd;
-  const hashPrefixEnd = hashPrefixStart + hashPrefixLength;
-  const publicKeyStart = hashPrefixEnd;
-  
-  // Extract hash prefix
-  const hashPrefixBytes = dataWithoutChecksum.slice(hashPrefixStart, hashPrefixEnd);
-  const hashPrefix = new TextDecoder().decode(hashPrefixBytes);
-  
-  // Validate hash-type prefix by checking if it's composed of valid hash prefixes
-  // Multiple hash types can be concatenated (e.g., "ba" for SHA3-512 + SHA3-256)
-  const validHashPrefixes = Object.values(HASH_TYPE_PREFIXES);
-  let isValidHashPrefix = true;
-  
-  // Check if the hash prefix is composed of valid single-character prefixes
-  // Note: Each hash prefix is 2 characters (e.g., "a_", "b_", "c_")
-  for (let i = 0; i < hashPrefix.length; i += 2) {
-    if (i + 1 >= hashPrefix.length) {
-      isValidHashPrefix = false;
-      break;
+    // Calculate expected public key length
+    const expectedKeyLength = keyType === 'ed25519' ? 32 : 57;
+    
+    // Calculate hash prefix length: total - version - keyPrefix - publicKey
+    const totalDataLength = dataWithoutChecksum.length;
+    const versionLength = 1;
+    const keyPrefixLength = 2;
+    const hashPrefixLength = totalDataLength - versionLength - keyPrefixLength - expectedKeyLength;
+    
+    if (hashPrefixLength < 0) {
+      throw new Error(`Invalid data structure: negative hash prefix length`);
     }
-    const singleHashPrefix = hashPrefix[i] + hashPrefix[i + 1];
-    if (!validHashPrefixes.includes(singleHashPrefix)) {
-      isValidHashPrefix = false;
-      break;
+    
+    // Extract hash type prefix
+    const hashPrefixStart = 3; // After version + keyPrefix
+    const hashPrefixEnd = hashPrefixStart + hashPrefixLength;
+    const hashPrefixBytes = dataWithoutChecksum.slice(hashPrefixStart, hashPrefixEnd);
+    const hashTypePrefix = new TextDecoder().decode(hashPrefixBytes);
+    
+    // Parse hash types from prefix
+    const hashTypes = [];
+    for (let i = 0; i < hashTypePrefix.length; i += 2) {
+      if (i + 1 >= hashTypePrefix.length) {
+        throw new Error(`Invalid hash prefix format: ${hashTypePrefix}`);
+      }
+      const singleHashPrefix = hashTypePrefix[i] + hashTypePrefix[i + 1];
+      
+      // Map prefix to hash type
+      switch (singleHashPrefix) {
+        case 'a_':
+          hashTypes.push('sha3-256');
+          break;
+        case 'b_':
+          hashTypes.push('sha3-512');
+          break;
+        case 'c_':
+          hashTypes.push('blake3');
+          break;
+        default:
+          throw new Error(`Unknown hash type prefix: ${singleHashPrefix}`);
+      }
     }
+    
+    // Extract public key
+    const publicKeyStart = hashPrefixEnd;
+    const publicKey = dataWithoutChecksum.slice(publicKeyStart);
+    
+    // Validate public key length
+    if (publicKey.length !== expectedKeyLength) {
+      throw new Error(`Invalid public key length: ${publicKey.length} bytes (expected: ${expectedKeyLength})`);
+    }
+    
+    return {
+      version,
+      keyTypePrefix,
+      hashTypePrefix,
+      publicKey,
+      checksum,
+      isValid: isValidChecksum,
+      keyType,
+      hashTypes,
+      packageLength: decoded.length,
+      dataLength: dataWithoutChecksum.length
+    };
+    
+  } catch (error) {
+    throw new Error(`Failed to parse public key package: ${error.message}`);
   }
-  
-  if (!isValidHashPrefix) {
+}
+
+/**
+ * Validate public key package with checksum verification
+ * @param {string} publicKeyPackage - Public key package to validate
+ * @returns {boolean} True if valid
+ */
+export function validatePublicKeyPackage(publicKeyPackage) {
+  if (!publicKeyPackage || typeof publicKeyPackage !== 'string') {
     return false;
   }
-  
-  // Validate public key length
-  const publicKey = dataWithoutChecksum.slice(publicKeyStart);
-  if (publicKey.length !== expectedKeyLength) {
-    return false;
-  }
-  
-  return true;
+
+  try {
+    // Use the parser function to validate
+    const parsed = parseZeraPublicKeyPackage(publicKeyPackage);
+    return parsed.isValid;
   } catch (error) {
     return false;
   }

@@ -35,7 +35,8 @@ async function quickStart() {
       console.log(`✅ Ed25519 Wallet ${i + 1}:`);
       console.log(`   Address: ${ed25519Wallet.address}`);
       console.log(`   Derivation Path: ${ed25519Wallet.derivationPath}`);
-      console.log(`   Public Key (Base58): ${ed25519Wallet.publicKeyBase58.substring(0, 20)}...`);
+      console.log(`   Private Key: ${ed25519Wallet.privateKey.substring(0, 20)}...`);
+      console.log(`   Public Key (Identifier): ${ed25519Wallet.publicKey}`);
       console.log(`   Extended Public Key: ${ed25519Wallet.extendedPublicKey.substring(0, 20)}...`);
       console.log(`   Depth: ${ed25519Wallet.depth}`);
       console.log(`   Index: ${ed25519Wallet.index}`);
@@ -57,7 +58,8 @@ async function quickStart() {
       console.log(`✅ Ed448 Wallet ${i + 1}:`);
       console.log(`   Address: ${ed448Wallet.address}`);
       console.log(`   Derivation Path: ${ed448Wallet.derivationPath}`);
-      console.log(`   Public Key (Base58): ${ed448Wallet.publicKeyBase58.substring(0, 20)}...`);
+      console.log(`   Private Key: ${ed448Wallet.privateKey.substring(0, 20)}...`);
+      console.log(`   Public Key (Identifier): ${ed448Wallet.publicKey}`);
       console.log(`   Extended Public Key: ${ed448Wallet.extendedPublicKey.substring(0, 20)}...`);
       console.log(`   Depth: ${ed448Wallet.depth}`);
       console.log(`   Index: ${ed448Wallet.index}`);
