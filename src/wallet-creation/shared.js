@@ -3,7 +3,7 @@ import {
   HASH_TYPE, 
   KEY_TYPE_PREFIXES, 
   HASH_TYPE_PREFIXES,
-  ADDRESS_VERSIONS,
+  PUBLIC_KEY_PACKAGE_VERSIONS,
   isValidKeyType,
   isValidHashType
 } from './constants.js';
@@ -14,10 +14,14 @@ import bs58 from 'bs58';
 
 /**
  * Generate ZERA address from public key and hash types
+ * 
+ * ZERA Network uses a simple address format: base58-encoded hashed public key
+ * This is different from Bitcoin-style addresses which include version bytes and checksums.
+ * 
  * @param {Uint8Array} publicKey - Public key bytes
  * @param {string} keyType - Key type from KEY_TYPE enum
  * @param {Array<string>} hashTypes - Array of hash types from HASH_TYPE enum
- * @returns {string} Generated ZERA address
+ * @returns {string} Generated ZERA address (base58-encoded hashed public key)
  */
 export function generateZeraAddress(publicKey, keyType, hashTypes = []) {
   if (!publicKey || !(publicKey instanceof Uint8Array)) {
@@ -42,27 +46,8 @@ export function generateZeraAddress(publicKey, keyType, hashTypes = []) {
   // Apply hash chain to public key
   const hashedPublicKey = createHashChain(hashTypes, publicKey);
   
-  // Get network version byte for this key type to prevent cross-chain collisions
-  const versionByte = ADDRESS_VERSIONS[keyType];
-  if (versionByte === undefined) {
-    throw new Error(`No address version defined for key type: ${keyType}`);
-  }
-  
-  // Create address with version byte and checksum: [version][hashed_public_key][checksum]
-  const dataWithoutChecksum = new Uint8Array(1 + hashedPublicKey.length);
-  dataWithoutChecksum[0] = versionByte;
-  dataWithoutChecksum.set(hashedPublicKey, 1);
-  
-  // Calculate checksum (first 4 bytes of double SHA256)
-  const checksum = sha256(sha256(dataWithoutChecksum)).slice(0, 4);
-  
-  // Combine: [version][hashed_public_key][checksum]
-  const addressBytes = new Uint8Array(1 + hashedPublicKey.length + 4);
-  addressBytes.set(dataWithoutChecksum, 0);
-  addressBytes.set(checksum, dataWithoutChecksum.length);
-  
-  // Encode to base58 with version byte and checksum included
-  return bs58.encode(addressBytes);
+  // ZERA Network uses simple base58-encoded hashed public key as address
+  return bs58.encode(hashedPublicKey);
 }
 
 /**
@@ -171,9 +156,9 @@ export function generateZeraPublicKeyPackage(publicKey, keyType, hashTypes = [])
   }
 
   // Get network version byte for this key type
-  const versionByte = ADDRESS_VERSIONS[keyType];
+  const versionByte = PUBLIC_KEY_PACKAGE_VERSIONS[keyType];
   if (versionByte === undefined) {
-    throw new Error(`No address version defined for key type: ${keyType}`);
+    throw new Error(`No public key package version defined for key type: ${keyType}`);
   }
   
   // Add key type prefix
@@ -260,9 +245,14 @@ export function createBaseWallet(
 }
 
 /**
- * Validate address format with checksum verification
+ * Validate ZERA address format
+ * 
+ * ZERA addresses are simple base58-encoded hashed public keys.
+ * This function validates that the address is properly base58 encoded
+ * and has a reasonable length for a hashed public key.
+ * 
  * @param {string} address - Address to validate
- * @returns {boolean} True if valid
+ * @returns {boolean} True if valid ZERA address format
  */
 export function validateAddress(address) {
   if (!address || typeof address !== 'string') {
@@ -273,32 +263,23 @@ export function validateAddress(address) {
     // Decode base58
     const decoded = bs58.decode(address);
     
-    // Check minimum length (version + hash + checksum)
-    if (decoded.length < 37) { // 1 + 32 + 4 = 37 bytes minimum
+    // ZERA addresses should be hashed public keys (typically 32 bytes for SHA3-256, 64 for SHA3-512, etc.)
+    // Allow reasonable range for different hash algorithms
+    if (decoded.length < 16 || decoded.length > 128) {
       return false;
     }
 
-    // Extract components: [version][hash][checksum]
-    const versionByte = decoded[0];
-    const hashedData = decoded.slice(1, -4);
-    const providedChecksum = decoded.slice(-4);
+    // Check that it's not all zeros or all ones (basic sanity check)
+    const allZeros = decoded.every(byte => byte === 0);
+    const allOnes = decoded.every(byte => byte === 0xFF);
     
-    // Verify checksum
-    const dataWithoutChecksum = decoded.slice(0, -4);
-    const calculatedChecksum = sha256(sha256(dataWithoutChecksum)).slice(0, 4);
-    
-    if (!calculatedChecksum.every((byte, index) => byte === providedChecksum[index])) {
-      return false;
-    }
-    
-    // Check if version byte is valid
-    const validVersions = Object.values(ADDRESS_VERSIONS);
-    if (!validVersions.includes(versionByte)) {
+    if (allZeros || allOnes) {
       return false;
     }
     
     return true;
   } catch (error) {
+    // Invalid base58 encoding
     return false;
   }
 }

@@ -72,20 +72,17 @@ export const VALID_HASH_TYPES = Object.values(HASH_TYPE);
 export const SUPPORTED_KEY_TYPES = VALID_KEY_TYPES;
 export const KEY_TYPES = KEY_TYPE_PREFIXES; // For backward compatibility
 
-// Address version bytes (placeholder - adjust for actual ZERA implementation)
-export const ADDRESS_VERSIONS = {
-  [KEY_TYPE.ED25519]: 0x1a,
-  [KEY_TYPE.ED448]: 0x1b
-};
-
 // ZERA extended key version bytes (custom to prevent cross-chain confusion)
 export const EXTENDED_KEY_VERSIONS = {
   PRIVATE: 0x04b2430c, // ZERA private key version
   PUBLIC: 0x04b2430d   // ZERA public key version
 };
 
-// Minimum address length for validation
-export const MIN_ADDRESS_LENGTH = 25;
+// Public key package version bytes (for public key packages, not addresses)
+export const PUBLIC_KEY_PACKAGE_VERSIONS = {
+  [KEY_TYPE.ED25519]: 0x1a,
+  [KEY_TYPE.ED448]: 0x1b
+};
 
 // BIP39 supported mnemonic lengths
 export const MNEMONIC_LENGTHS = [12, 15, 18, 21, 24];

@@ -55,8 +55,17 @@ async function testCreateBaseWallet() {
  */
 async function testAddressValidation() {
   console.log('🏠 Test 4: Address Validation');
-  // Note: This will fail with placeholder addresses since we're using a simple validation
-  console.log('Address validation function exists:', typeof validateAddress === 'function');
+  
+  // Test valid ZERA address format (base58-encoded hashed public key)
+  const validAddress = '5KJvsngHeMby884zrh6A5u6b4SqzZzAb'; // Example base58 string
+  const invalidAddress1 = 'invalid-address';
+  const invalidAddress2 = '';
+  const invalidAddress3 = null;
+  
+  console.log('Valid address validation:', validateAddress(validAddress));
+  console.log('Invalid address validation (invalid format):', validateAddress(invalidAddress1));
+  console.log('Invalid address validation (empty string):', validateAddress(invalidAddress2));
+  console.log('Invalid address validation (null):', validateAddress(invalidAddress3));
   console.log('');
 }
 

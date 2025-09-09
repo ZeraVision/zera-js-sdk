@@ -6,8 +6,7 @@ import {
   ZERA_SYMBOL,
   ZERA_NAME,
   SLIP0010_DERIVATION_PATH,
-  ADDRESS_VERSIONS,
-  MIN_ADDRESS_LENGTH
+  PUBLIC_KEY_PACKAGE_VERSIONS
 } from '../constants.js';
 
 /**
@@ -38,18 +37,11 @@ async function testDerivationPath() {
 }
 
 /**
- * Test 4: Address versions
+ * Test 4: Public key package versions
  */
-async function testAddressVersions() {
-  assert.equal(ADDRESS_VERSIONS.ed25519, 0x1a, 'ed25519 address version should be 0x1a');
-  assert.equal(ADDRESS_VERSIONS.ed448, 0x1b, 'ed448 address version should be 0x1b');
-}
-
-/**
- * Test 5: Address validation constants
- */
-async function testAddressValidationConstants() {
-  assert.equal(MIN_ADDRESS_LENGTH, 25, 'MIN_ADDRESS_LENGTH should be 25');
+async function testPublicKeyPackageVersions() {
+  assert.equal(PUBLIC_KEY_PACKAGE_VERSIONS.ed25519, 0x1a, 'ed25519 public key package version should be 0x1a');
+  assert.equal(PUBLIC_KEY_PACKAGE_VERSIONS.ed448, 0x1b, 'ed448 public key package version should be 0x1b');
 }
 
 /**
@@ -68,11 +60,8 @@ async function runAllConstantsTests() {
     // Test 3: Derivation path
     await testDerivationPath();
     
-    // Test 4: Address versions
-    await testAddressVersions();
-    
-    // Test 5: Address validation constants
-    await testAddressValidationConstants();
+    // Test 4: Public key package versions
+    await testPublicKeyPackageVersions();
     
     console.log('✅ All constants tests passed');
   } catch (error) {
@@ -86,8 +75,7 @@ export {
   testSupportedKeyTypes,
   testZeraNetworkConstants,
   testDerivationPath,
-  testAddressVersions,
-  testAddressValidationConstants
+  testPublicKeyPackageVersions
 };
 
 // Export the main test function
