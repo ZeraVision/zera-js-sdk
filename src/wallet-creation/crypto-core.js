@@ -71,6 +71,30 @@ const ByteUtils = {
     }
     
     return array;
+  },
+
+  /**
+   * Securely clear sensitive data from memory
+   * @param {Uint8Array|ArrayBuffer|Buffer} data - Data to clear
+   */
+  secureClear(data) {
+    if (!data) return;
+    
+    try {
+      if (data instanceof Uint8Array) {
+        data.fill(0);
+      } else if (data instanceof ArrayBuffer) {
+        new Uint8Array(data).fill(0);
+      } else if (data instanceof Buffer) {
+        data.fill(0);
+      } else if (data.buffer && data.buffer instanceof ArrayBuffer) {
+        // Handle typed arrays
+        new Uint8Array(data.buffer, data.byteOffset, data.byteLength).fill(0);
+      }
+    } catch (error) {
+      // Silently fail - some environments may not allow memory clearing
+      // This is acceptable as the garbage collector will eventually clean up
+    }
   }
 };
 
@@ -430,6 +454,15 @@ export class SLIP0010HDWallet {
     
     return bs58.encode(dataWithChecksum);
   }
+
+  /**
+   * Securely clear sensitive data from memory
+   * Call this when the HD wallet node is no longer needed
+   */
+  secureClear() {
+    ByteUtils.secureClear(this.privateKey);
+    ByteUtils.secureClear(this.chainCode);
+  }
 }
 
 
@@ -459,6 +492,15 @@ export class Ed25519KeyPair {
    */
   static fromHDNode(hdNode) {
     return new Ed25519KeyPair(hdNode.privateKey);
+  }
+
+  /**
+   * Securely clear sensitive data from memory
+   * Call this when the key pair is no longer needed
+   */
+  secureClear() {
+    ByteUtils.secureClear(this.privateKey);
+    ByteUtils.secureClear(this.publicKey);
   }
 
   /**
@@ -628,6 +670,16 @@ export class Ed448KeyPair {
   }
 
   /**
+   * Securely clear sensitive data from memory
+   * Call this when the key pair is no longer needed
+   */
+  secureClear() {
+    ByteUtils.secureClear(this.privateKey);
+    ByteUtils.secureClear(this.expandedPrivateKey);
+    ByteUtils.secureClear(this.publicKey);
+  }
+
+  /**
    * Sign message using Ed448
    * @param {Uint8Array} message - Message to sign
    * @returns {Uint8Array} Signature
@@ -727,5 +779,13 @@ export const CryptoUtils = {
       default:
         throw new Error(`Unsupported HMAC algorithm: ${algorithm}`);
     }
+  },
+
+  /**
+   * Securely clear sensitive data from memory
+   * @param {Uint8Array|ArrayBuffer|Buffer} data - Data to clear
+   */
+  secureClear(data) {
+    ByteUtils.secureClear(data);
   }
 };

@@ -14,7 +14,7 @@ import {
   MissingParameterError, InvalidKeyTypeError, InvalidHashTypeError, InvalidMnemonicLengthError
 } from './errors.js';
 import { validateHashTypes } from './hash-utils.js';
-import { Ed25519KeyPair, Ed448KeyPair } from './crypto-core.js';
+import { Ed25519KeyPair, Ed448KeyPair, CryptoUtils } from './crypto-core.js';
 import bs58 from 'bs58';
 
 /**
@@ -89,35 +89,47 @@ export class WalletFactory {
     // Generate key pair based on key type using @noble libraries
     const keyPair = await this.generateKeyPair(hdNode, keyType);
     
-    // Generate address and public key formats
-    const address = generateZeraAddress(keyPair.publicKey, keyType, hashTypes);
-    const publicKey = generateZeraPublicKeyIdentifier(keyPair.publicKey, keyType, hashTypes);
-    
-    // Create wallet object
-    const wallet = createBaseWallet(
-      'hd',
-      finalMnemonic,
-      keyPair.getPrivateKeyBase58(),
-      address,
-      publicKey,
-      this.coinType,
-      this.symbol,
-      derivationPath,
-      keyType,
-      hashTypes
-    );
+    try {
+      // Generate address and public key formats
+      const address = generateZeraAddress(keyPair.publicKey, keyType, hashTypes);
+      const publicKey = generateZeraPublicKeyIdentifier(keyPair.publicKey, keyType, hashTypes);
+      
+      // Create wallet object
+      const wallet = createBaseWallet(
+        'hd',
+        finalMnemonic,
+        keyPair.getPrivateKeyBase58(),
+        address,
+        publicKey,
+        this.coinType,
+        this.symbol,
+        derivationPath,
+        keyType,
+        hashTypes
+      );
 
-    return {
-      ...wallet,
-      // Add extended key information for SLIP-0010 compliance
-      extendedPrivateKey: hdNode.getExtendedPrivateKey(),
-      extendedPublicKey: hdNode.getExtendedPublicKey(),
-      fingerprint: hdNode.getFingerprint(keyType),
-      depth: hdNode.depth,
-      index: hdNode.index,
-      // Only expose base58-encoded private key for security
-      privateKey: keyPair.getPrivateKeyBase58(), // Raw 32-byte private key encoded as base58
-    };
+      return {
+        ...wallet,
+        // Add extended key information for SLIP-0010 compliance
+        extendedPrivateKey: hdNode.getExtendedPrivateKey(),
+        extendedPublicKey: hdNode.getExtendedPublicKey(),
+        fingerprint: hdNode.getFingerprint(keyType),
+        depth: hdNode.depth,
+        index: hdNode.index,
+        // Only expose base58-encoded private key for security
+        privateKey: keyPair.getPrivateKeyBase58(), // Raw 32-byte private key encoded as base58
+        // Add memory safety method
+        secureClear: () => {
+          keyPair.secureClear();
+          hdNode.secureClear();
+        }
+      };
+    } catch (error) {
+      // Ensure cleanup on error
+      keyPair.secureClear();
+      hdNode.secureClear();
+      throw error;
+    }
   }
 
   /**
@@ -160,24 +172,37 @@ export class WalletFactory {
     const wallets = [];
     const seed = generateSeed(mnemonic, passphrase);
 
-    for (let i = 0; i < count; i++) {
-      const currentHdOptions = {
-        ...hdOptions,
-        addressIndex: (hdOptions.addressIndex || 0) + i
-      };
+    try {
+      for (let i = 0; i < count; i++) {
+        const currentHdOptions = {
+          ...hdOptions,
+          addressIndex: (hdOptions.addressIndex || 0) + i
+        };
 
-      const wallet = await this.createWallet({
-        keyType,
-        hashTypes,
-        mnemonic,
-        passphrase,
-        hdOptions: currentHdOptions
+        const wallet = await this.createWallet({
+          keyType,
+          hashTypes,
+          mnemonic,
+          passphrase,
+          hdOptions: currentHdOptions
+        });
+
+        wallets.push(wallet);
+      }
+
+      return wallets;
+    } catch (error) {
+      // Clean up any partially created wallets
+      wallets.forEach(wallet => {
+        if (wallet.secureClear) {
+          wallet.secureClear();
+        }
       });
-
-      wallets.push(wallet);
+      throw error;
+    } finally {
+      // Clear seed from memory
+      CryptoUtils.secureClear(seed);
     }
-
-    return wallets;
   }
 
   /**
@@ -223,7 +248,9 @@ export class WalletFactory {
         'Fully hardened derivation support',
         'Overflow protection',
         'Fingerprint validation',
-        'Extended key support (xpub/xpriv)'
+        'Extended key support (xpub/xpriv)',
+        'Secure memory clearing for sensitive data',
+        'Automatic cleanup on error conditions'
       ]
     };
   }

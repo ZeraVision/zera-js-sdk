@@ -157,6 +157,9 @@ export {
   generateZeraAddress, generateZeraPublicKeyIdentifier, createBaseWallet
 } from './shared.js';
 
+// Re-export crypto utilities
+export { CryptoUtils } from './crypto-core.js';
+
 // Re-export constants and enums
 export {
   ZERA_TYPE, ZERA_TYPE_HEX, ZERA_SYMBOL, ZERA_NAME, SLIP0010_DERIVATION_PATH,

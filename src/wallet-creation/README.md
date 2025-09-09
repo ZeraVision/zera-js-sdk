@@ -78,7 +78,7 @@ The system uses "ZERA seed" instead of the standard "ed25519 seed" for key deriv
 
 This SDK intentionally exposes sensitive wallet material in the create wallet object:
 
-- **Seed phrases**: Visible in wallet objects for testing and debugging
+- **Seed phrases**: Visible in wallet objects
 - **Private keys**: Accessible for cryptographic operations
 - **Derivation paths**: Fully visible for transparency
 

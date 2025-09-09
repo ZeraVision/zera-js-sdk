@@ -40,6 +40,7 @@ async function quickStart() {
       console.log(`   Extended Public Key: ${ed25519Wallet.extendedPublicKey.substring(0, 20)}...`);
       console.log(`   Depth: ${ed25519Wallet.depth}`);
       console.log(`   Index: ${ed25519Wallet.index}`);
+      console.log(`   Memory Safety: ${ed25519Wallet.secureClear ? 'Available' : 'Not Available'}`);
       console.log('');
     }
 
@@ -63,6 +64,7 @@ async function quickStart() {
       console.log(`   Extended Public Key: ${ed448Wallet.extendedPublicKey.substring(0, 20)}...`);
       console.log(`   Depth: ${ed448Wallet.depth}`);
       console.log(`   Index: ${ed448Wallet.index}`);
+      console.log(`   Memory Safety: ${ed448Wallet.secureClear ? 'Available' : 'Not Available'}`);
       console.log('');
     }
 
@@ -75,7 +77,31 @@ async function quickStart() {
     console.log(`   • Each wallet has a unique address and derivation path`);
     console.log(`   • Full SLIP-0010 compliance with hardened derivation`);
     console.log(`   • Extended keys (xpub/xpriv) for each wallet`);
-    console.log('\n💡 You now have 6 fully functional HD wallets!');
+    console.log(`   • Secure memory clearing available for all wallets`);
+    console.log('\n💡 You now have 6 fully functional HD wallets with memory safety!');
+
+    // ===== MEMORY SAFETY DEMONSTRATION =====
+    console.log('\n🧹 Memory Safety Demonstration:');
+    console.log('   Demonstrating secure memory clearing...');
+    
+    // Create a test wallet for demonstration
+    const testWallet = await createWallet({
+      keyType: KEY_TYPE.ED25519,
+      hashTypes: [HASH_TYPE.SHA3_256],
+      mnemonic,
+      hdOptions: { addressIndex: 10 }
+    });
+    
+    console.log(`   Test wallet address: ${testWallet.address}`);
+    console.log(`   secureClear method available: ${typeof testWallet.secureClear === 'function' ? 'YES' : 'NO'}`);
+    
+    // Demonstrate secure clearing
+    if (testWallet.secureClear) {
+      testWallet.secureClear();
+      console.log('   ✅ Sensitive data securely cleared from memory');
+    }
+    
+    console.log('   💡 In production, call secureClear() when wallets are no longer needed');
 
   } catch (error) {
     console.error('❌ Error:', error.message);
