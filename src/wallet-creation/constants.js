@@ -78,12 +78,6 @@ export const EXTENDED_KEY_VERSIONS = {
   PUBLIC: 0x04b2430d   // ZERA public key version
 };
 
-// Public key package version bytes (for public key packages, not addresses)
-export const PUBLIC_KEY_PACKAGE_VERSIONS = {
-  [KEY_TYPE.ED25519]: 0x1a,
-  [KEY_TYPE.ED448]: 0x1b
-};
-
 // BIP39 supported mnemonic lengths
 export const MNEMONIC_LENGTHS = [12, 15, 18, 21, 24];
 

@@ -8,7 +8,7 @@ import {
   createHDWallet, deriveMultipleAddresses
 } from './hd-utils.js';
 import {
-  generateZeraAddress, generateZeraPublicKeyPackage, generateZeraPublicKeyIdentifier, createBaseWallet
+  generateZeraAddress, generateZeraPublicKeyIdentifier, createBaseWallet
 } from './shared.js';
 import {
   MissingParameterError, InvalidKeyTypeError, InvalidHashTypeError, InvalidMnemonicLengthError
@@ -91,7 +91,6 @@ export class WalletFactory {
     
     // Generate address and public key formats
     const address = generateZeraAddress(keyPair.publicKey, keyType, hashTypes);
-    const publicKeyPackage = generateZeraPublicKeyPackage(keyPair.publicKey, keyType, hashTypes);
     const publicKey = generateZeraPublicKeyIdentifier(keyPair.publicKey, keyType, hashTypes);
     
     // Create wallet object
@@ -100,7 +99,6 @@ export class WalletFactory {
       finalMnemonic,
       keyPair.getPrivateKeyBase58(),
       address,
-      publicKeyPackage,
       publicKey,
       this.coinType,
       this.symbol,

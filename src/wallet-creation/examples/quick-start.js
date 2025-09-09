@@ -9,7 +9,7 @@
 
 import { createWallet, generateWords, KEY_TYPE, HASH_TYPE } from '../index.js';
 
-quickStart(); // User manually added this call
+quickStart(); // call to test
 
 async function quickStart() {
   console.log('🚀 ZERA Wallet Creation - Quick Start\n');

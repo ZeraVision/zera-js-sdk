@@ -5,8 +5,7 @@ import {
   ZERA_TYPE_HEX,
   ZERA_SYMBOL,
   ZERA_NAME,
-  SLIP0010_DERIVATION_PATH,
-  PUBLIC_KEY_PACKAGE_VERSIONS
+  SLIP0010_DERIVATION_PATH
 } from '../constants.js';
 
 /**
@@ -36,13 +35,6 @@ async function testDerivationPath() {
   assert.equal(SLIP0010_DERIVATION_PATH, 'm/44\'/1110\'/0\'/0\'/0\'', 'SLIP0010_DERIVATION_PATH should be SLIP-0010 format (all hardened)');
 }
 
-/**
- * Test 4: Public key package versions
- */
-async function testPublicKeyPackageVersions() {
-  assert.equal(PUBLIC_KEY_PACKAGE_VERSIONS.ed25519, 0x1a, 'ed25519 public key package version should be 0x1a');
-  assert.equal(PUBLIC_KEY_PACKAGE_VERSIONS.ed448, 0x1b, 'ed448 public key package version should be 0x1b');
-}
 
 /**
  * Main test runner that executes all tests in sequence
@@ -60,9 +52,6 @@ async function runAllConstantsTests() {
     // Test 3: Derivation path
     await testDerivationPath();
     
-    // Test 4: Public key package versions
-    await testPublicKeyPackageVersions();
-    
     console.log('✅ All constants tests passed');
   } catch (error) {
     console.error('❌ Constants test failed:', error.message);
@@ -74,8 +63,7 @@ async function runAllConstantsTests() {
 export {
   testSupportedKeyTypes,
   testZeraNetworkConstants,
-  testDerivationPath,
-  testPublicKeyPackageVersions
+  testDerivationPath
 };
 
 // Export the main test function
