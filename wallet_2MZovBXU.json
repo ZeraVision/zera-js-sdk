@@ -1,0 +1,22 @@
+{
+  "type": "hd",
+  "mnemonic": "wife gesture giraffe embark enrich hair cable seminar gasp usual gym jeans",
+  "privateKey": "BvBqb79XBmdTFxVcjUCzb5cgeXdWsubgBLTrtHVZBMYr",
+  "address": "2MZovBXU4catQ9EwQarkwB67h4XhjsCeFpsv3Rg6V7Va",
+  "publicKey": "A_a_6VkBYphNVpKkiPB8m3VLcYi4TCWbwMAZcusFtXFt9FYz",
+  "extendedPrivateKey": "zprvAgPbUnV3RxrywmnDbVoVToxaP1gmdjwACWSHEJ7cFk1FKZyjqSYL8pCr81rbrbATtQ5ZbtEGNAPKY52kBEwEUbQFrYFyjzjzZavAwFbYJKs",
+  "extendedPublicKey": "E6rpskJ4DqwEmAy3QWPnAzkyJTtRLG365DYze4eiPyoxzFLQdJsqEtSXXvoxAefpup3TSKns24ATEzPh4BBUTfqBhzWcJvguioAY4quX21GLdV",
+  "derivationPath": "m/44'/1110'/0'/0'/0'",
+  "depth": 5,
+  "index": 2147483648,
+  "fingerprint": 1820816191,
+  "keyType": "ed25519",
+  "hashTypes": [
+    "sha3-256"
+  ],
+  "coinType": 1110,
+  "symbol": "ZRA",
+  "createdAt": "2025-09-09T21:40:47.686Z",
+  "version": "1.0.0",
+  "standard": "BIP32 + BIP39 + SLIP-0010 + SLIP44"
+}

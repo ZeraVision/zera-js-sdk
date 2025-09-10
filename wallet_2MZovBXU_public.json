@@ -1,0 +1,12 @@
+{
+  "address": "2MZovBXU4catQ9EwQarkwB67h4XhjsCeFpsv3Rg6V7Va",
+  "publicKey": "A_a_6VkBYphNVpKkiPB8m3VLcYi4TCWbwMAZcusFtXFt9FYz",
+  "derivationPath": "m/44'/1110'/0'/0'/0'",
+  "keyType": "ed25519",
+  "hashTypes": [
+    "sha3-256"
+  ],
+  "coinType": 1110,
+  "symbol": "ZRA",
+  "createdAt": "2025-09-09T21:40:47.686Z"
+}
