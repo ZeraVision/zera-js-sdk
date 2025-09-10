@@ -23,7 +23,7 @@
   "devDependencies": {
     "typescript": "^5.0.0",
     "rimraf": "^5.0.0",
-    "buf": "^1.28.1"
+    "@bufbuild/buf": "^1.28.1"
   },
   "keywords": ["protobuf", "grpc", "zera", "blockchain"],
   "author": "",
