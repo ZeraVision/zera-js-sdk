@@ -9,10 +9,7 @@
 import { assert } from '../../test-utils/index.js';
 import { 
   transfer, 
-  createCoinTXN, 
-  createMultiInputOutputCoinTXN,
-  serializeTransfer, 
-  deserializeTransfer 
+  createCoinTXN
 } from '../../transfer/transfer.js';
 import { 
   toDecimal,
@@ -86,7 +83,8 @@ export async function testDecimalTransfers() {
   console.log('🧪 Testing Decimal Transfers');
   
   // Test user-friendly decimal amounts
-  const transferInstance = transfer('alice', 'bob', '1.5', '$ZRA+0000', '', 'payment');
+  const feeConfig = { baseFeeId: '$ZRA+0000' };
+  const transferInstance = transfer('alice', 'bob', '1.5', feeConfig, 'payment');
   
   assert.ok(transferInstance.$typeName === 'zera_txn.Transfer', 'Should be a real protobuf Transfer instance');
   assert.ok(transferInstance.amount === '1500000000', '1.5 ZRA should be converted to smallest units');
@@ -94,7 +92,7 @@ export async function testDecimalTransfers() {
   
   // Test with Decimal object
   const decimalAmount = new Decimal('2.75');
-  const transferInstance2 = transfer('alice', 'bob', decimalAmount, '$ZRA+0000');
+  const transferInstance2 = transfer('alice', 'bob', decimalAmount, feeConfig);
   assert.ok(transferInstance2.amount === '2750000000', '2.75 ZRA should be converted correctly');
   
   console.log('✅ Decimal transfers test passed');
@@ -103,7 +101,10 @@ export async function testDecimalTransfers() {
 export async function testDecimalCoinTXN() {
   console.log('🧪 Testing Decimal CoinTXN Creation');
   
-  const coinTxn = createCoinTXN('alice', 'bob', '3.14159', '$ZRA+0000', '', 'pi payment');
+  const feeConfig = { baseFeeId: '$ZRA+0000' };
+  const inputs = [{from: 'alice', amount: '3.14159', feePercent: '100'}];
+  const outputs = [{to: 'bob', amount: '3.14159', memo: 'pi payment'}];
+  const coinTxn = createCoinTXN(inputs, outputs, feeConfig);
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should be a real CoinTXN instance');
   assert.ok(coinTxn.inputTransfers.length === 1, 'Should have 1 input transfer');
@@ -131,7 +132,7 @@ export async function testDecimalMultiInputOutput() {
     { to: 'david', amount: '1.75', memo: 'Payment to David' }
   ];
   
-  const coinTxn = createMultiInputOutputCoinTXN(inputs, outputs, '$ZRA+0000', 'Complex decimal transfer');
+  const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000', 'Complex decimal transfer');
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should be a real CoinTXN instance');
   assert.ok(coinTxn.inputTransfers.length === 2, 'Should have 2 input transfers');
@@ -216,7 +217,7 @@ export async function testDecimalValidation() {
   ];
   
   // This should not throw
-  const validTxn = createMultiInputOutputCoinTXN(validInputs, validOutputs);
+  const validTxn = createCoinTXN(validInputs, validOutputs);
   assert.ok(validTxn.$typeName === 'zera_txn.CoinTXN', 'Valid transaction should be created');
   
   // Test invalid balance with decimals
@@ -227,7 +228,7 @@ export async function testDecimalValidation() {
   
   let errorThrown = false;
   try {
-    createMultiInputOutputCoinTXN(validInputs, invalidOutputs);
+    createCoinTXN(validInputs, invalidOutputs);
   } catch (error) {
     errorThrown = true;
     assert.ok(error.message.includes('Amount balance validation failed'), 'Should throw balance validation error');
@@ -297,7 +298,7 @@ export async function testMixedAmountTypes() {
     { to: 'david', amount: new Decimal('7.5') }         // Decimal
   ];
   
-  const coinTxn = createMultiInputOutputCoinTXN(inputs, outputs);
+  const coinTxn = createCoinTXN(inputs, outputs);
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should handle mixed amount types');
   
   // Verify fee percentages sum to 100%

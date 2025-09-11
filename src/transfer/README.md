@@ -14,25 +14,24 @@ Modern transfer functionality using actual generated protobuf classes.
 
 ### Single Transfer (1-1)
 ```javascript
-import { transfer, serializeTransfer } from './transfer.js';
+import { transfer } from './transfer.js';
 
-const t = transfer('alice', 'bob', 100);
-console.log(t.amount); // "100"
+const feeConfig = { baseFeeId: '$ZRA+0000' };
+const t = transfer('alice', 'bob', '1.0', feeConfig, 'payment memo');
+console.log(t.amount); // "1000000000" (smallest units)
 console.log(t.contractId); // "$ZRA+0000"
 console.log(t.$typeName); // "zera_txn.Transfer"
-
-// Real protobuf binary serialization
-const binary = serializeTransfer(t);
-console.log(binary); // Uint8Array (real protobuf binary)
+console.log(t.memo); // "payment memo"
 ```
 
 ### Multiple Transfers (1-M)
 ```javascript
-const transfers = transfer('alice', ['bob', 'charlie'], [50, 30]);
+const feeConfig = { baseFeeId: '$ZRA+0000' };
+const transfers = transfer('alice', ['bob', 'charlie'], ['0.5', '0.3'], feeConfig, ['payment1', 'payment2']);
 // Returns array of protobuf Transfer instances
 
 transfers.forEach(t => {
-  console.log(t.amount); // "50", "30"
+  console.log(t.amount); // "500000000", "300000000" (smallest units)
   console.log(t.recipientAddress); // Uint8Array
   console.log(t.$typeName); // "zera_txn.Transfer"
 });
@@ -42,74 +41,50 @@ transfers.forEach(t => {
 ```javascript
 import { createCoinTXN } from './transfer.js';
 
-const coinTxn = createCoinTXN('alice', 'bob', 100);
+const feeConfig = { baseFeeId: '$ZRA+0000' };
+const inputs = [{from: 'alice', amount: '1.0', feePercent: '100'}];
+const outputs = [{to: 'bob', amount: '1.0', memo: 'payment'}];
+const coinTxn = createCoinTXN(inputs, outputs, feeConfig);
 console.log(coinTxn.inputTransfers); // Array of InputTransfers
 console.log(coinTxn.outputTransfers); // Array of OutputTransfers
 console.log(coinTxn.$typeName); // "zera_txn.CoinTXN"
 ```
 
-### Binary Serialization/Deserialization
-```javascript
-import { transfer, serializeTransfer, deserializeTransfer } from './transfer.js';
-import { toJson } from '@bufbuild/protobuf';
-
-const t = transfer('alice', 'bob', 100);
-
-// Serialize to binary
-const binary = serializeTransfer(t);
-
-// Deserialize from binary
-const deserialized = deserializeTransfer(binary);
-console.log(deserialized.amount); // "100"
-
-// Convert to JSON
-const json = toJson(Transfer, t);
-console.log(json); // Plain object
-```
-
 ## API Reference
 
-### `transfer(from, to, amount, feeId?, baseMemo?, transferMemo?)`
+### `transfer(from, to, amount, feeConfig?, transferMemo?)`
 
 Creates actual protobuf Transfer message instances.
 
 **Parameters:**
 - `from` (string|Array): Sender address(es)
 - `to` (string|Array): Recipient address(es)  
-- `amount` (number|Array): Transfer amount(s)
-- `feeId` (string): Fee instrument ID (default: '$ZRA+0000')
-- `baseMemo` (string): Base memo (optional)
+- `amount` (Decimal|string|number|Array): Transfer amount(s) in user-friendly format
+- `feeConfig` (Object): Fee configuration object
+  - `baseFeeId` (string): Base fee instrument ID (required, default: '$ZRA+0000')
+  - `contractFeeId` (string): Contract fee instrument ID (optional, defaults to baseFeeId)
+  - `baseFee` (string): Base fee amount (optional)
+  - `contractFee` (string): Contract fee amount (optional)
 - `transferMemo` (string|Array): Transfer-specific memo(s) (optional)
 
 **Returns:**
 - Single protobuf Transfer instance or array of instances
 
-### `createCoinTXN(from, to, amount, feeId?, baseMemo?, transferMemo?)`
+### `createCoinTXN(inputs, outputs, feeConfig?, baseMemo?)`
 
 Creates a complete `CoinTXN` with proper input/output transfers.
 
-**Returns:**
-- protobuf CoinTXN instance
-
-### `serializeTransfer(transfer)`
-
-Serializes transfer(s) to real protobuf binary format.
-
 **Parameters:**
-- `transfer` (Transfer|Array): Transfer instance(s)
+- `inputs` (Array): Array of input objects `{from: string, amount: Decimal|string|number, feePercent?: string}`
+- `outputs` (Array): Array of output objects `{to: string, amount: Decimal|string|number, memo?: string}`
+- `feeConfig` (Object): Fee configuration object
+  - `baseFeeId` (string): Base fee instrument ID (required, default: '$ZRA+0000')
+  - `contractFeeId` (string): Contract fee instrument ID (optional, defaults to baseFeeId)
+  - `contractFee` (string): Contract fee amount (optional)
+- `baseMemo` (string): Base memo for the transaction (optional)
 
 **Returns:**
-- `Uint8Array` or array of `Uint8Array`
-
-### `deserializeTransfer(binaryData)`
-
-Deserializes binary data back to Transfer instances.
-
-**Parameters:**
-- `binaryData` (Uint8Array|Array): Binary data
-
-**Returns:**
-- protobuf Transfer instance or array of instances
+- Complete protobuf CoinTXN instance
 
 ## Protobuf Message Properties
 
@@ -119,13 +94,14 @@ All transfer instances provide direct property access to protobuf fields:
 import { transfer } from './transfer.js';
 import { toJson, toBinary } from '@bufbuild/protobuf';
 
-const t = transfer('alice', 'bob', 100);
+const feeConfig = { baseFeeId: '$ZRA+0000' };
+const t = transfer('alice', 'bob', '1.0', feeConfig, 'payment memo');
 
 // Direct property access
-t.amount                        // string: "100"
+t.amount                        // string: "1000000000" (smallest units)
 t.contractId                   // string: "$ZRA+0000"
 t.recipientAddress             // Uint8Array: converted from "bob"
-t.memo                         // string: transfer memo
+t.memo                         // string: "payment memo"
 t.$typeName                    // string: "zera_txn.Transfer"
 
 // JSON conversion

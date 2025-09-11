@@ -6,20 +6,14 @@
 import { assert } from '../../test-utils/index.js';
 import { 
   transfer, 
-  createCoinTXN, 
-  createMultiInputOutputCoinTXN,
-  serializeTransfer, 
-  deserializeTransfer 
+  createCoinTXN 
 } from '../transfer.js';
-import { addTokenConfig } from '../../shared/token-config.js';
 import { 
   TransferSchema as Transfer, 
   CoinTXNSchema as CoinTXN, 
   OutputTransfersSchema as OutputTransfers 
 } from '../../../proto/generated/txn_pb.js';
-import { toJson } from '@bufbuild/protobuf';
 
-testCoinTXN()
 export async function testCoinTXN() {
   console.log('🧪 Testing Multi-Input Multi-Output Transactions');
   
@@ -36,7 +30,11 @@ export async function testCoinTXN() {
   ];
   
   // Test with optional fee amount
-  const coinTxn = createMultiInputOutputCoinTXN(inputs, outputs, '$ZRA+0000', 'base memo', '500');
+  const feeConfig = {
+    baseFeeId: '$ZRA+0000',
+    contractFee: '500'
+  };
+  const coinTxn = createCoinTXN(inputs, outputs, feeConfig, 'base memo');
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should be a real CoinTXN instance');
   assert.ok(coinTxn.inputTransfers.length === 2, 'Should have 2 input transfers');
@@ -70,7 +68,8 @@ export async function testCoinTXN() {
   assert.ok(coinTxn.contractFeeAmount === '500', 'Contract fee amount should be 500');
   
   // Test without fee amount (should be nil)
-  const coinTxnNoFee = createMultiInputOutputCoinTXN(inputs, outputs, '$ZRA+0000', 'multi-transfer');
+  const feeConfigNoFee = { baseFeeId: '$ZRA+0000' };
+  const coinTxnNoFee = createCoinTXN(inputs, outputs, feeConfigNoFee, 'multi-transfer');
   assert.ok(coinTxnNoFee.contractFeeAmount === undefined, 'Contract fee amount should be undefined when not provided');
   
   console.log('✅ Multi-input/output transaction test passed');
@@ -89,7 +88,8 @@ export async function testFeePercentFunctionality() {
     { to: 'charlie', amount: '1.5', memo: 'payment' }
   ];
   
-  const coinTxn = createMultiInputOutputCoinTXN(inputs, outputs, '$ZRA+0000');
+  const feeConfig = { baseFeeId: '$ZRA+0000' };
+  const coinTxn = createCoinTXN(inputs, outputs, feeConfig);
   
   // Test fee percentages
   assert.ok(coinTxn.inputTransfers[0].feePercent === 60000000, 'First input should have 60% fee (60000000)');
@@ -115,23 +115,23 @@ export async function testOptionalFeeAmount() {
     { to: 'bob', amount: '1.0', memo: 'payment' }
   ];
   
-  const coinTxnWithFee = createMultiInputOutputCoinTXN(inputs, outputs, '$ZRA+0000', '', '500');
+  const feeConfigWithFee = {
+    baseFeeId: '$ZRA+0000',
+    contractFee: '500'
+  };
+  const coinTxnWithFee = createCoinTXN(inputs, outputs, feeConfigWithFee);
   
   // Test that fee amount is included when provided
   assert.ok(coinTxnWithFee.contractFeeAmount === '500', 'Fee amount should be included when provided');
   
   // Test without fee amount (should be nil/undefined)
-  const coinTxnWithoutFee = createMultiInputOutputCoinTXN(inputs, outputs, '$ZRA+0000', '');
+  const feeConfigWithoutFee = {
+    baseFeeId: '$ZRA+0000'
+  };
+  const coinTxnWithoutFee = createCoinTXN(inputs, outputs, feeConfigWithoutFee);
   
   // Test that fee amount is not included when not provided
   assert.ok(coinTxnWithoutFee.contractFeeAmount === undefined, 'Fee amount should be undefined when not provided');
-  
-  // Test with createCoinTXN as well
-  const coinTxn2WithFee = createCoinTXN('alice', 'bob', '1.0', '$ZRA+0000', '', '', 100, '250');
-  const coinTxn2WithoutFee = createCoinTXN('alice', 'bob', '1.0', '$ZRA+0000', '', '', 100);
-  
-  assert.ok(coinTxn2WithFee.contractFeeAmount === '250', 'createCoinTXN should include fee amount when provided');
-  assert.ok(coinTxn2WithoutFee.contractFeeAmount === undefined, 'createCoinTXN should not include fee amount when not provided');
   
   console.log('✅ Optional fee amount test passed');
 }
@@ -149,9 +149,11 @@ export async function testFeePercentValidation() {
     { to: 'charlie', amount: '1.5', memo: 'payment' }
   ];
   
+  const feeConfig = { baseFeeId: '$ZRA+0000' };
+  
   let errorThrown = false;
   try {
-    createMultiInputOutputCoinTXN(inputs, outputs, '$ZRA+0000', 'test');
+    createCoinTXN(inputs, outputs, feeConfig, 'test');
   } catch (error) {
     errorThrown = true;
     assert.ok(error.message.includes('Fee percentages must sum to exactly 100%'), 'Should throw error for invalid fee sum');
@@ -166,7 +168,7 @@ export async function testFeePercentValidation() {
     { from: 'bob', amount: '0.5', feePercent: '40' } // 100% total
   ];
   
-  const validCoinTxn = createMultiInputOutputCoinTXN(validInputs, outputs, '$ZRA+0000', 'test');
+  const validCoinTxn = createCoinTXN(validInputs, outputs, feeConfig, 'test');
   assert.ok(validCoinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create valid CoinTXN when fee percentages sum to 100%');
   
   console.log('✅ Fee percent validation test passed');
@@ -187,7 +189,8 @@ export async function testDecimalFeePercentPrecision() {
   ];
   
   // This should work with decimal.js exact arithmetic
-  const coinTxn = createMultiInputOutputCoinTXN(inputs, outputs, '$ZRA+0000', 'precision test');
+  const feeConfig = { baseFeeId: '$ZRA+0000' };
+  const coinTxn = createCoinTXN(inputs, outputs, feeConfig, 'precision test');
   
   // Verify that the fee percentages sum to exactly 100,000,000
   const totalFeePercent = coinTxn.inputTransfers.reduce((sum, transfer) => sum + transfer.feePercent, 0);
@@ -213,7 +216,8 @@ export async function testEmptyMemoHandling() {
     { to: 'bob', amount: '1.0', memo: '' }  // Empty string memo
   ];
   
-  const coinTxnEmptyMemo = createMultiInputOutputCoinTXN(inputs, outputs, '$ZRA+0000', 'test');
+  const feeConfig = { baseFeeId: '$ZRA+0000' };
+  const coinTxnEmptyMemo = createCoinTXN(inputs, outputs, feeConfig, 'test');
   
   // Empty string memo should be undefined (nil) in protobuf
   assert.ok(coinTxnEmptyMemo.outputTransfers[0].memo === undefined, 'Empty string memo should be undefined (nil)');
@@ -223,7 +227,7 @@ export async function testEmptyMemoHandling() {
     { to: 'bob', amount: '1.0' }  // No memo property
   ];
   
-  const coinTxnUndefinedMemo = createMultiInputOutputCoinTXN(inputs, outputsUndefined, '$ZRA+0000', 'test');
+  const coinTxnUndefinedMemo = createCoinTXN(inputs, outputsUndefined, feeConfig, 'test');
   
   // Undefined memo should remain undefined
   assert.ok(coinTxnUndefinedMemo.outputTransfers[0].memo === undefined, 'Undefined memo should remain undefined (nil)');
@@ -233,7 +237,7 @@ export async function testEmptyMemoHandling() {
     { to: 'bob', amount: '1.0', memo: '   ' }  // Whitespace-only memo
   ];
   
-  const coinTxnWhitespaceMemo = createMultiInputOutputCoinTXN(inputs, outputsWhitespace, '$ZRA+0000', 'test');
+  const coinTxnWhitespaceMemo = createCoinTXN(inputs, outputsWhitespace, feeConfig, 'test');
   
   // Whitespace-only memo should be undefined (nil)
   assert.ok(coinTxnWhitespaceMemo.outputTransfers[0].memo === undefined, 'Whitespace-only memo should be undefined (nil)');
@@ -243,17 +247,10 @@ export async function testEmptyMemoHandling() {
     { to: 'bob', amount: '1.0', memo: 'Valid memo' }
   ];
   
-  const coinTxnValidMemo = createMultiInputOutputCoinTXN(inputs, outputsValid, '$ZRA+0000', 'test');
+  const coinTxnValidMemo = createCoinTXN(inputs, outputsValid, feeConfig, 'test');
   
   // Valid memo should be preserved
   assert.ok(coinTxnValidMemo.outputTransfers[0].memo === 'Valid memo', 'Valid memo should be preserved');
-  
-  // Test with createCoinTXN as well
-  const coinTxn2EmptyMemo = createCoinTXN('alice', 'bob', '1.0', '$ZRA+0000', '', '', '100');
-  assert.ok(coinTxn2EmptyMemo.outputTransfers[0].memo === undefined, 'createCoinTXN empty memo should be undefined (nil)');
-  
-  const coinTxn2ValidMemo = createCoinTXN('alice', 'bob', '1.0', '$ZRA+0000', '', 'Valid memo', '100');
-  assert.ok(coinTxn2ValidMemo.outputTransfers[0].memo === 'Valid memo', 'createCoinTXN valid memo should be preserved');
   
   console.log('✅ Empty memo handling test passed');
 }
