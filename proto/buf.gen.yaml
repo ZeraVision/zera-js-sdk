@@ -8,10 +8,9 @@ managed:
 plugins:
   - plugin: es
     out: generated
+    opt: target=js
+  - plugin: es
+    out: generated
     opt: target=ts
-  - plugin: ts-proto
+  - plugin: connect-es
     out: generated
-    opt: esModuleInterop=true,forceLong=string,useOptionals=messages
-  - plugin: grpc-web
-    out: generated
-    opt: import_style=es6,mode=grpcwebtext

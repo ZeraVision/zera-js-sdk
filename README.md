@@ -8,7 +8,7 @@ A modern, ESM-compatible JavaScript SDK for the ZERA Network with support for wa
 - **Wallet Creation**: HD wallet generation with BIP32/BIP39/SLIP-0010 compliance
 - **Multiple Key Types**: Support for Ed25519 and Ed448 elliptic curves
 - **Hash Algorithms**: SHA3-256, SHA3-512, and BLAKE3 cryptographic hashes
-- **Protocol Buffers**: Modern protobuf support with buf tooling
+- **Protocol Buffers**: Modern @bufbuild/protobuf with direct property access
 - **TypeScript Ready**: Full TypeScript support and type definitions
 
 ## 📋 Requirements
@@ -50,17 +50,17 @@ npm install -g @bufbuild/buf
 ### Build Commands
 
 ```bash
-# Build all protocol buffers
+# Build protocol buffers and extract enums
 npm run build:proto
 
-# Build specific targets
-npm run build:proto:js      # JavaScript only
-npm run build:proto:ts      # TypeScript
-npm run build:proto:grpc    # gRPC-Web
-
-# Clean generated files
-npm run proto:clean
+# Manual build (if needed)
+cd proto && node build.js
 ```
+
+The build process automatically:
+1. Generates protobuf JavaScript files
+2. Extracts enum values from the generated files
+3. Creates a clean ES module at `src/shared/protobuf-enums.js`
 
 ## 📖 Usage
 
