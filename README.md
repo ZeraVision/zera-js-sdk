@@ -127,7 +127,7 @@ zera-js-sdk/
 ├── src/
 │   ├── wallet-creation/     # HD wallet and key generation
 │   ├── api/                 # API client and validation
-│   ├── transfer/            # Transaction and transfer logic
+│   ├── coin-txn/            # CoinTXN creation and submission
 │   └── test-utils/          # Testing utilities
 ├── proto/                   # Protocol buffer definitions
 │   ├── generated/           # Auto-generated protobuf classes

@@ -9,8 +9,8 @@ import {
   generateZeraAddress 
 } from './src/wallet-creation/index.js';
 
-// Import transfer functionality
-import { transfer } from './src/transfer/index.js';
+// Import CoinTXN functionality
+import { createCoinTXN, sendCoinTXN } from './src/coin-txn/index.js';
 
 // Import shared transaction utilities
 import {
@@ -35,8 +35,8 @@ export {
   generateZeraAddress
 };
 
-// Export transfer functionality
-export { transfer };
+// Export CoinTXN helpers
+export { createCoinTXN, sendCoinTXN };
 
 // Export shared transaction utilities
 export {
@@ -88,12 +88,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const mnemonic = generateMnemonicPhrase();
     console.log('\n✅ Sample mnemonic generated:', mnemonic);
     
-    // Create a sample transfer using the modern approach
-    const transferTxn = transfer('zera1234567890abcdef', 'zera0987654321fedcba', 100, 'USDC', 'base memo', 'transfer memo');
-    console.log('\n✅ Sample transfer created successfully!');
-    console.log('Transfer Type:', transferTxn.constructor.name);
-    console.log('Transfer Data:', transferTxn);
-    console.log('Serialized:', transferTxn.toBinary());
+    // Create a sample CoinTXN instead of legacy transfer
+    const coinTxn = createCoinTXN(
+      [{ from: 'alice', amount: '1.0', feePercent: '100' }],
+      [{ to: 'bob', amount: '1.0', memo: 'sample payment' }],
+      { baseFeeId: '$ZRA+0000' },
+      'base memo'
+    );
+    console.log('\n✅ Sample CoinTXN created successfully!');
+    console.log('CoinTXN Type:', coinTxn.$typeName);
     
   } catch (error) {
     console.error('\n❌ Error:', error.message);

@@ -114,7 +114,7 @@ src/
 │       ├── test-integration.js    # Integration tests
 │       ├── test-shared.js         # Shared utilities tests
 │       └── test-simple.js         # Simple example tests
-├── transfer/
+├── coin-txn/
 │   └── test-transfer.js           # Transfer module tests
 └── api/
     └── test-api.js                # API module tests

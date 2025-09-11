@@ -23,6 +23,7 @@
     "proto:install": "cd proto && npm install",
     "proto:clean": "cd proto && npm run clean",
     "proto:example": "cd proto && node example.js",
+    "example:coin:grpc": "node src/coin-txn/examples/example-coin.js",
     "test:api": "node test-runner.js --module=api",
     "test:blockchain": "node test-runner.js --module=blockchain",
     "test:payments": "node test-runner.js --module=payments",
@@ -44,6 +45,8 @@
   "license": "MIT",
   "dependencies": {
     "@bufbuild/protobuf": "^2.8.0",
+    "@connectrpc/connect": "^1.5.0",
+    "@connectrpc/connect-node": "^1.5.0",
     "@noble/curves": "^2.0.0",
     "@noble/hashes": "^1.3.0",
     "bip32": "^4.0.0",

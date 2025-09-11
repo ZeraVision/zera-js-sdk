@@ -7,10 +7,7 @@
  */
 
 import { assert } from '../../test-utils/index.js';
-import { 
-  transfer, 
-  createCoinTXN
-} from '../../transfer/transfer.js';
+import { createCoinTXN } from '../../coin-txn/index.js';
 import { 
   toDecimal,
   toSmallestUnits,
@@ -83,19 +80,7 @@ export async function testDecimalTransfers() {
   console.log('🧪 Testing Decimal Transfers');
   
   // Test user-friendly decimal amounts
-  const feeConfig = { baseFeeId: '$ZRA+0000' };
-  const transferInstance = transfer('alice', 'bob', '1.5', feeConfig, 'payment');
-  
-  assert.ok(transferInstance.$typeName === 'zera_txn.Transfer', 'Should be a real protobuf Transfer instance');
-  assert.ok(transferInstance.amount === '1500000000', '1.5 ZRA should be converted to smallest units');
-  assert.ok(transferInstance.memo === 'payment', 'Memo should be preserved');
-  
-  // Test with Decimal object
-  const decimalAmount = new Decimal('2.75');
-  const transferInstance2 = transfer('alice', 'bob', decimalAmount, feeConfig);
-  assert.ok(transferInstance2.amount === '2750000000', '2.75 ZRA should be converted correctly');
-  
-  console.log('✅ Decimal transfers test passed');
+  console.log('✅ Decimal transfers test skipped (transfer() removed)');
 }
 
 export async function testDecimalCoinTXN() {
@@ -189,14 +174,8 @@ export async function testDecimalPrecision() {
   
   // Test very precise calculations (ZRA has 9 decimals, so we'll test with 9 decimal places)
   const preciseAmount = '0.123456789';
-  const transferInstance = transfer('alice', 'bob', preciseAmount, '$ZRA+0000');
-  
-  // Should preserve all decimal places (9 decimals for ZRA)
   const expectedSmallestUnits = '123456789';
-  assert.ok(transferInstance.amount === expectedSmallestUnits, 'Should preserve all decimal places');
-  
-  // Test conversion back
-  const convertedBack = fromSmallestUnits(transferInstance.amount, '$ZRA+0000');
+  const convertedBack = fromSmallestUnits(expectedSmallestUnits, '$ZRA+0000');
   assert.ok(convertedBack === preciseAmount, 'Should convert back to exact same value');
   
   console.log('✅ Decimal precision test passed');
