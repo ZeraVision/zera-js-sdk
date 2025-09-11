@@ -5,6 +5,15 @@
 
 import { KEY_TYPE, HASH_TYPE } from '../wallet-creation/constants.js';
 import { TRANSACTION_TYPE, CONTRACT_FEE_TYPE } from './protobuf-enums.js';
+import { 
+  toDecimal, 
+  toAmountString, 
+  addAmounts, 
+  multiplyAmounts, 
+  divideAmounts, 
+  calculatePercentage,
+  Decimal 
+} from './amount-utils.js';
 
 /**
  * Signature size constants for different key types
@@ -71,12 +80,21 @@ export class UniversalFeeCalculator {
   }
 
   /**
-   * Calculate contract-specific fee
+   * Convert various amount types to Decimal for exact arithmetic
+   * @param {Decimal|BigInt|string|number} amount - Amount to convert
+   * @returns {Decimal} Amount as Decimal
+   */
+  static toDecimal(amount) {
+    return toDecimal(amount);
+  }
+
+  /**
+   * Calculate contract-specific fee using Decimal for exact arithmetic
    * @param {Object} params - Contract fee parameters
    * @param {string} params.contractId - Contract ID
    * @param {string} params.contractFeeType - Contract fee type (FIXED, PERCENTAGE, etc.)
-   * @param {string|number} params.contractFeeAmount - Contract fee amount or percentage
-   * @param {string|number} params.transactionAmount - Transaction amount (for percentage calculations)
+   * @param {Decimal|string|number} params.contractFeeAmount - Contract fee amount or percentage
+   * @param {Decimal|string|number} params.transactionAmount - Transaction amount (for percentage calculations)
    * @param {string} params.feeContractId - Contract ID to pay the fee in
    * @returns {Object} Contract fee calculation result
    */
@@ -89,60 +107,62 @@ export class UniversalFeeCalculator {
       feeContractId = 'ZRA+0000'
     } = params;
 
-    // Convert amounts to numbers
-    const numericFeeAmount = typeof contractFeeAmount === 'string' ? parseFloat(contractFeeAmount) : contractFeeAmount;
-    const numericTransactionAmount = typeof transactionAmount === 'string' ? parseFloat(transactionAmount) : transactionAmount;
+    // Convert amounts to Decimal for exact arithmetic
+    const feeAmountDecimal = this.toDecimal(contractFeeAmount);
+    const transactionAmountDecimal = this.toDecimal(transactionAmount);
 
-    let calculatedFee = 0;
+    let calculatedFeeDecimal = new Decimal(0);
 
     switch (contractFeeType) {
       case CONTRACT_FEE_TYPE.FIXED:
         // Fixed amount fee
-        calculatedFee = numericFeeAmount;
+        calculatedFeeDecimal = feeAmountDecimal;
         break;
       
       case CONTRACT_FEE_TYPE.PERCENTAGE:
         // Percentage-based fee (contractFeeAmount is percentage, e.g., 0.1 for 0.1%)
-        calculatedFee = numericTransactionAmount * (numericFeeAmount / 100);
+        // Using Decimal arithmetic: (transactionAmount * feeAmount) / 100
+        calculatedFeeDecimal = calculatePercentage(transactionAmountDecimal, feeAmountDecimal);
         break;
       
       case CONTRACT_FEE_TYPE.CUR_EQUIVALENT:
         // Currency equivalent fee (contractFeeAmount is in base currency units)
-        calculatedFee = numericFeeAmount;
+        calculatedFeeDecimal = feeAmountDecimal;
         break;
       
       case CONTRACT_FEE_TYPE.NONE:
       default:
         // No contract fees
-        calculatedFee = 0;
+        calculatedFeeDecimal = new Decimal(0);
         break;
     }
 
     return {
-      fee: calculatedFee,
+      fee: calculatedFeeDecimal.toString(), // Return as string for protobuf compatibility
+      feeDecimal: calculatedFeeDecimal, // Also provide Decimal version
       contractId: contractId,
       contractFeeType: contractFeeType,
-      contractFeeAmount: numericFeeAmount,
+      contractFeeAmount: feeAmountDecimal.toString(),
       feeContractId: feeContractId,
       breakdown: {
         contractId: contractId,
         contractFeeType: contractFeeType,
-        contractFeeAmount: numericFeeAmount,
-        transactionAmount: numericTransactionAmount,
-        calculatedFee: calculatedFee,
+        contractFeeAmount: feeAmountDecimal.toString(),
+        transactionAmount: transactionAmountDecimal.toString(),
+        calculatedFee: calculatedFeeDecimal.toString(),
         feeContractId: feeContractId
       }
     };
   }
 
   /**
-   * Calculate total fees (network + contract)
+   * Calculate total fees (network + contract) using Decimal for exact arithmetic
    * @param {Object} params - Fee calculation parameters
    * @param {number} params.transactionType - Transaction type (from protobuf TRANSACTION_TYPE enum)
    * @param {string} params.contractId - Contract ID
    * @param {number} params.contractFeeType - Contract fee type (from protobuf CONTRACT_FEE_TYPE enum)
-   * @param {string|number} params.contractFeeAmount - Contract fee amount
-   * @param {string|number} params.transactionAmount - Transaction amount
+   * @param {Decimal|string|number} params.contractFeeAmount - Contract fee amount
+   * @param {Decimal|string|number} params.transactionAmount - Transaction amount
    * @param {string} params.feeContractId - Contract ID to pay fees in
    * @returns {Object} Total fee calculation result
    */
@@ -161,17 +181,25 @@ export class UniversalFeeCalculator {
       feeContractId: params.feeContractId
     });
 
-    const totalFee = networkFee.fee + contractFee.fee;
+    // Convert network fee to Decimal for exact calculation
+    const networkFeeDecimal = this.toDecimal(networkFee.fee);
+    const contractFeeDecimal = contractFee.feeDecimal;
+    const transactionAmountDecimal = this.toDecimal(params.transactionAmount);
+
+    const totalFeeDecimal = addAmounts(networkFeeDecimal, contractFeeDecimal);
+    const totalAmountDecimal = addAmounts(transactionAmountDecimal, totalFeeDecimal);
 
     return {
-      totalFee: totalFee,
+      totalFee: totalFeeDecimal.toString(), // String for protobuf compatibility
+      totalFeeDecimal: totalFeeDecimal, // Decimal version
       networkFee: networkFee.fee,
       contractFee: contractFee.fee,
-      totalAmount: (typeof params.transactionAmount === 'string' ? parseFloat(params.transactionAmount) : params.transactionAmount) + totalFee,
+      totalAmount: totalAmountDecimal.toString(), // String for protobuf compatibility
+      totalAmountDecimal: totalAmountDecimal, // Decimal version
       breakdown: {
         network: networkFee,
         contract: contractFee,
-        total: totalFee
+        total: totalFeeDecimal.toString()
       }
     };
   }
