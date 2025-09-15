@@ -56,6 +56,7 @@ export async function testBasicFunctionality() {
   console.log('🎉 All basic functionality tests passed!');
 }
 
+testWalletTypes();
 export async function testWalletTypes() {
   console.log('🧪 Testing different wallet types...');
   

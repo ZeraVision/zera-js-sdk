@@ -14,7 +14,7 @@ async function main() {
   // The privateKey is available for signing (though signing is handled by the network)
   const coinTxn = createCoinTXN(
     [{ 
-      privateKey: '5KJvsngHeMby884zrh6A5u6b4SqzZzAb', // Base58 private key (raw 32-byte key encoded as base58)
+      privateKey: '5KJvsngHeMby884zrh6A5u6b4SqzZzAb', // Base58 private key
       publicKey: 'A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb', // Base58 public key identifier (human-readable with type prefixes)
       amount: '1.000000000', 
       feePercent: '100' 
