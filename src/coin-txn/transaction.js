@@ -15,6 +15,7 @@ import {
   validateAmountBalance,
   Decimal
 } from '../shared/amount-utils.js';
+import { getAddressFromPublicKey } from '../shared/address-utils.js';
 
 /**
  * @typedef {Object} FeeConfig
@@ -26,7 +27,7 @@ import {
 
 /**
  * Create a CoinTXN with inputs and outputs using exact decimal arithmetic
- * @param {Array} inputs - Array of input objects {from: string, amount: Decimal|string|number, feePercent?: string}
+ * @param {Array} inputs - Array of input objects {privateKey: string, publicKey: string, amount: Decimal|string|number, feePercent?: string}
  * @param {Array} outputs - Array of output objects {to: string, amount: Decimal|string|number, memo?: string}
  * @param {FeeConfig} feeConfig - Fee configuration object with the following properties:
  *   - baseFeeId (string, REQUIRED): The fee instrument ID (e.g., '$ZRA+0000')
@@ -61,8 +62,12 @@ export function createCoinTXN(inputs, outputs, feeConfig = { baseFeeId: '$ZRA+00
     const finalAmount = toSmallestUnits(input.amount, baseFeeId);
     const feePercent = input.feePercent !== undefined ? input.feePercent : '100';
     const scaledFeePercent = new Decimal(feePercent).mul(1000000).toNumber();
+    
+    // Get the address from the public key identifier
+    const fromAddress = getAddressFromPublicKey(input.publicKey);
+    
     return create(InputTransfers, {
-      walletAddress: new Uint8Array(Buffer.from(input.from, 'utf8')),
+      walletAddress: new Uint8Array(Buffer.from(fromAddress, 'utf8')),
       index,
       amount: finalAmount,
       feePercent: scaledFeePercent

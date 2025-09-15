@@ -9,8 +9,16 @@ function getEnv(name, fallback = undefined) {
 async function main() {
   const endpoint = getEnv('ZERA_GRPC_ENDPOINT', 'http://localhost:50052');
 
+  // Create CoinTXN with new input structure that includes both private and public keys
+  // The publicKey is used to derive the address for nonce lookup
+  // The privateKey is available for signing (though signing is handled by the network)
   const coinTxn = createCoinTXN(
-    [{ from: 'wallet_sender_alice', amount: '1.000000000', feePercent: '100' }],
+    [{ 
+      privateKey: '5KJvsngHeMby884zrh6A5u6b4SqzZzAb', // Base58 private key (raw 32-byte key encoded as base58)
+      publicKey: 'A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb', // Base58 public key identifier (human-readable with type prefixes)
+      amount: '1.000000000', 
+      feePercent: '100' 
+    }],
     [{ to: 'wallet_receiver_bob', amount: '1.000000000', memo: 'Example payment' }],
     { 
       baseFeeId: '$ZRA+0000',
