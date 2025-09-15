@@ -8,6 +8,8 @@
  * Memo's optional. Base memo more typically used. Transfer memo for multi-output if required.
  */
 
+exampleSimplePayment();
+
 import { createCoinTXN } from '../transaction.js';
 import { 
   ED25519_TEST_KEYS,
@@ -52,7 +54,7 @@ export function exampleSimplePayment() {
   };
   
   // Create transaction
-  const transaction = createCoinTXN([input], [output], MINIMAL_TEST_FEE_CONFIG, '(optional) Base Memo');
+  const transaction = createCoinTXN([input], [output], '$ZRA+0000', MINIMAL_TEST_FEE_CONFIG, '(optional) Base Memo');
   
   console.log('✅ Transaction created:', transaction.$typeName);
   console.log('📤 Input amount:', input.amount, 'ZRA');
@@ -114,7 +116,7 @@ export function exampleMultiPartyTransaction() {
     }
   ];
   
-  const transaction = createCoinTXN(inputs, outputs, DEFAULT_TEST_FEE_CONFIG, '(optional) Base Memo');
+  const transaction = createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, '(optional) Base Memo');
   
   console.log('✅ Multi-party transaction created');
   console.log('📤 Total input:', '3.5 ZRA');
@@ -180,7 +182,7 @@ export function exampleComplexTransaction() {
     contractFee: '0.02'   // 0.02 ZRA contract fee
   };
   
-  const transaction = createCoinTXN([input], outputs, customFeeConfig, '(optional) Complex payment distribution');
+  const transaction = createCoinTXN([input], outputs, '$ZRA+0000', customFeeConfig, '(optional) Complex payment distribution');
   
   console.log('✅ Complex transaction created');
   console.log('📤 Input amount:', input.amount, 'ZRA');

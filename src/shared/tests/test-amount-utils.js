@@ -90,7 +90,7 @@ export async function testDecimalCoinTXN() {
   // Real-world usage: Simple transaction with decimal amounts
   const inputs = [createTestInput('ed25519', 'alice', '3.14159', '100')];
   const outputs = [getTestOutput('bob', '3.14159', 'pi payment')];
-  const coinTxn = createCoinTXN(inputs, outputs, MINIMAL_TEST_FEE_CONFIG);
+  const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000', MINIMAL_TEST_FEE_CONFIG);
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should be a real CoinTXN instance');
   assert.ok(coinTxn.inputTransfers.length === 1, 'Should have 1 input transfer');
@@ -119,7 +119,7 @@ export async function testDecimalMultiInputOutput() {
     ]
   );
   
-  const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000', 'Complex decimal transfer');
+  const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000', {}, 'Complex decimal transfer');
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should be a real CoinTXN instance');
   assert.ok(coinTxn.inputTransfers.length === 2, 'Should have 2 input transfers');
@@ -202,7 +202,7 @@ export async function testDecimalValidation() {
   ];
   
   // This should not throw
-  const validTxn = createCoinTXN(validInputs, validOutputs);
+  const validTxn = createCoinTXN(validInputs, validOutputs, '$ZRA+0000');
   assert.ok(validTxn.$typeName === 'zera_txn.CoinTXN', 'Valid transaction should be created');
   
   // Test invalid balance with decimals
@@ -213,7 +213,7 @@ export async function testDecimalValidation() {
   
   let errorThrown = false;
   try {
-    createCoinTXN(validInputs, invalidOutputs);
+    createCoinTXN(validInputs, invalidOutputs, '$ZRA+0000');
   } catch (error) {
     errorThrown = true;
     assert.ok(error.message.includes('Amount balance validation failed'), 'Should throw balance validation error');
@@ -289,7 +289,7 @@ export async function testMixedAmountTypes() {
     getTestOutput('jesse', new Decimal('7.5'))         // Decimal
   ];
   
-  const coinTxn = createCoinTXN(inputs, outputs);
+  const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000');
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should handle mixed amount types');
   
   // Verify fee percentages sum to 100%

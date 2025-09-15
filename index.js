@@ -90,8 +90,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     
     // Create a sample CoinTXN instead of legacy transfer
     const coinTxn = createCoinTXN(
-      [{ from: 'alice', amount: '1.0', feePercent: '100' }],
-      [{ to: 'bob', amount: '1.0', memo: 'sample payment' }],
+      [{ privateKey: 'alice_private_key', publicKey: 'alice_public_key', amount: '1.0', feePercent: '100' }],
+      [{ to: 'bob_address', amount: '1.0', memo: 'sample payment' }],
+      '$ZRA+0000',  // contractId required
       { baseFeeId: '$ZRA+0000' },
       'base memo'
     );

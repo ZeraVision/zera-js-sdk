@@ -16,6 +16,24 @@ import {
   Decimal
 } from '../shared/amount-utils.js';
 import { getAddressFromPublicKey } from '../shared/address-utils.js';
+import bs58 from 'bs58';
+
+/**
+ * Validate contractID format
+ * ContractID should follow the format: $[letters]+[4 digits]
+ * Examples: $ZRA+0000, $BTC+1234, $ETH+9999
+ * @param {string} contractId - Contract ID to validate
+ * @returns {boolean} True if valid format
+ */
+export function validateContractId(contractId) {
+  if (!contractId || typeof contractId !== 'string') {
+    return false;
+  }
+  
+  // Regex: $ followed by one or more letters, then + followed by exactly 4 digits
+  const contractIdRegex = /^\$[A-Za-z]+\+\d{4}$/;
+  return contractIdRegex.test(contractId);
+}
 
 /**
  * @typedef {Object} FeeConfig
@@ -29,15 +47,16 @@ import { getAddressFromPublicKey } from '../shared/address-utils.js';
  * Create a CoinTXN with inputs and outputs using exact decimal arithmetic
  * @param {Array} inputs - Array of input objects {privateKey: string, publicKey: string, amount: Decimal|string|number, feePercent?: string}
  * @param {Array} outputs - Array of output objects {to: string, amount: Decimal|string|number, memo?: string}
+ * @param {string} contractId - Contract ID (e.g., '$ZRA+0000') - must follow format $[letters]+[4 digits]
  * @param {FeeConfig} feeConfig - Fee configuration object with the following properties:
- *   - baseFeeId (string, REQUIRED): The fee instrument ID (e.g., '$ZRA+0000')
- *   - contractFeeId (string, optional): Contract fee instrument, defaults to baseFeeId if not provided
+ *   - baseFeeId (string, optional): The fee instrument ID (defaults to '$ZRA+0000')
+ *   - contractFeeId (string, optional): Contract fee instrument, defaults to contractId if not provided
  *   - baseFee (Decimal|string|number, optional): Base fee amount in user-friendly units (converted to smallest units)
  *   - contractFee (Decimal|string|number, optional): Contract fee amount in user-friendly units (converted to smallest units)
  * @param {string} [baseMemo] - Base memo for the transaction (optional)
  * @returns {proto.zera_txn.CoinTXN}
  */
-export function createCoinTXN(inputs, outputs, feeConfig = { baseFeeId: '$ZRA+0000' }, baseMemo = '') {
+export function createCoinTXN(inputs, outputs, contractId, feeConfig = {}, baseMemo = '') {
   if (!Array.isArray(inputs) || !Array.isArray(outputs)) {
     throw new Error('Inputs and outputs must be arrays');
   }
@@ -45,10 +64,15 @@ export function createCoinTXN(inputs, outputs, feeConfig = { baseFeeId: '$ZRA+00
     throw new Error('Must have at least one input and one output');
   }
 
+  // Validate contractId format
+  if (!contractId || !validateContractId(contractId)) {
+    throw new Error('ContractId must be provided and follow the format $[letters]+[4 digits] (e.g., $ZRA+0000)');
+  }
+
   const {
     baseFeeId = '$ZRA+0000',
     baseFee,
-    contractFeeId,
+    contractFeeId = contractId,
     contractFee
   } = feeConfig;
 
@@ -84,7 +108,7 @@ export function createCoinTXN(inputs, outputs, feeConfig = { baseFeeId: '$ZRA+00
   const outputTransfers = outputs.map(output => {
     const finalAmount = toSmallestUnits(output.amount, baseFeeId);
     const data = {
-      walletAddress: new Uint8Array(Buffer.from(output.to, 'utf8')),
+      walletAddress: bs58.decode(output.to),
       amount: finalAmount
     };
     if (output.memo && output.memo.trim() !== '') {
@@ -94,7 +118,7 @@ export function createCoinTXN(inputs, outputs, feeConfig = { baseFeeId: '$ZRA+00
   });
 
   const coinTxnData = {
-    contractId: baseFeeId,
+    contractId: contractId,
     contractFeeId,
     inputTransfers,
     outputTransfers

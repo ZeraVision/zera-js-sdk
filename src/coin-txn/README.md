@@ -3,37 +3,44 @@
 Create and submit coin transactions using modern protobuf schemas and a gRPC (Connect) client.
 
 ## What this module provides
-- `createCoinTXN(inputs, outputs, feeConfig?, baseMemo?)`: Build a complete Coin transaction using exact decimal math and real protobuf messages
+- `createCoinTXN(inputs, outputs, contractId, feeConfig?, baseMemo?)`: Build a complete Coin transaction using exact decimal math and real protobuf messages
 - `sendCoinTXN(coinTxn, grpcConfig?)`: Submit the transaction to a node over HTTP/2 (Connect)
 
 ## FeeConfig (your "struct")
 JS "struct" is a plain object with named fields:
-- `baseFeeId` (string, required): The fee instrument ID (e.g., `'$ZRA+0000'`)
+- `baseFeeId` (string, optional): The fee instrument ID (defaults to `'$ZRA+0000'`)
 - `baseFee` (Decimal|string|number, optional): Base fee amount in user-friendly units (will be converted to smallest units)
-- `contractFeeId` (string, optional): Defaults to `baseFeeId`
+- `contractFeeId` (string, optional): Defaults to the provided `contractId`
 - `contractFee` (Decimal|string|number, optional): Contract fee amount in user-friendly units (will be converted to smallest units)
 
 Examples:
 ```js
-// Minimal
-const feeConfig = { baseFeeId: '$ZRA+0000' };
+// Minimal - contractId required, baseFeeId defaults to $ZRA+0000
+const feeConfig = {};
 
-// Full
+// Custom base fee
+const feeConfig = {
+  baseFeeId: '$ZRA+0000',
+  baseFee: '0.001'         // user-friendly units (0.001 ZRA)
+};
+
+// Full configuration
 const feeConfig = {
   baseFeeId: '$ZRA+0000',
   baseFee: '0.001',         // user-friendly units (0.001 ZRA)
-  contractFeeId: '$ZRA+0000',
-  contractFee: '0.0005'     // user-friendly units (0.0005 ZRA)
+  contractFeeId: '$BTC+1234', // defaults to contractId if not provided
+  contractFee: '0.0005'     // user-friendly units (0.0005 BTC)
 };
 ```
 
 ## API
 
-### createCoinTXN(inputs, outputs, feeConfig?, baseMemo?)
-- `inputs`: `[{ from, amount, feePercent? }, ...]`
+### createCoinTXN(inputs, outputs, contractId, feeConfig?, baseMemo?)
+- `inputs`: `[{ privateKey, publicKey, amount, feePercent? }, ...]`
   - `amount`: Decimal-friendly (string/number/Decimal)
   - `feePercent`: string like `'60'` — scaled internally with exact decimal math
 - `outputs`: `[{ to, amount, memo? }, ...]` (per-recipient memos)
+- `contractId`: Contract ID (e.g., `'$BTC+1234'`) - must follow format `$[letters]+[4 digits]`
 - `feeConfig`: See "FeeConfig" above
 - `baseMemo`: Optional transaction-level memo
 
@@ -48,8 +55,9 @@ Example:
 import { createCoinTXN } from './transaction.js';
 
 const coinTxn = createCoinTXN(
-  [{ from: 'alice', amount: '1.0', feePercent: '100' }],
-  [{ to: 'bob', amount: '1.0', memo: 'payment' }],
+  [{ privateKey: 'alice_private_key', publicKey: 'alice_public_key', amount: '1.0', feePercent: '100' }],
+  [{ to: 'bob_address', amount: '1.0', memo: 'payment' }],
+  '$BTC+1234',  // contractId required
   { baseFeeId: '$ZRA+0000', baseFee: '0.001' },
   'base memo'
 );
