@@ -33,6 +33,7 @@ import {
   OutputTransfersSchema as OutputTransfers 
 } from '../../../proto/generated/txn_pb.js';
 import { toJson } from '@bufbuild/protobuf';
+import { getTestInput, createTestInput, getTestOutput, createMultiTestTransaction, MINIMAL_TEST_FEE_CONFIG } from '../../test-utils/index.js';
 
 export async function testDecimalBasicOperations() {
   console.log('🧪 Testing Basic Decimal Operations');
@@ -86,10 +87,10 @@ export async function testDecimalTransfers() {
 export async function testDecimalCoinTXN() {
   console.log('🧪 Testing Decimal CoinTXN Creation');
   
-  const feeConfig = { baseFeeId: '$ZRA+0000' };
-  const inputs = [{from: 'alice', amount: '3.14159', feePercent: '100'}];
-  const outputs = [{to: 'bob', amount: '3.14159', memo: 'pi payment'}];
-  const coinTxn = createCoinTXN(inputs, outputs, feeConfig);
+  // Real-world usage: Simple transaction with decimal amounts
+  const inputs = [createTestInput('ed25519', 'alice', '3.14159', '100')];
+  const outputs = [getTestOutput('bob', '3.14159', 'pi payment')];
+  const coinTxn = createCoinTXN(inputs, outputs, MINIMAL_TEST_FEE_CONFIG);
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should be a real CoinTXN instance');
   assert.ok(coinTxn.inputTransfers.length === 1, 'Should have 1 input transfer');
@@ -105,17 +106,18 @@ export async function testDecimalCoinTXN() {
 export async function testDecimalMultiInputOutput() {
   console.log('🧪 Testing Decimal Multi-Input/Output');
   
-  // Test: Alice(1.5) + Bob(2.25) -> Charlie(2.0) + David(1.75)
+  // Test: Alice(1.5) + Bob(2.25) -> Charlie(2.0) + Jesse(1.75)
   // Alice pays 60% of fees, Bob pays 40% of fees (sums to 100%)
-  const inputs = [
-    { from: 'alice', amount: '1.5', feePercent: '60' },
-    { from: 'bob', amount: '2.25', feePercent: '40' }
-  ];
-  
-  const outputs = [
-    { to: 'charlie', amount: '2.0', memo: 'Payment to Charlie' },
-    { to: 'david', amount: '1.75', memo: 'Payment to David' }
-  ];
+  const { inputs, outputs } = createMultiTestTransaction(
+    [
+      { keyType: 'ed25519', person: 'alice', amount: '1.5', feePercent: '60' },
+      { keyType: 'ed448', person: 'bob', amount: '2.25', feePercent: '40' }
+    ],
+    [
+      { person: 'charlie', amount: '2.0', memo: 'Payment to Charlie' },
+      { person: 'jesse', amount: '1.75', memo: 'Payment to Jesse' }
+    ]
+  );
   
   const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000', 'Complex decimal transfer');
   
@@ -127,7 +129,7 @@ export async function testDecimalMultiInputOutput() {
   assert.ok(coinTxn.inputTransfers[0].amount === '1500000000', 'Alice input should be 1.5 ZRA');
   assert.ok(coinTxn.inputTransfers[1].amount === '2250000000', 'Bob input should be 2.25 ZRA');
   assert.ok(coinTxn.outputTransfers[0].amount === '2000000000', 'Charlie output should be 2.0 ZRA');
-  assert.ok(coinTxn.outputTransfers[1].amount === '1750000000', 'David output should be 1.75 ZRA');
+  assert.ok(coinTxn.outputTransfers[1].amount === '1750000000', 'Jesse output should be 1.75 ZRA');
   
   // Verify fee percentages sum to 100%
   const totalFeePercent = coinTxn.inputTransfers.reduce((sum, transfer) => sum + transfer.feePercent, 0);
@@ -186,13 +188,17 @@ export async function testDecimalValidation() {
   
   // Test valid balance with decimals (fee percentages sum to 100%)
   const validInputs = [
-    { from: 'alice', amount: '1.5', feePercent: '60' },
-    { from: 'bob', amount: '2.5', feePercent: '40' }
+    getTestInput('ed25519', 'alice'),
+    getTestInput('ed448', 'bob')
   ];
+  validInputs[0].amount = '1.5';
+  validInputs[0].feePercent = '60';
+  validInputs[1].amount = '2.5';
+  validInputs[1].feePercent = '40';
   
   const validOutputs = [
-    { to: 'charlie', amount: '2.0' },
-    { to: 'david', amount: '2.0' } // Total: 4.0, same as inputs
+    getTestOutput('charlie', '2.0'),
+    getTestOutput('jesse', '2.0') // Total: 4.0, same as inputs
   ];
   
   // This should not throw
@@ -201,8 +207,8 @@ export async function testDecimalValidation() {
   
   // Test invalid balance with decimals
   const invalidOutputs = [
-    { to: 'charlie', amount: '2.0' },
-    { to: 'david', amount: '2.1' } // Total: 4.1, but inputs total 4.0
+    getTestOutput('charlie', '2.0'),
+    getTestOutput('jesse', '2.1') // Total: 4.1, but inputs total 4.0
   ];
   
   let errorThrown = false;
@@ -268,13 +274,19 @@ export async function testMixedAmountTypes() {
   
   // Test mixing different amount types (fee percentages sum to 100%)
   const inputs = [
-    { from: 'alice', amount: new Decimal('1.5'), feePercent: '40' },     // Decimal
-    { from: 'bob', amount: '2.25', feePercent: '35' },                   // String
-    { from: 'charlie', amount: 3.75, feePercent: '25' }                  // Number
+    getTestInput('ed25519', 'alice'),
+    getTestInput('ed448', 'bob'),
+    getTestInput('ed25519', 'charlie')
   ];
+  inputs[0].amount = new Decimal('1.5');
+  inputs[0].feePercent = '40';
+  inputs[1].amount = '2.25';
+  inputs[1].feePercent = '35';
+  inputs[2].amount = 3.75;
+  inputs[2].feePercent = '25';
   
   const outputs = [
-    { to: 'david', amount: new Decimal('7.5') }         // Decimal
+    getTestOutput('jesse', new Decimal('7.5'))         // Decimal
   ];
   
   const coinTxn = createCoinTXN(inputs, outputs);

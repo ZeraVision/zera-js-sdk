@@ -5,6 +5,9 @@
 
 import chalk from 'chalk';
 
+// Export test keys for universal use
+export * from './test-keys.js';
+
 // Test result tracking
 let testResults = {
   total: 0,
