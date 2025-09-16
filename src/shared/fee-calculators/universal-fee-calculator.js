@@ -16,6 +16,7 @@ import {
   Decimal 
 } from '../utils/amount-utils.js';
 import { aceExchangeService } from './ace-exchange-rate-service.js';
+import { contractFeeService } from './contract-fee-service.js';
 import { getKeyTypeFromPublicKey } from '../crypto/address-utils.js';
 import bs58 from 'bs58';
 
@@ -796,11 +797,159 @@ export class UniversalFeeCalculator {
   }
 
   /**
+   * Unified fee calculation method
+   * Calculates both network fees and contract fees (for CoinTXN transactions)
+   * Adds fees to the protobuf object and returns the modified object
+   * @param {Object} params - Fee calculation parameters
+   * @param {Object} params.protoObject - The protobuf transaction object (without signatures/hash)
+   * @param {string} [params.baseFeeId='$ZRA+0000'] - Base fee instrument ID
+   * @param {string} [params.contractFeeId] - Contract fee instrument ID (for CoinTXN only)
+   * @param {Decimal|string|number} [params.transactionAmount] - Transaction amount (for contract fee calculation)
+   * @returns {Promise<Object>} Unified fee calculation result with modified proto object
+   */
+  static async calculateFee(params) {
+    const {
+      protoObject,
+      baseFeeId = '$ZRA+0000',
+      contractFeeId,
+      transactionAmount
+    } = params;
+
+    // Create a copy of the proto object to avoid modifying the original
+    const modifiedProtoObject = this.cloneProtoObject(protoObject);
+    
+    // Check if this is a CoinTXN transaction and contractFeeId is provided
+    const transactionType = extractTransactionTypeFromProtoObject(modifiedProtoObject);
+    let contractFee = null;
+
+    // STEP 1: Calculate contract fee FIRST (if applicable)
+    if (transactionType === TRANSACTION_TYPE.COIN_TYPE && contractFeeId) {
+      try {
+        // Extract contract ID from the transaction
+        const contractId = this.extractContractIdFromTransaction(modifiedProtoObject);
+        
+        if (contractId) {
+          // Calculate contract fee using the service
+          contractFee = await contractFeeService.calculateContractFee({
+            contractId,
+            transactionAmount: transactionAmount || '0',
+            feeContractId: contractFeeId,
+            transactionContractId: contractId // Use the same contract ID for transaction instrument
+          });
+
+          // Add contract fee to the proto object
+          this.addContractFeeToProtoObject(modifiedProtoObject, contractFee);
+        }
+      } catch (error) {
+        throw new Error(`Contract fee calculation failed: ${error.message}`);
+      }
+    }
+
+    // STEP 2: Calculate network fee based on the modified proto object (which now includes contract fees)
+    const networkFee = await this.calculateNetworkFee({
+      protoObject: modifiedProtoObject,
+      baseFeeId
+    });
+
+    // Add network fee to the proto object
+    this.addNetworkFeeToProtoObject(modifiedProtoObject, networkFee, baseFeeId);
+
+    // Calculate total fees
+    const networkFeeDecimal = this.toDecimal(networkFee.fee);
+    const contractFeeDecimal = contractFee ? this.toDecimal(contractFee.fee) : new Decimal(0);
+    const totalFeeDecimal = addAmounts(networkFeeDecimal, contractFeeDecimal);
+
+    return {
+      protoObject: modifiedProtoObject, // Return the modified proto object
+      totalFee: totalFeeDecimal.toString(),
+      totalFeeDecimal: totalFeeDecimal,
+      networkFee: networkFee.fee,
+      contractFee: contractFee ? contractFee.fee : '0',
+      feeId: baseFeeId,
+      contractFeeId: contractFeeId || null,
+      breakdown: {
+        network: networkFee,
+        contract: contractFee,
+        total: totalFeeDecimal.toString()
+      }
+    };
+  }
+
+  /**
+   * Clone a protobuf object to avoid modifying the original
+   * @param {Object} protoObject - Original protobuf object
+   * @returns {Object} Cloned protobuf object
+   */
+  static cloneProtoObject(protoObject) {
+    // For now, we'll do a shallow clone
+    // In a real implementation, you might want to use protobuf's clone method if available
+    return JSON.parse(JSON.stringify(protoObject));
+  }
+
+  /**
+   * Add contract fee to the protobuf object
+   * @param {Object} protoObject - Protobuf object to modify
+   * @param {Object} contractFee - Contract fee calculation result
+   */
+  static addContractFeeToProtoObject(protoObject, contractFee) {
+    // For CoinTXN, add contract fee to the base transaction
+    if (protoObject.base) {
+      protoObject.base.contractFeeAmount = contractFee.fee;
+      protoObject.base.contractFeeId = contractFee.feeContractId;
+    } else {
+      // For other transaction types, add directly to the object
+      protoObject.contractFeeAmount = contractFee.fee;
+      protoObject.contractFeeId = contractFee.feeContractId;
+    }
+  }
+
+  /**
+   * Add network fee to the protobuf object
+   * @param {Object} protoObject - Protobuf object to modify
+   * @param {Object} networkFee - Network fee calculation result
+   * @param {string} baseFeeId - Base fee instrument ID
+   */
+  static addNetworkFeeToProtoObject(protoObject, networkFee, baseFeeId) {
+    // For CoinTXN, add network fee to the base transaction
+    if (protoObject.base) {
+      protoObject.base.baseFeeAmount = networkFee.fee;
+      protoObject.base.baseFeeId = baseFeeId;
+    } else {
+      // For other transaction types, add directly to the object
+      protoObject.baseFeeAmount = networkFee.fee;
+      protoObject.baseFeeId = baseFeeId;
+    }
+  }
+
+  /**
+   * Extract contract ID from transaction protobuf object
+   * @param {Object} protoObject - The protobuf transaction object
+   * @returns {string|null} Contract ID or null if not found
+   */
+  static extractContractIdFromTransaction(protoObject) {
+    try {
+      // For CoinTXN, check the base transaction
+      if (protoObject.base && protoObject.base.contractId) {
+        return protoObject.base.contractId;
+      }
+      
+      // For other transaction types, check if they have a contractId field
+      if (protoObject.contractId) {
+        return protoObject.contractId;
+      }
+
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
    * Legacy method for backward compatibility
    * @param {Object} params - Fee calculation parameters
    * @returns {Promise<Object>} Fee calculation result
    */
-  static async calculateFee(params) {
+  static async calculateFeeLegacy(params) {
     // For backward compatibility, assume no contract fees
     return await this.calculateNetworkFee(params);
   }
@@ -815,5 +964,6 @@ export default {
   SIGNATURE_SIZES,
   FEE_CALCULATION_CONSTANTS,
   TRANSACTION_TYPE,
-  CONTRACT_FEE_TYPE
+  CONTRACT_FEE_TYPE,
+  contractFeeService
 };
