@@ -46,7 +46,7 @@ export class ACEExchangeRateService {
       
       return new Decimal(rate);
     } catch (error) {
-      console.warn(`Failed to fetch exchange rate for ${currencyId}:`, error.message);
+      console.warn(`Failed to fetch exchange rate for "${currencyId}":`, error.message);
       
       // Use fallback rate
       const fallbackRate = this.getFallbackRate(currencyId);
@@ -60,7 +60,9 @@ export class ACEExchangeRateService {
    * @returns {Promise<number>} Exchange rate
    */
   async fetchExchangeRateFromAPI(currencyId) {
-    const response = await fetch(`${this.baseUrl}/api/v1/exchange-rates/${encodeURIComponent(currencyId)}`);
+    const url = `${this.baseUrl}/api/v1/exchange-rates/${encodeURIComponent(currencyId)}`;
+    
+    const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);

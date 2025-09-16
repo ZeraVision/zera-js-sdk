@@ -330,21 +330,17 @@ export class UniversalFeeCalculator {
    * Calculate network base fee using proper USD-based, size-dependent calculation
    * @param {Object} params - Fee calculation parameters
    * @param {Object} params.protoObject - The protobuf transaction object (without signatures/hash)
-   * @param {number} [params.transactionType] - Transaction type (auto-detected if not provided)
    * @param {string} [params.baseFeeId='$ZRA+0000'] - Base fee instrument ID
-   * @param {string} [params.feeTypes] - Comma-separated fee types (auto-detected if not provided)
    * @returns {Promise<Object>} Network fee calculation result
    */
   static async calculateNetworkFee(params) {
     const {
       protoObject,
-      transactionType,
-      baseFeeId = '$ZRA+0000',
-      feeTypes
+      baseFeeId = '$ZRA+0000'
     } = params;
     
-    // Auto-detect transaction type if not provided
-    const detectedTransactionType = transactionType || extractTransactionTypeFromProtoObject(protoObject);
+    // Auto-detect transaction type from protobuf object
+    const detectedTransactionType = extractTransactionTypeFromProtoObject(protoObject);
     
     // Auto-detect key types from transaction
     const keyTypes = extractKeyTypesFromTransaction(protoObject);
@@ -352,11 +348,8 @@ export class UniversalFeeCalculator {
     // Calculate total transaction size
     const totalSize = this.calculateTotalTransactionSize(protoObject);
     
-    // Determine fee types if not provided
-    let feeTypesToUse = feeTypes;
-    if (!feeTypesToUse) {
-      feeTypesToUse = this.determineFeeTypes(detectedTransactionType, keyTypes);
-    }
+    // Auto-determine fee types based on transaction type and key types
+    const feeTypesToUse = this.determineFeeTypes(detectedTransactionType, keyTypes);
     
     // Get fee values
     const feeValues = this.getFeeValues(feeTypesToUse);
@@ -366,19 +359,13 @@ export class UniversalFeeCalculator {
     const perByteFeeUSD = feeValues.perByte * totalSize;
     const totalFeeUSD = fixedFeeUSD + perByteFeeUSD;
     
-    // Apply minimum and maximum constraints
-    const minFeeUSD = FEE_CALCULATION_CONSTANTS.MINIMUM_FEE_USD;
-    const maxFeeUSD = FEE_CALCULATION_CONSTANTS.MAXIMUM_FEE_USD;
-    
-    const finalFeeUSD = Math.max(minFeeUSD, Math.min(maxFeeUSD, totalFeeUSD));
-    
     // Convert USD to target currency using ACE exchange rate
-    const finalFeeInCurrency = await aceExchangeService.convertUSDToCurrency(finalFeeUSD, baseFeeId);
+    const finalFeeInCurrency = await aceExchangeService.convertUSDToCurrency(totalFeeUSD, baseFeeId);
     
     return {
       fee: finalFeeInCurrency.toString(),
       feeId: baseFeeId,
-      feeUSD: finalFeeUSD,
+      feeUSD: totalFeeUSD,
       totalSize: totalSize,
       protoSize: protoObject.toBinary().length,
       signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType] || SIGNATURE_SIZES[KEY_TYPE.ED25519]), 0),
@@ -388,7 +375,7 @@ export class UniversalFeeCalculator {
         feeTypes: feeTypesToUse,
         fixedFeeUSD: fixedFeeUSD,
         perByteFeeUSD: perByteFeeUSD,
-        totalFeeUSD: finalFeeUSD,
+        totalFeeUSD: totalFeeUSD,
         feeInCurrency: finalFeeInCurrency.toString(),
         totalSize: totalSize,
         protoSize: protoObject.toBinary().length,
@@ -481,7 +468,6 @@ export class UniversalFeeCalculator {
    * Calculate total fees (network + contract) using Decimal for exact arithmetic
    * @param {Object} params - Fee calculation parameters
    * @param {Object} params.protoObject - The protobuf transaction object (without signatures/hash)
-   * @param {number} [params.transactionType] - Transaction type (auto-detected if not provided)
    * @param {string} params.contractId - Contract ID
    * @param {number} params.contractFeeType - Contract fee type (from protobuf CONTRACT_FEE_TYPE enum)
    * @param {Decimal|string|number} params.contractFeeAmount - Contract fee amount
@@ -494,7 +480,6 @@ export class UniversalFeeCalculator {
     // Calculate network fee
     const networkFee = await this.calculateNetworkFee({
       protoObject: params.protoObject,
-      transactionType: params.transactionType,
       baseFeeId: params.baseFeeId || '$ZRA+0000'
     });
 
@@ -659,7 +644,6 @@ export class UniversalFeeCalculator {
    * @param {string} [params.baseMemo=''] - Base memo
    * @param {string} [params.contractFeeId] - Contract fee instrument
    * @param {Decimal|string|number} [params.contractFee] - Contract fee amount
-   * @param {number} [params.transactionType] - Transaction type (auto-detected if not provided)
    * @param {number} [params.maxIterations=10] - Maximum iterations for convergence
    * @param {number} [params.tolerance=1] - Size tolerance for convergence
    * @returns {Promise<Object>} Fee calculation result
@@ -673,13 +657,12 @@ export class UniversalFeeCalculator {
       baseMemo = '',
       contractFeeId,
       contractFee,
-      transactionType,
       maxIterations = 10,
       tolerance = 1
     } = params;
 
-    // Auto-detect transaction type if not provided (default to COIN_TYPE for CoinTXN)
-    const detectedTransactionType = transactionType || TRANSACTION_TYPE.COIN_TYPE;
+    // Auto-detect transaction type (default to COIN_TYPE for CoinTXN)
+    const detectedTransactionType = TRANSACTION_TYPE.COIN_TYPE;
 
     // Create initial mock protobuf object for size estimation
     let currentProtoSize = this.estimateCoinTXNSize(inputs, outputs, baseMemo);
@@ -700,7 +683,6 @@ export class UniversalFeeCalculator {
       // Calculate fee based on current size
       const feeResult = await this.calculateNetworkFee({
         protoObject: mockProtoObject,
-        transactionType: detectedTransactionType,
         baseFeeId
       });
 
@@ -744,7 +726,6 @@ export class UniversalFeeCalculator {
 
     const finalFeeResult = await this.calculateNetworkFee({
       protoObject: finalMockProtoObject,
-      transactionType: detectedTransactionType,
       baseFeeId
     });
 
@@ -807,20 +788,10 @@ export class UniversalFeeCalculator {
   static async autoCalculateNetworkFee(params) {
     const { protoObject, baseFeeId = '$ZRA+0000' } = params;
     
-    // Auto-detect transaction type from protoObject
-    const transactionType = extractTransactionTypeFromProtoObject(protoObject);
-    
-    // Auto-detect key types from protoObject
-    const keyTypes = extractKeyTypesFromTransaction(protoObject);
-    
-    // Auto-determine fee types
-    const feeTypes = this.determineFeeTypes(transactionType, keyTypes);
-    
+    // Since calculateNetworkFee now does full auto-detection, just call it directly
     return await this.calculateNetworkFee({
       protoObject,
-      transactionType,
-      baseFeeId,
-      feeTypes
+      baseFeeId
     });
   }
 
