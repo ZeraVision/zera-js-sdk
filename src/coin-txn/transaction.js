@@ -529,10 +529,21 @@ export async function createCoinTXNWithAutoFee(inputs, outputs, contractId, feeC
  * @returns {Promise<void>}
  */
 export async function sendCoinTXN(coinTxnInput, grpcConfig = {}) {
+  // Parse GRPC_ADDR environment variable if available
+  const grpcAddr = process.env.GRPC_ADDR;
+  let defaultHost = 'routing.zeravision.ca';
+  let defaultPort = 50052;
+  
+  if (grpcAddr) {
+    const [hostPart, portPart] = grpcAddr.split(':');
+    if (hostPart) defaultHost = hostPart;
+    if (portPart) defaultPort = parseInt(portPart, 10);
+  }
+  
   const {
     endpoint,
-    host = 'routing.zeravision.ca',
-    port = 50052,
+    host = defaultHost,
+    port = defaultPort,
     protocol = 'http',
     nodeOptions
   } = grpcConfig;

@@ -4,6 +4,10 @@
  */
 
 import { Decimal } from '../utils/amount-utils.js';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 /**
  * ACE Exchange Rate Service
@@ -12,10 +16,13 @@ import { Decimal } from '../utils/amount-utils.js';
 export class ACEExchangeRateService {
   constructor(options = {}) {
     this.cache = new Map();
-    this.cacheTimeout = options.cacheTimeout || 300000; // 5 minutes default
-    this.baseUrl = options.baseUrl || 'https://indexer.zeravision.ca'; // Default API endpoint
+    this.cacheTimeout = options.cacheTimeout || 3000; // 3 seconds default
+    this.baseUrl = options.baseUrl || process.env.INDEXER_URL || 'https://indexer.zeravision.ca'; // Default API endpoint
     this.fallbackRates = options.fallbackRates || {
-      'ZRA': 0.10,  // $0.01 per ZRA (fallback)
+      '$ZRA+0000': 0.10,  // $0.10 per ZRA (fallback)
+    };
+    this.minimumRates = options.minimumRates || {
+      '$ZRA+0000': 0.10,  // Minimum $0.10 per ZRA for fee evaluation (network enforced safeguard)
     };
   }
 
@@ -30,27 +37,28 @@ export class ACEExchangeRateService {
     if (useCache && this.cache.has(currencyId)) {
       const cached = this.cache.get(currencyId);
       if (Date.now() - cached.timestamp < this.cacheTimeout) {
-        return cached.rate;
+        return this.applyMinimumRateSafeguard(cached.rate, currencyId);
       }
     }
 
     try {
       // Fetch from API
       const rate = await this.fetchExchangeRateFromAPI(currencyId);
+      const rateDecimal = new Decimal(rate);
       
       // Cache the result
       this.cache.set(currencyId, {
-        rate: new Decimal(rate),
+        rate: rateDecimal,
         timestamp: Date.now()
       });
       
-      return new Decimal(rate);
+      return this.applyMinimumRateSafeguard(rateDecimal, currencyId);
     } catch (error) {
       console.warn(`Failed to fetch exchange rate for "${currencyId}":`, error.message);
       
       // Use fallback rate
       const fallbackRate = this.getFallbackRate(currencyId);
-      return new Decimal(fallbackRate);
+      return this.applyMinimumRateSafeguard(new Decimal(fallbackRate), currencyId);
     }
   }
 
@@ -78,19 +86,44 @@ export class ACEExchangeRateService {
   }
 
   /**
+   * Apply minimum rate safeguard for fee evaluation
+   * Ensures that rates never go below the network-enforced minimum for fee calculations
+   * @param {Decimal} rate - The exchange rate
+   * @param {string} currencyId - Currency ID
+   * @returns {Decimal} Rate with minimum safeguard applied
+   */
+  applyMinimumRateSafeguard(rate, currencyId) {
+    const minimumRate = this.minimumRates[currencyId];
+    if (minimumRate && rate.lt(minimumRate)) {
+      console.warn(`Rate ${rate.toString()} for ${currencyId} below minimum ${minimumRate}, applying safeguard`);
+      return new Decimal(minimumRate);
+    }
+    return rate;
+  }
+
+  /**
    * Get fallback exchange rate
    * @param {string} currencyId - Currency ID
    * @returns {number} Fallback rate
    */
   getFallbackRate(currencyId) {
-    // Extract currency symbol from contract ID
+    // First try to get exact contract ID match
+    if (this.fallbackRates[currencyId]) {
+      return this.fallbackRates[currencyId];
+    }
+    
+    // Extract currency symbol from contract ID as fallback
     const match = currencyId.match(/^\$([A-Za-z]+)\+\d{4}$/);
     if (match) {
       const symbol = match[1];
-      return this.fallbackRates[symbol] || this.fallbackRates['ZRA'];
+      const symbolKey = `$${symbol}+0000`; // Try with +0000 suffix
+      if (this.fallbackRates[symbolKey]) {
+        return this.fallbackRates[symbolKey];
+      }
     }
     
-    return this.fallbackRates['ZRA'];
+    // Default fallback
+    return this.fallbackRates['$ZRA+0000'] || 0.10;
   }
 
   /**

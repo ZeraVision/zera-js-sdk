@@ -8,8 +8,6 @@
  * Memo's optional. Base memo more typically used. Transfer memo for multi-output if required.
  */
 
-exampleSimplePayment();
-
 import { createCoinTXN, createCoinTXNWithAutoFee } from '../index.js';
 import { 
   ED25519_TEST_KEYS,
@@ -69,6 +67,7 @@ export async function exampleSimplePayment() {
  * This demonstrates how users would handle multiple wallets and recipients
  * by pulling data from different sources and constructing complex transactions.
  */
+exampleMultiPartyTransaction()
 export async function exampleMultiPartyTransaction() {
   console.log('👥 Example 2: Multi-Party Transaction');
   
