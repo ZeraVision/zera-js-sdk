@@ -9,7 +9,7 @@ import {
   getContractFeeConfig, 
   isFeeContractIdAllowed,
   DEFAULT_CONTRACT_FEE_CONFIG 
-} from './contract-fee-config.js';
+} from './contract-fee-constants.js';
 import { Decimal } from '../utils/amount-utils.js';
 import { aceExchangeService } from './ace-exchange-rate-service.js';
 

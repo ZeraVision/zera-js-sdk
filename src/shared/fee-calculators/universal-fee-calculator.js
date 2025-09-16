@@ -18,70 +18,15 @@ import {
 import { aceExchangeService } from './ace-exchange-rate-service.js';
 import { contractFeeService } from './contract-fee-service.js';
 import { getKeyTypeFromPublicKey } from '../crypto/address-utils.js';
+import { 
+  SIGNATURE_SIZES, 
+  HASH_SIZE, 
+  FEE_CALCULATION_CONSTANTS,
+  getFeeConstants,
+  updateFeeConstants,
+  getSignatureSize
+} from './base-fee-constants.js';
 import bs58 from 'bs58';
-
-/**
- * Signature sizes for different key types
- */
-export const SIGNATURE_SIZES = {
-  [KEY_TYPE.ED25519]: 64,  // Ed25519 signature size in bytes
-  [KEY_TYPE.ED448]: 114    // Ed448 signature size in bytes
-};
-
-/**
- * Hash size (transaction hash)
- */
-export const HASH_SIZE = 32; // SHA3-256 hash size in bytes
-
-/**
- * Fee calculation constants
- * These are a fallback for when remote data is not available
- */
-export const FEE_CALCULATION_CONSTANTS = {
-  // Multiplier for restricted keys
-  RESTRICTED_KEY_FEE: 3.0,          // 3x multiplier on key/hash fees
-  
-  // Key fees (Fixed Cost)
-  A_KEY_FEE: 0.02,                  // 2 cents
-  B_KEY_FEE: 0.05,                  // 5 cents
-  
-  // Hash fees (Fixed Cost in)
-  a_HASH_FEE: 0.02,                 // 2 cents
-  b_HASH_FEE: 0.05,                 // 5 cents
-  c_HASH_FEE: 0.01,                 // 1 cent
-  d_hash_fee: 0.50,                 // 50 cents
-  e_hash_fee: 1.00,                 // $1.00
-  f_hash_fee: 2.00,                 // $2.00
-  g_hash_fee: 4.00,                 // $4.00
-  dbz_hash_fee: 9.01,               // $9.01
-  h_hash_fee: 2.00,                 // $2.00
-  i_hash_fee: 4.00,                 // $4.00
-  j_hash_fee: 8.00,                 // $8.00
-  
-  // Transaction type fees (Cost Per Byte)
-  DELEGATED_VOTING_TXN_FEE: 0.05,           // 5 cents per byte
-  COIN_TXN_FEE: 0.00015,                    // 0.015 cents per byte
-  SAFE_SEND_FEE: 0.0001,                    // 0.01 cents per byte
-  CONTRACT_TXN_FEE: 0.075,                  // 7.5 cents per byte
-  EXPENSE_RATIO_TXN_FEE: 0.10,              // 10 cents per byte
-  ITEM_MINT_TXN_FEE: 0.001,                 // 0.1 cents per byte
-  MINT_TXN_FEE: 0.001,                      // 0.1 cents per byte
-  NFT_TXN_FEE: 0.0003,                      // 0.03 cents per byte
-  PROPOSAL_RESULT_TXN_FEE: 0.01,            // 1 cent per byte
-  PROPOSAL_TXN_FEE: 0.005,                  // 0.5 cents per byte
-  SELF_CURRENCY_EQUIV_TXN_FEE: 0.0005,      // 0.05 cents per byte
-  AUTHORIZED_CURRENCY_EQUIV_TXN_FEE: 0.0005, // 0.05 cents per byte
-  SMART_CONTRACT_EXECUTE_TXN_FEE: 0.0015,   // 0.15 cents per byte
-  SMART_CONTRACT_DEPLOYMENT_TXN_FEE: 0.0004, // 0.04 cents per byte
-  SMART_CONTRACT_INSTANTIATE_TXN_FEE: 0.02,  // 2 cents per byte
-  UPDATE_CONTRACT_TXN_FEE: 0.075,           // 7.5 cents per byte
-  VOTE_TXN_FEE: 0.0001,                     // 0.01 cents per byte
-  VALIDATOR_REGISTRATION_TXN_FEE: 0.01,     // 1 cent per byte
-  VALIDATOR_HEARTBEAT_TXN_FEE: 0.00005,     // 0.005 cents per byte
-  FAST_QUORUM_TXN_FEE: 0.04,                // 4 cents per byte
-  QUASH_TXN_FEE: 0.001,                     // 0.1 cents per byte
-  REVOKE_TXN_FEE: 0.001,                    // 0.1 cents per byte
-};
 
 /**
  * Extract transaction type from a protobuf object
@@ -143,12 +88,6 @@ function extractTransactionTypeFromProtoObject(protoObject) {
       return TRANSACTION_TYPE.ALLOWANCE_TYPE;
     } else if (protoObject.foundationTxn) {
       return TRANSACTION_TYPE.FOUNDATION_TYPE;
-    }
-    
-    // If no specific transaction type found, try to infer from base transaction
-    if (protoObject.base) {
-      // Default to COIN_TYPE if we have a base transaction but can't determine specific type
-      return TRANSACTION_TYPE.COIN_TYPE;
     }
     
     // If we can't determine the type, throw an error
@@ -225,23 +164,27 @@ function extractKeyTypesFromTransaction(protoObject) {
 
 /**
  * Detect key type from raw public key bytes
- * @param {Uint8Array} keyBytes - Raw public key bytes
+ * @param {Uint8Array} keyBytes - Raw public key bytes (may include KeyType_HashType prefixes)
  * @returns {string|null} Key type or null if detection fails
  */
 function detectKeyTypeFromBytes(keyBytes) {
-  try {
-    // Convert bytes to base58 to create a public key identifier
-    const base58Key = bs58.encode(keyBytes);
+  try {    
+    // Convert bytes to string to find the first underscore
+    const keyString = new TextDecoder('utf-8').decode(keyBytes);
+    const firstUnderscoreIndex = keyString.indexOf('_');
     
-    // Try to detect key type based on length (common approach)
-    if (keyBytes.length === 32) {
-      return KEY_TYPE.ED25519;
-    } else if (keyBytes.length === 57) {
-      return KEY_TYPE.ED448;
+    if (firstUnderscoreIndex > 0) {
+      // Extract the key type prefix (everything up to the first underscore)
+      const keyTypePrefix = keyString.substring(0, firstUnderscoreIndex);
+      
+      if (keyTypePrefix === 'A') {
+        return KEY_TYPE.ED25519;
+      } else if (keyTypePrefix === 'B') {
+        return KEY_TYPE.ED448;
+      }
     }
-    
-    // If length detection fails, throw error immediately
-    throw new Error(`Failed to detect key type from bytes. Unsupported key length: ${keyBytes.length} bytes. Expected 32 bytes (ED25519) or 57 bytes (ED448).`);
+  
+    throw new Error(`Failed to detect key type from bytes. Unsupported key length: ${keyBytes.length} bytes. Expected 32 bytes (ED25519), 57 bytes (ED448), or bytes with KeyType_HashType prefixes.`);
   } catch (error) {
     if (error.message.includes('Failed to detect key type from bytes')) {
       throw error; // Re-throw our custom error
@@ -580,15 +523,6 @@ export class UniversalFeeCalculator {
   }
 
   /**
-   * Get signature size for a key type
-   * @param {string} keyType - Key type
-   * @returns {number} Signature size in bytes
-   */
-  static getSignatureSize(keyType) {
-    return SIGNATURE_SIZES[keyType] || SIGNATURE_SIZES[KEY_TYPE.ED25519];
-  }
-
-  /**
    * Estimate transaction size (for gas estimation)
    * @param {Object} params - Transaction parameters
    * @returns {Object} Size estimation
@@ -617,23 +551,6 @@ export class UniversalFeeCalculator {
       keyType: keyType
     };
   }
-
-  /**
-   * Get fee calculation constants for external use
-   * @returns {Object} Fee calculation constants
-   */
-  static getFeeConstants() {
-    return { ...FEE_CALCULATION_CONSTANTS };
-  }
-
-  /**
-   * Update fee calculation constants
-   * @param {Object} newConstants - New constants to merge
-   */
-  static updateFeeConstants(newConstants) {
-    Object.assign(FEE_CALCULATION_CONSTANTS, newConstants);
-  }
-
 
   /**
    * Calculate CoinTXN fee with iterative catch-22 solution

@@ -9,7 +9,7 @@ import {
   getContractFeeConfig, 
   isFeeContractIdAllowed,
   setContractFeeConfig 
-} from '../contract-fee-config.js';
+} from '../contract-fee-constants.js';
 import { TRANSACTION_TYPE, CONTRACT_FEE_TYPE } from '../../protobuf-enums.js';
 import { KEY_TYPE } from '../../../wallet-creation/constants.js';
 

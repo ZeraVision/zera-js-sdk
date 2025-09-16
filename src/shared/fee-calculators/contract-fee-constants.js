@@ -1,5 +1,5 @@
 /**
- * Contract Fee Configuration
+ * Contract Fee Constants
  * Hardcoded fallback values for contract fees when API is unavailable
  * 
  * Each contract can specify:
