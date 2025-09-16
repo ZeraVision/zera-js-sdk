@@ -3,11 +3,14 @@
  * 
  * This module handles nonce generation and retrieval for transactions.
  * Uses Decimal for internal consistency, converts to bigint for protobuf.
- * Currently uses a template implementation that returns 0.
+ * Currently uses a template implementation that generates unique nonces.
  * Will be replaced with GRPC protobuf nonce request or API request.
  */
 
 import Decimal from 'decimal.js';
+
+// Simple in-memory nonce counter for template implementation
+const nonceCounters = new Map();
 
 /**
  * Get nonce for transaction authentication
@@ -17,8 +20,14 @@ import Decimal from 'decimal.js';
  */
 export async function getNonce(address, contractId) {
   // TODO: Replace with actual GRPC protobuf nonce request or API call
-  // For now, return 0 as template
-  return new Decimal(0);
+  // For now, generate unique nonces for testing purposes
+  
+  const key = `${address}-${contractId}`;
+  const currentNonce = nonceCounters.get(key) || 0;
+  const nextNonce = currentNonce + 1;
+  nonceCounters.set(key, nextNonce);
+  
+  return new Decimal(nextNonce);
 }
 
 /**

@@ -35,7 +35,65 @@ import bs58 from 'bs58';
  */
 function extractTransactionTypeFromProtoObject(protoObject) {
   try {
-    // Check for specific transaction type fields in the protoObject
+    // First check if this is a direct transaction object (not wrapped)
+    if (protoObject.$typeName) {
+      const typeName = protoObject.$typeName;
+      if (typeName === 'zera_txn.CoinTXN') {
+        return TRANSACTION_TYPE.COIN_TYPE;
+      } else if (typeName === 'zera_txn.MintTXN') {
+        return TRANSACTION_TYPE.MINT_TYPE;
+      } else if (typeName === 'zera_txn.ItemizedMintTXN') {
+        return TRANSACTION_TYPE.ITEM_MINT_TYPE;
+      } else if (typeName === 'zera_txn.InstrumentContract') {
+        return TRANSACTION_TYPE.CONTRACT_TXN_TYPE;
+      } else if (typeName === 'zera_txn.GovernanceVote') {
+        return TRANSACTION_TYPE.VOTE_TYPE;
+      } else if (typeName === 'zera_txn.GovernanceProposal') {
+        return TRANSACTION_TYPE.PROPOSAL_TYPE;
+      } else if (typeName === 'zera_txn.SmartContractTXN') {
+        return TRANSACTION_TYPE.SMART_CONTRACT_TYPE;
+      } else if (typeName === 'zera_txn.SmartContractExecuteTXN') {
+        return TRANSACTION_TYPE.SMART_CONTRACT_EXECUTE_TYPE;
+      } else if (typeName === 'zera_txn.SelfCurrencyEquiv') {
+        return TRANSACTION_TYPE.SELF_CURRENCY_EQUIV_TYPE;
+      } else if (typeName === 'zera_txn.AuthorizedCurrencyEquiv') {
+        return TRANSACTION_TYPE.AUTHORIZED_CURRENCY_EQUIV_TYPE;
+      } else if (typeName === 'zera_txn.ExpenseRatioTXN') {
+        return TRANSACTION_TYPE.EXPENSE_RATIO_TYPE;
+      } else if (typeName === 'zera_txn.NFTTXN') {
+        return TRANSACTION_TYPE.NFT_TYPE;
+      } else if (typeName === 'zera_txn.ContractUpdateTXN') {
+        return TRANSACTION_TYPE.UPDATE_CONTRACT_TYPE;
+      } else if (typeName === 'zera_txn.ValidatorRegistration') {
+        return TRANSACTION_TYPE.VALIDATOR_REGISTRATION_TYPE;
+      } else if (typeName === 'zera_txn.ValidatorHeartbeat') {
+        return TRANSACTION_TYPE.VALIDATOR_HEARTBEAT_TYPE;
+      } else if (typeName === 'zera_txn.ProposalResult') {
+        return TRANSACTION_TYPE.PROPOSAL_RESULT_TYPE;
+      } else if (typeName === 'zera_txn.DelegatedTXN') {
+        return TRANSACTION_TYPE.DELEGATED_VOTING_TYPE;
+      } else if (typeName === 'zera_txn.RevokeTXN') {
+        return TRANSACTION_TYPE.REVOKE_TYPE;
+      } else if (typeName === 'zera_txn.QuashTXN') {
+        return TRANSACTION_TYPE.QUASH_TYPE;
+      } else if (typeName === 'zera_txn.FastQuorumTXN') {
+        return TRANSACTION_TYPE.FAST_QUORUM_TYPE;
+      } else if (typeName === 'zera_txn.ComplianceTXN') {
+        return TRANSACTION_TYPE.COMPLIANCE_TYPE;
+      } else if (typeName === 'zera_txn.BurnSBTTXN') {
+        return TRANSACTION_TYPE.SBT_BURN_TYPE;
+      } else if (typeName === 'zera_txn.RequiredVersion') {
+        return TRANSACTION_TYPE.REQUIRED_VERSION;
+      } else if (typeName === 'zera_txn.SmartContractInstantiateTXN') {
+        return TRANSACTION_TYPE.SMART_CONTRACT_INSTANTIATE_TYPE;
+      } else if (typeName === 'zera_txn.AllowanceTXN') {
+        return TRANSACTION_TYPE.ALLOWANCE_TYPE;
+      } else if (typeName === 'zera_txn.FoundationTXN') {
+        return TRANSACTION_TYPE.FOUNDATION_TYPE;
+      }
+    }
+    
+    // Fallback: Check for specific transaction type fields in wrapped protoObject
     if (protoObject.coinTxn) {
       return TRANSACTION_TYPE.COIN_TYPE;
     } else if (protoObject.mintTxn) {
@@ -106,24 +164,19 @@ function extractKeyTypesFromTransaction(protoObject) {
   const keyTypes = [];
   
   try {
-    // Check if this is a CoinTXN (has auth field with public_key array)
+    // Check if this is a CoinTXN (has auth field with publicKey array)
     if (protoObject.auth && protoObject.auth.publicKey && Array.isArray(protoObject.auth.publicKey)) {
-      // CoinTXN: extract key types from TransferAuthentication.public_key array
+      // CoinTXN: extract key types from TransferAuthentication.publicKey array
       for (const publicKey of protoObject.auth.publicKey) {
         if (publicKey.single) {
-          // Single key - convert bytes to base58 identifier for key type detection
-          const keyType = detectKeyTypeFromBytes(publicKey.single);
+          // Single key - convert bytes back to string identifier for key type detection
+          const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+          const keyType = detectKeyTypeFromIdentifier(publicKeyString);
           if (keyType) {
             keyTypes.push(keyType);
           }
         } else if (publicKey.multi && publicKey.multi.publicKeys) {
-          // Multi key - extract from each public key in the multi key
-          for (const multiKeyBytes of publicKey.multi.publicKeys) {
-            const keyType = detectKeyTypeFromBytes(multiKeyBytes);
-            if (keyType) {
-              keyTypes.push(keyType);
-            }
-          }
+          throw new Error('multi signature wallet not yet supported in SDK'); // TODO
         }
       }
     } else if (protoObject.base && protoObject.base.publicKey) {
@@ -135,13 +188,7 @@ function extractKeyTypesFromTransaction(protoObject) {
           keyTypes.push(keyType);
         }
       } else if (publicKey.multi && publicKey.multi.publicKeys) {
-        // Multi key in base transaction
-        for (const multiKeyBytes of publicKey.multi.publicKeys) {
-          const keyType = detectKeyTypeFromBytes(multiKeyBytes);
-          if (keyType) {
-            keyTypes.push(keyType);
-          }
-        }
+        throw new Error('multi signature wallet not yet supported in SDK'); // TODO
       }
     }
   } catch (error) {
@@ -160,6 +207,33 @@ function extractKeyTypesFromTransaction(protoObject) {
   }
   
   return keyTypes;
+}
+
+/**
+ * Detect key type from public key identifier string
+ * @param {string} keyIdentifier - Public key identifier (e.g., "A_c_pubkeybytes")
+ * @returns {number} Key type from KEY_TYPE enum
+ */
+function detectKeyTypeFromIdentifier(keyIdentifier) {
+  try {
+    const firstUnderscoreIndex = keyIdentifier.indexOf('_');
+    
+    if (firstUnderscoreIndex > 0) {
+      // Extract the key type prefix (everything up to the first underscore)
+      const keyTypePrefix = keyIdentifier.substring(0, firstUnderscoreIndex);
+      
+      if (keyTypePrefix === 'A') {
+        return KEY_TYPE.ED25519;
+      } else if (keyTypePrefix === 'B') {
+        return KEY_TYPE.ED448;
+      }
+    }
+  
+    throw new Error(`Failed to detect key type from identifier: ${keyIdentifier}`);
+  } catch (error) {
+    console.error(`Error detecting key type from identifier: ${error.message}`);
+    return null;
+  }
 }
 
 /**
