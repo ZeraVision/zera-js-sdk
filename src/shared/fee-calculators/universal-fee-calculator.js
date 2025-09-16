@@ -16,6 +16,8 @@ import {
   Decimal 
 } from '../utils/amount-utils.js';
 import { aceExchangeService } from './ace-exchange-rate-service.js';
+import { getKeyTypeFromPublicKey } from '../crypto/address-utils.js';
+import bs58 from 'bs58';
 
 /**
  * Signature sizes for different key types
@@ -81,6 +83,173 @@ export const FEE_CALCULATION_CONSTANTS = {
 };
 
 /**
+ * Extract transaction type from a protobuf object
+ * @param {Object} protoObject - The protobuf transaction object
+ * @returns {number} Transaction type from TRANSACTION_TYPE enum
+ */
+function extractTransactionTypeFromProtoObject(protoObject) {
+  try {
+    // Check for specific transaction type fields in the protoObject
+    if (protoObject.coinTxn) {
+      return TRANSACTION_TYPE.COIN_TYPE;
+    } else if (protoObject.mintTxn) {
+      return TRANSACTION_TYPE.MINT_TYPE;
+    } else if (protoObject.itemMintTxn) {
+      return TRANSACTION_TYPE.ITEM_MINT_TYPE;
+    } else if (protoObject.contractTxn) {
+      return TRANSACTION_TYPE.CONTRACT_TXN_TYPE;
+    } else if (protoObject.governanceVote) {
+      return TRANSACTION_TYPE.VOTE_TYPE;
+    } else if (protoObject.governanceProposal) {
+      return TRANSACTION_TYPE.PROPOSAL_TYPE;
+    } else if (protoObject.smartContractTxn) {
+      return TRANSACTION_TYPE.SMART_CONTRACT_TYPE;
+    } else if (protoObject.smartContractExecuteTxn) {
+      return TRANSACTION_TYPE.SMART_CONTRACT_EXECUTE_TYPE;
+    } else if (protoObject.selfCurEquiv) {
+      return TRANSACTION_TYPE.SELF_CURRENCY_EQUIV_TYPE;
+    } else if (protoObject.authorizedCurEquiv) {
+      return TRANSACTION_TYPE.AUTHORIZED_CURRENCY_EQUIV_TYPE;
+    } else if (protoObject.expenseRatioTxn) {
+      return TRANSACTION_TYPE.EXPENSE_RATIO_TYPE;
+    } else if (protoObject.nftTxn) {
+      return TRANSACTION_TYPE.NFT_TYPE;
+    } else if (protoObject.contractUpdateTxn) {
+      return TRANSACTION_TYPE.UPDATE_CONTRACT_TYPE;
+    } else if (protoObject.validatorRegistration) {
+      return TRANSACTION_TYPE.VALIDATOR_REGISTRATION_TYPE;
+    } else if (protoObject.validatorHeartbeat) {
+      return TRANSACTION_TYPE.VALIDATOR_HEARTBEAT_TYPE;
+    } else if (protoObject.proposalResult) {
+      return TRANSACTION_TYPE.PROPOSAL_RESULT_TYPE;
+    } else if (protoObject.delegatedTxn) {
+      return TRANSACTION_TYPE.DELEGATED_VOTING_TYPE;
+    } else if (protoObject.revokeTxn) {
+      return TRANSACTION_TYPE.REVOKE_TYPE;
+    } else if (protoObject.quashTxn) {
+      return TRANSACTION_TYPE.QUASH_TYPE;
+    } else if (protoObject.fastQuorumTxn) {
+      return TRANSACTION_TYPE.FAST_QUORUM_TYPE;
+    } else if (protoObject.complianceTxn) {
+      return TRANSACTION_TYPE.COMPLIANCE_TYPE;
+    } else if (protoObject.burnSbtTxn) {
+      return TRANSACTION_TYPE.SBT_BURN_TYPE;
+    } else if (protoObject.requiredVersion) {
+      return TRANSACTION_TYPE.REQUIRED_VERSION;
+    } else if (protoObject.smartContractInstantiateTxn) {
+      return TRANSACTION_TYPE.SMART_CONTRACT_INSTANTIATE_TYPE;
+    } else if (protoObject.allowanceTxn) {
+      return TRANSACTION_TYPE.ALLOWANCE_TYPE;
+    } else if (protoObject.foundationTxn) {
+      return TRANSACTION_TYPE.FOUNDATION_TYPE;
+    }
+    
+    // If no specific transaction type found, try to infer from base transaction
+    if (protoObject.base) {
+      // Default to COIN_TYPE if we have a base transaction but can't determine specific type
+      return TRANSACTION_TYPE.COIN_TYPE;
+    }
+    
+    // If we can't determine the type, throw an error
+    throw new Error('Unable to determine transaction type from protoObject structure');
+  } catch (error) {
+    throw new Error(`Failed to extract transaction type from protoObject: ${error.message}`);
+  }
+}
+
+/**
+ * Extract key types from a transaction protobuf object
+ * @param {Object} protoObject - The protobuf transaction object
+ * @returns {Array} Array of key types
+ */
+function extractKeyTypesFromTransaction(protoObject) {
+  const keyTypes = [];
+  
+  try {
+    // Check if this is a CoinTXN (has auth field with public_key array)
+    if (protoObject.auth && protoObject.auth.publicKey && Array.isArray(protoObject.auth.publicKey)) {
+      // CoinTXN: extract key types from TransferAuthentication.public_key array
+      for (const publicKey of protoObject.auth.publicKey) {
+        if (publicKey.single) {
+          // Single key - convert bytes to base58 identifier for key type detection
+          const keyType = detectKeyTypeFromBytes(publicKey.single);
+          if (keyType) {
+            keyTypes.push(keyType);
+          }
+        } else if (publicKey.multi && publicKey.multi.publicKeys) {
+          // Multi key - extract from each public key in the multi key
+          for (const multiKeyBytes of publicKey.multi.publicKeys) {
+            const keyType = detectKeyTypeFromBytes(multiKeyBytes);
+            if (keyType) {
+              keyTypes.push(keyType);
+            }
+          }
+        }
+      }
+    } else if (protoObject.base && protoObject.base.publicKey) {
+      // Non-CoinTXN: extract key type from BaseTXN.public_key
+      const publicKey = protoObject.base.publicKey;
+      if (publicKey.single) {
+        const keyType = detectKeyTypeFromBytes(publicKey.single);
+        if (keyType) {
+          keyTypes.push(keyType);
+        }
+      } else if (publicKey.multi && publicKey.multi.publicKeys) {
+        // Multi key in base transaction
+        for (const multiKeyBytes of publicKey.multi.publicKeys) {
+          const keyType = detectKeyTypeFromBytes(multiKeyBytes);
+          if (keyType) {
+            keyTypes.push(keyType);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    throw new Error(`Failed to extract key types from transaction: ${error.message}`);
+  }
+  
+  // Throw error if no key types found
+  if (keyTypes.length === 0) {
+    if (protoObject.auth && protoObject.auth.publicKey) {
+      throw new Error('Failed to detect key types from CoinTXN transaction. Check that publicKey array contains valid key structures.');
+    } else if (protoObject.base && protoObject.base.publicKey) {
+      throw new Error('Failed to detect key type from BaseTXN transaction. Check that publicKey contains valid key structure.');
+    } else {
+      throw new Error('Failed to detect key types from transaction. Transaction must have either auth.publicKey (CoinTXN) or base.publicKey (other types).');
+    }
+  }
+  
+  return keyTypes;
+}
+
+/**
+ * Detect key type from raw public key bytes
+ * @param {Uint8Array} keyBytes - Raw public key bytes
+ * @returns {string|null} Key type or null if detection fails
+ */
+function detectKeyTypeFromBytes(keyBytes) {
+  try {
+    // Convert bytes to base58 to create a public key identifier
+    const base58Key = bs58.encode(keyBytes);
+    
+    // Try to detect key type based on length (common approach)
+    if (keyBytes.length === 32) {
+      return KEY_TYPE.ED25519;
+    } else if (keyBytes.length === 57) {
+      return KEY_TYPE.ED448;
+    }
+    
+    // If length detection fails, throw error immediately
+    throw new Error(`Failed to detect key type from bytes. Unsupported key length: ${keyBytes.length} bytes. Expected 32 bytes (ED25519) or 57 bytes (ED448).`);
+  } catch (error) {
+    if (error.message.includes('Failed to detect key type from bytes')) {
+      throw error; // Re-throw our custom error
+    }
+    throw new Error(`Failed to detect key type from bytes: ${error.message}`);
+  }
+}
+
+/**
  * Universal Fee Calculator
  * Uses proper fiat-based, size-dependent calculation
  */
@@ -88,12 +257,14 @@ export class UniversalFeeCalculator {
   /**
    * Calculate total transaction size from protobuf object + signatures + hash
    * @param {Object} protoObject - The protobuf transaction object (without signatures/hash)
-   * @param {Array} keyTypes - Array of key types for signature size calculation
    * @returns {number} Total transaction size in bytes
    */
-  static calculateTotalTransactionSize(protoObject, keyTypes) {
+  static calculateTotalTransactionSize(protoObject) {
     // Get the serialized size of the protobuf object
     const protoSize = protoObject.toBinary().length;
+    
+    // Auto-detect key types from transaction
+    const keyTypes = extractKeyTypesFromTransaction(protoObject);
     
     // Calculate signature sizes
     let signatureSize = 0;
@@ -159,28 +330,32 @@ export class UniversalFeeCalculator {
    * Calculate network base fee using proper USD-based, size-dependent calculation
    * @param {Object} params - Fee calculation parameters
    * @param {Object} params.protoObject - The protobuf transaction object (without signatures/hash)
-   * @param {Array} params.keyTypes - Array of key types for signature size calculation
-   * @param {number} params.transactionType - Transaction type (from protobuf TRANSACTION_TYPE enum)
+   * @param {number} [params.transactionType] - Transaction type (auto-detected if not provided)
    * @param {string} [params.baseFeeId='$ZRA+0000'] - Base fee instrument ID
-   * @param {string} [params.feeTypes] - Comma-separated fee types (if not provided, auto-detected)
+   * @param {string} [params.feeTypes] - Comma-separated fee types (auto-detected if not provided)
    * @returns {Promise<Object>} Network fee calculation result
    */
   static async calculateNetworkFee(params) {
     const {
       protoObject,
-      keyTypes,
-      transactionType = TRANSACTION_TYPE.COIN_TYPE,
+      transactionType,
       baseFeeId = '$ZRA+0000',
       feeTypes
     } = params;
     
+    // Auto-detect transaction type if not provided
+    const detectedTransactionType = transactionType || extractTransactionTypeFromProtoObject(protoObject);
+    
+    // Auto-detect key types from transaction
+    const keyTypes = extractKeyTypesFromTransaction(protoObject);
+    
     // Calculate total transaction size
-    const totalSize = this.calculateTotalTransactionSize(protoObject, keyTypes);
+    const totalSize = this.calculateTotalTransactionSize(protoObject);
     
     // Determine fee types if not provided
     let feeTypesToUse = feeTypes;
     if (!feeTypesToUse) {
-      feeTypesToUse = this.determineFeeTypes(transactionType, keyTypes);
+      feeTypesToUse = this.determineFeeTypes(detectedTransactionType, keyTypes);
     }
     
     // Get fee values
@@ -208,7 +383,7 @@ export class UniversalFeeCalculator {
       protoSize: protoObject.toBinary().length,
       signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType] || SIGNATURE_SIZES[KEY_TYPE.ED25519]), 0),
       hashSize: HASH_SIZE,
-      transactionType: transactionType,
+      transactionType: detectedTransactionType,
       breakdown: {
         feeTypes: feeTypesToUse,
         fixedFeeUSD: fixedFeeUSD,
@@ -219,7 +394,7 @@ export class UniversalFeeCalculator {
         protoSize: protoObject.toBinary().length,
         signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType] || SIGNATURE_SIZES[KEY_TYPE.ED25519]), 0),
         hashSize: HASH_SIZE,
-        transactionType,
+        transactionType: detectedTransactionType,
         keyCount: keyTypes.length,
         exchangeRate: (await aceExchangeService.getExchangeRate(baseFeeId)).toString()
       }
@@ -306,8 +481,7 @@ export class UniversalFeeCalculator {
    * Calculate total fees (network + contract) using Decimal for exact arithmetic
    * @param {Object} params - Fee calculation parameters
    * @param {Object} params.protoObject - The protobuf transaction object (without signatures/hash)
-   * @param {Array} params.keyTypes - Array of key types for signature size calculation
-   * @param {number} params.transactionType - Transaction type (from protobuf TRANSACTION_TYPE enum)
+   * @param {number} [params.transactionType] - Transaction type (auto-detected if not provided)
    * @param {string} params.contractId - Contract ID
    * @param {number} params.contractFeeType - Contract fee type (from protobuf CONTRACT_FEE_TYPE enum)
    * @param {Decimal|string|number} params.contractFeeAmount - Contract fee amount
@@ -320,7 +494,6 @@ export class UniversalFeeCalculator {
     // Calculate network fee
     const networkFee = await this.calculateNetworkFee({
       protoObject: params.protoObject,
-      keyTypes: params.keyTypes,
       transactionType: params.transactionType,
       baseFeeId: params.baseFeeId || '$ZRA+0000'
     });
@@ -475,17 +648,18 @@ export class UniversalFeeCalculator {
     Object.assign(FEE_CALCULATION_CONSTANTS, newConstants);
   }
 
+
   /**
    * Calculate CoinTXN fee with iterative catch-22 solution
    * @param {Object} params - Fee calculation parameters
    * @param {Array} params.inputs - Input objects
    * @param {Array} params.outputs - Output objects
    * @param {string} params.contractId - Contract ID
-   * @param {string} params.baseFeeId - Base fee instrument ID
+   * @param {string} [params.baseFeeId='$ZRA+0000'] - Base fee instrument ID
    * @param {string} [params.baseMemo=''] - Base memo
    * @param {string} [params.contractFeeId] - Contract fee instrument
    * @param {Decimal|string|number} [params.contractFee] - Contract fee amount
-   * @param {number} [params.transactionType=TRANSACTION_TYPE.COIN_TYPE] - Transaction type
+   * @param {number} [params.transactionType] - Transaction type (auto-detected if not provided)
    * @param {number} [params.maxIterations=10] - Maximum iterations for convergence
    * @param {number} [params.tolerance=1] - Size tolerance for convergence
    * @returns {Promise<Object>} Fee calculation result
@@ -495,17 +669,17 @@ export class UniversalFeeCalculator {
       inputs,
       outputs,
       contractId,
-      baseFeeId,
+      baseFeeId = '$ZRA+0000',
       baseMemo = '',
       contractFeeId,
       contractFee,
-      transactionType = TRANSACTION_TYPE.COIN_TYPE,
+      transactionType,
       maxIterations = 10,
       tolerance = 1
     } = params;
 
-    // Extract key types from inputs
-    const keyTypes = inputs.map(input => input.keyType || KEY_TYPE.ED25519);
+    // Auto-detect transaction type if not provided (default to COIN_TYPE for CoinTXN)
+    const detectedTransactionType = transactionType || TRANSACTION_TYPE.COIN_TYPE;
 
     // Create initial mock protobuf object for size estimation
     let currentProtoSize = this.estimateCoinTXNSize(inputs, outputs, baseMemo);
@@ -513,16 +687,20 @@ export class UniversalFeeCalculator {
     let iterations = 0;
 
     while (iterations < maxIterations) {
-      // Create mock protobuf object with current size
+      // Create mock protobuf object with current size and key structure for auto-detection
       const mockProtoObject = {
-        toBinary: () => new Uint8Array(currentProtoSize)
+        toBinary: () => new Uint8Array(currentProtoSize),
+        auth: {
+          publicKey: inputs.map(input => ({
+            single: new Uint8Array(input.keyType === KEY_TYPE.ED448 ? 57 : 32)
+          }))
+        }
       };
 
       // Calculate fee based on current size
       const feeResult = await this.calculateNetworkFee({
         protoObject: mockProtoObject,
-        keyTypes,
-        transactionType,
+        transactionType: detectedTransactionType,
         baseFeeId
       });
 
@@ -538,7 +716,7 @@ export class UniversalFeeCalculator {
       if (sizeDiff <= tolerance && feeDiff <= 0.000001) {
         return {
           ...feeResult,
-          size: this.calculateTotalTransactionSize(mockProtoObject, keyTypes),
+          size: this.calculateTotalTransactionSize(mockProtoObject),
           iterations: iterations + 1,
           converged: true,
           breakdown: {
@@ -556,19 +734,23 @@ export class UniversalFeeCalculator {
 
     // Final calculation
     const finalMockProtoObject = {
-      toBinary: () => new Uint8Array(currentProtoSize)
+      toBinary: () => new Uint8Array(currentProtoSize),
+      auth: {
+        publicKey: inputs.map(input => ({
+          single: new Uint8Array(input.keyType === KEY_TYPE.ED448 ? 57 : 32)
+        }))
+      }
     };
 
     const finalFeeResult = await this.calculateNetworkFee({
       protoObject: finalMockProtoObject,
-      keyTypes,
-      transactionType,
+      transactionType: detectedTransactionType,
       baseFeeId
     });
 
     return {
       ...finalFeeResult,
-      size: this.calculateTotalTransactionSize(finalMockProtoObject, keyTypes),
+      size: this.calculateTotalTransactionSize(finalMockProtoObject),
       iterations,
       converged: false,
       breakdown: {
@@ -613,6 +795,33 @@ export class UniversalFeeCalculator {
     }
     
     return size;
+  }
+
+  /**
+   * Auto-calculate network fee with full auto-detection
+   * @param {Object} params - Fee calculation parameters
+   * @param {Object} params.protoObject - The protobuf transaction object (without signatures/hash)
+   * @param {string} [params.baseFeeId='$ZRA+0000'] - Base fee instrument ID
+   * @returns {Promise<Object>} Network fee calculation result with auto-detected transaction type and fee types
+   */
+  static async autoCalculateNetworkFee(params) {
+    const { protoObject, baseFeeId = '$ZRA+0000' } = params;
+    
+    // Auto-detect transaction type from protoObject
+    const transactionType = extractTransactionTypeFromProtoObject(protoObject);
+    
+    // Auto-detect key types from protoObject
+    const keyTypes = extractKeyTypesFromTransaction(protoObject);
+    
+    // Auto-determine fee types
+    const feeTypes = this.determineFeeTypes(transactionType, keyTypes);
+    
+    return await this.calculateNetworkFee({
+      protoObject,
+      transactionType,
+      baseFeeId,
+      feeTypes
+    });
   }
 
   /**
