@@ -13,9 +13,18 @@ export const SIGNATURE_SIZES = {
 };
 
 /**
- * Hash size (transaction hash)
+ * Hash sizes for different hash types
  */
-export const HASH_SIZE = 32; // SHA3-256 hash size in bytes
+export const HASH_SIZES = {
+  SHA3_256: 32,  // SHA3-256 hash size in bytes
+  SHA3_512: 64,  // SHA3-512 hash size in bytes  
+  BLAKE3: 32     // BLAKE3 hash size in bytes (typically 32 bytes)
+};
+
+/**
+ * Default hash size (for backward compatibility)
+ */
+export const HASH_SIZE = HASH_SIZES.SHA3_256; // SHA3-256 hash size in bytes
 
 /**
  * Fee calculation constants
@@ -94,6 +103,7 @@ export function getSignatureSize(keyType) {
 
 export default {
   SIGNATURE_SIZES,
+  HASH_SIZES,
   HASH_SIZE,
   FEE_CALCULATION_CONSTANTS,
   getFeeConstants,

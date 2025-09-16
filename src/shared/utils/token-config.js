@@ -16,15 +16,6 @@ export const TOKEN_DECIMALS = {
   // ZERA Network tokens
   '$ZRA+0000': 9,  // ZERA token (main network token)
   
-  // Common tokens (examples - add your actual tokens)
-  '$USDC+0000': 6,   // USD Coin
-  '$USDT+0000': 6,   // Tether USD
-  '$BTC+0000': 8,    // Bitcoin
-  '$ETH+0000': 18,   // Ethereum
-  '$DAI+0000': 18,   // Dai Stablecoin
-  
-  // Add more tokens as needed
-  // '$TOKEN+0000': 18,
 };
 
 /**

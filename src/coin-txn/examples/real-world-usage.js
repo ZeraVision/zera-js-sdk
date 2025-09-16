@@ -15,8 +15,6 @@ import {
   ED25519_TEST_KEYS,
   ED448_TEST_KEYS,
   TEST_WALLET_ADDRESSES,
-  DEFAULT_TEST_FEE_CONFIG,
-  MINIMAL_TEST_FEE_CONFIG 
 } from '../../test-utils/index.js';
 
 /**
@@ -29,7 +27,7 @@ import {
 export async function exampleSimplePayment() {
   console.log('💸 Example 1: Simple Payment');
   
-  // In a real application, you would pull this data from your database/config
+  // In a real application, you would pull this data from your storage
   const aliceWallet = ED25519_TEST_KEYS.alice;
   const bobAddress = TEST_WALLET_ADDRESSES.bob;
   

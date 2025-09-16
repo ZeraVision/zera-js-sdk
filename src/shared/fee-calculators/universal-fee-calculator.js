@@ -42,9 +42,10 @@ import {
   BurnSBTTXNSchema as BurnSBTTXN,
   AllowanceTXNSchema as AllowanceTXN
 } from '../../../proto/generated/txn_pb.js';
-import { getKeyTypeFromPublicKey } from '../crypto/address-utils.js';
+import { getKeyTypeFromPublicKey, getHashTypesFromPublicKey } from '../crypto/address-utils.js';
 import { 
   SIGNATURE_SIZES, 
+  HASH_SIZES,
   HASH_SIZE, 
   FEE_CALCULATION_CONSTANTS,
   getFeeConstants,
@@ -235,6 +236,57 @@ function extractKeyTypesFromTransaction(protoObject) {
 }
 
 /**
+ * Extract hash types from a transaction protobuf object
+ * @param {Object} protoObject - The protobuf transaction object
+ * @returns {Array} Array of hash types
+ */
+function extractHashTypesFromTransaction(protoObject) {
+  const hashTypes = [];
+  
+  try {
+    // Check if this is a CoinTXN (has auth field with publicKey array)
+    if (protoObject.auth && protoObject.auth.publicKey && Array.isArray(protoObject.auth.publicKey)) {
+      // CoinTXN: extract hash types from TransferAuthentication.publicKey array
+      for (const publicKey of protoObject.auth.publicKey) {
+        if (publicKey.single) {
+          // Single key - convert bytes back to string identifier for hash type detection
+          const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+          try {
+            const keyHashTypes = getHashTypesFromPublicKey(publicKeyString);
+            hashTypes.push(...keyHashTypes);
+          } catch (error) {
+            // If we can't extract hash types from this key, skip it
+            console.warn(`Failed to extract hash types from key: ${error.message}`);
+          }
+        } else if (publicKey.multi && publicKey.multi.publicKeys) {
+          throw new Error('multi signature wallet not yet supported in SDK'); // TODO
+        }
+      }
+    } else if (protoObject.base && protoObject.base.publicKey) {
+      // Non-CoinTXN: extract hash types from BaseTXN.public_key
+      const publicKey = protoObject.base.publicKey;
+      if (publicKey.single) {
+        const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+        try {
+          const keyHashTypes = getHashTypesFromPublicKey(publicKeyString);
+          hashTypes.push(...keyHashTypes);
+        } catch (error) {
+          // If we can't extract hash types from this key, skip it
+          console.warn(`Failed to extract hash types from key: ${error.message}`);
+        }
+      } else if (publicKey.multi && publicKey.multi.publicKeys) {
+        throw new Error('multi signature wallet not yet supported in SDK'); // TODO
+      }
+    }
+  } catch (error) {
+    throw new Error(`Failed to extract hash types from transaction: ${error.message}`);
+  }
+  
+  // If no hash types found, return empty array (transaction might not have hash types)
+  return hashTypes;
+}
+
+/**
  * Detect key type from public key identifier string
  * @param {string} keyIdentifier - Public key identifier (e.g., "A_c_pubkeybytes")
  * @returns {number} Key type from KEY_TYPE enum
@@ -361,7 +413,7 @@ function calculateProtobufSize(protoObject, transactionType) {
 }
 export class UniversalFeeCalculator {
   /**
-   * Calculate total transaction size from protobuf object + signatures + hash
+   * Calculate total transaction size from protobuf object + signatures + hashes
    * @param {Object} protoObject - The protobuf transaction object (without signatures/hash)
    * @returns {number} Total transaction size in bytes
    */
@@ -381,10 +433,19 @@ export class UniversalFeeCalculator {
       signatureSize += SIGNATURE_SIZES[keyType.toUpperCase()] || SIGNATURE_SIZES.ED25519;
     }
     
-    // Add hash size
-    const hashSize = HASH_SIZE;
+    // Auto-detect hash types and calculate total hash size
+    const hashTypes = extractHashTypesFromTransaction(protoObject);
+    let totalHashSize = 0;
+    for (const hashType of hashTypes) {
+      totalHashSize += HASH_SIZES[hashType] || HASH_SIZE; // fallback to default hash size
+    }
     
-    return protoSize + signatureSize + hashSize;
+    // If no hash types detected, use default hash size
+    if (totalHashSize === 0) {
+      totalHashSize = HASH_SIZE;
+    }
+    
+    return protoSize + signatureSize + totalHashSize;
   }
 
   /**
@@ -454,11 +515,14 @@ export class UniversalFeeCalculator {
     // Auto-detect key types from transaction
     const keyTypes = extractKeyTypesFromTransaction(protoObject);
     
+    // Auto-detect hash types from transaction
+    const hashTypes = extractHashTypesFromTransaction(protoObject);
+    
     // Calculate total transaction size
     const totalSize = this.calculateTotalTransactionSize(protoObject);
     
-    // Auto-determine fee types based on transaction type and key types
-    const feeTypesToUse = this.determineFeeTypes(detectedTransactionType, keyTypes);
+    // Auto-determine fee types based on transaction type, key types, and hash types
+    const feeTypesToUse = this.determineFeeTypes(detectedTransactionType, keyTypes, hashTypes);
     
     // Get fee values
     const feeValues = this.getFeeValues(feeTypesToUse);
@@ -471,6 +535,16 @@ export class UniversalFeeCalculator {
     // Convert USD to target currency using ACE exchange rate
     const finalFeeInCurrency = await aceExchangeService.convertUSDToCurrency(totalFeeUSD, baseFeeId);
     
+    // Calculate actual hash size based on detected hash types
+    let actualHashSize = 0;
+    for (const hashType of hashTypes) {
+      actualHashSize += HASH_SIZES[hashType] || HASH_SIZE; // fallback to default hash size
+    }
+    // If no hash types detected, use default hash size
+    if (actualHashSize === 0) {
+      actualHashSize = HASH_SIZE;
+    }
+    
     return {
       fee: finalFeeInCurrency.toString(),
       feeId: baseFeeId,
@@ -478,7 +552,7 @@ export class UniversalFeeCalculator {
       totalSize: totalSize,
       protoSize: calculateProtobufSize(protoObject, detectedTransactionType),
       signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType.toUpperCase()] || SIGNATURE_SIZES.ED25519), 0),
-      hashSize: HASH_SIZE,
+      hashSize: actualHashSize,
       transactionType: detectedTransactionType,
       breakdown: {
         feeTypes: feeTypesToUse,
@@ -489,9 +563,11 @@ export class UniversalFeeCalculator {
         totalSize: totalSize,
         protoSize: calculateProtobufSize(protoObject, detectedTransactionType),
         signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType.toUpperCase()] || SIGNATURE_SIZES.ED25519), 0),
-        hashSize: HASH_SIZE,
+        hashSize: actualHashSize,
         transactionType: detectedTransactionType,
         keyCount: keyTypes.length,
+        hashTypes: hashTypes,
+        hashCount: hashTypes.length,
         exchangeRate: (await aceExchangeService.getExchangeRate(baseFeeId)).toString()
       }
     };
@@ -625,12 +701,13 @@ export class UniversalFeeCalculator {
   }
 
   /**
-   * Determine fee types based on transaction type and key types
+   * Determine fee types based on transaction type, key types, and hash types
    * @param {number} transactionType - Transaction type
    * @param {Array} keyTypes - Array of key types
+   * @param {Array} hashTypes - Array of hash types
    * @returns {string} Comma-separated fee types
    */
-  static determineFeeTypes(transactionType, keyTypes) {
+  static determineFeeTypes(transactionType, keyTypes, hashTypes = []) {
     const feeTypes = [];
     
     // Add key fees based on key types
@@ -642,8 +719,16 @@ export class UniversalFeeCalculator {
       }
     }
     
-    // Add hash fees (assume one hash per transaction for now)
-    feeTypes.push('a_HASH_FEE');
+    // Add hash fees based on detected hash types
+    for (const hashType of hashTypes) {
+      if (hashType === HASH_TYPE.SHA3_256) {
+        feeTypes.push('a_HASH_FEE');
+      } else if (hashType === HASH_TYPE.SHA3_512) {
+        feeTypes.push('b_HASH_FEE');
+      } else if (hashType === HASH_TYPE.BLAKE3) {
+        feeTypes.push('c_HASH_FEE');
+      }
+    }
     
     // Add transaction type fee
     const txTypeFee = this.getTransactionTypeFee(transactionType);
