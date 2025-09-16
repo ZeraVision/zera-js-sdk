@@ -187,7 +187,7 @@ async function discoverTests() {
 }
 
 /**
- * Group test files by module
+ * Group test files by module (folder above test directory)
  */
 function groupFilesByModule(files) {
   const modules = new Map();
@@ -197,7 +197,20 @@ function groupFilesByModule(files) {
     const parts = relativePath.split(/[\/\\]/);
     
     let moduleName = 'root';
-    if (parts[0] === 'src' && parts.length > 1) {
+    
+    // Check if this is a test file in a 'test' or 'tests' directory
+    const testDirIndex = parts.findIndex(part => part === 'test' || part === 'tests');
+    
+    if (testDirIndex !== -1 && testDirIndex > 0) {
+      // Group by the folder above the test directory
+      if (parts[0] === 'src' && testDirIndex > 1) {
+        // For src/parent/test/file.js, group by parent
+        moduleName = parts[testDirIndex - 1];
+      } else if (parts[0] === 'proto') {
+        moduleName = 'proto';
+      }
+    } else if (parts[0] === 'src' && parts.length > 1) {
+      // Fallback to original behavior for non-test files
       moduleName = parts[1];
     } else if (parts[0] === 'proto') {
       moduleName = 'proto';
@@ -418,19 +431,31 @@ async function runTestFile(testFile) {
 }
 
 /**
- * Extract module name from file path
+ * Extract module name from file path (folder above test directory)
  */
 function getModuleName(filePath) {
   const relativePath = relative(__dirname, filePath);
   const parts = relativePath.split(/[\/\\]/);
   
-  if (parts[0] === 'src' && parts.length > 1) {
+  // Check if this is a test file in a 'test' or 'tests' directory
+  const testDirIndex = parts.findIndex(part => part === 'test' || part === 'tests');
+  
+  if (testDirIndex !== -1 && testDirIndex > 0) {
+    // Group by the folder above the test directory
+    if (parts[0] === 'src' && testDirIndex > 1) {
+      // For src/parent/test/file.js, group by parent
+      return parts[testDirIndex - 1];
+    } else if (parts[0] === 'proto') {
+      return 'proto';
+    }
+  } else if (parts[0] === 'src' && parts.length > 1) {
+    // Fallback to original behavior for non-test files
     return parts[1];
   } else if (parts[0] === 'proto') {
     return 'proto';
-  } else {
-    return 'root';
   }
+  
+  return 'root';
 }
 
 /**
