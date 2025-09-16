@@ -10,7 +10,8 @@ import {
   TransferAuthenticationSchema as TransferAuthentication,
   PublicKeySchema as PublicKey
 } from '../../proto/generated/txn_pb.js';
-import { create, toBinary } from '@bufbuild/protobuf';
+import { create } from '@bufbuild/protobuf';
+import { toBinary } from '@bufbuild/protobuf';
 import { TXNService } from '../../proto/generated/txn_pb.js';
 import {
   toSmallestUnits,
@@ -257,20 +258,11 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     }
 
     const tempCoinTxn = create(CoinTXN, tempCoinTxnData);
-    
-    // Create a mock protoObject with proper toBinary method using @bufbuild/protobuf
-    const mockProtoObject = {
-      ...tempCoinTxn,
-      toBinary: () => {
-        // Use the proper @bufbuild/protobuf toBinary function
-        return toBinary(CoinTXN, tempCoinTxn);
-      }
-    };
 
     // Use UniversalFeeCalculator with the protobuf object
     try {
       const feeResult = await UniversalFeeCalculator.calculateNetworkFee({
-        protoObject: mockProtoObject,
+        protoObject: tempCoinTxn,
         baseFeeId
       });
       
@@ -308,7 +300,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 
   // Step 9: Sign transaction
   const signatures = [];
-  const serializedTxn = coinTxn.toBinary();
+  const serializedTxn = toBinary(CoinTXN, coinTxn);
   
   for (let i = 0; i < inputs.length; i++) {
     try {
@@ -329,7 +321,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
   coinTxn = create(CoinTXN, finalCoinTxnData);
 
   // Step 11: Add transaction hash
-  const finalSerializedTxn = coinTxn.toBinary();
+  const finalSerializedTxn = toBinary(CoinTXN, coinTxn);
   const hash = createTransactionHash(finalSerializedTxn);
 
   const finalBaseData = {
@@ -422,20 +414,11 @@ export async function createCoinTXNWithAutoFee(inputs, outputs, contractId, feeC
     }
 
     const tempCoinTxn = create(CoinTXN, tempCoinTxnData);
-    
-    // Create a mock protoObject with proper toBinary method using @bufbuild/protobuf
-    const mockProtoObject = {
-      ...tempCoinTxn,
-      toBinary: () => {
-        // Use the proper @bufbuild/protobuf toBinary function
-        return toBinary(CoinTXN, tempCoinTxn);
-      }
-    };
 
     // Use UniversalFeeCalculator with the protobuf object
     try {
       const feeResult = await UniversalFeeCalculator.calculateNetworkFee({
-        protoObject: mockProtoObject,
+        protoObject: tempCoinTxn,
         baseFeeId
       });
       
@@ -483,7 +466,7 @@ export async function createCoinTXNWithAutoFee(inputs, outputs, contractId, feeC
 
   // Step 8: Sign transaction
   const signatures = [];
-  const serializedTxn = coinTxn.toBinary();
+  const serializedTxn = toBinary(CoinTXN, coinTxn);
   
   for (let i = 0; i < inputs.length; i++) {
     try {
@@ -504,7 +487,7 @@ export async function createCoinTXNWithAutoFee(inputs, outputs, contractId, feeC
   coinTxn = create(CoinTXN, finalCoinTxnData);
 
   // Step 10: Add transaction hash
-  const finalSerializedTxn = coinTxn.toBinary();
+  const finalSerializedTxn = toBinary(CoinTXN, coinTxn);
   const hash = createTransactionHash(finalSerializedTxn);
 
   const finalBaseData = {

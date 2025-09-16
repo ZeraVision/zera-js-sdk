@@ -17,6 +17,31 @@ import {
 } from '../utils/amount-utils.js';
 import { aceExchangeService } from './ace-exchange-rate-service.js';
 import { contractFeeService } from './contract-fee-service.js';
+import { toBinary } from '@bufbuild/protobuf';
+import {
+  CoinTXNSchema as CoinTXN,
+  MintTXNSchema as MintTXN,
+  ItemizedMintTXNSchema as ItemizedMintTXN,
+  InstrumentContractSchema as InstrumentContract,
+  GovernanceVoteSchema as GovernanceVote,
+  GovernanceProposalSchema as GovernanceProposal,
+  SmartContractTXNSchema as SmartContractTXN,
+  SmartContractExecuteTXNSchema as SmartContractExecuteTXN,
+  SmartContractInstantiateTXNSchema as SmartContractInstantiateTXN,
+  SelfCurrencyEquivSchema as SelfCurrencyEquiv,
+  AuthorizedCurrencyEquivSchema as AuthorizedCurrencyEquiv,
+  ExpenseRatioTXNSchema as ExpenseRatioTXN,
+  NFTTXNSchema as NFTTXN,
+  ContractUpdateTXNSchema as ContractUpdateTXN,
+  FoundationTXNSchema as FoundationTXN,
+  DelegatedTXNSchema as DelegatedTXN,
+  QuashTXNSchema as QuashTXN,
+  FastQuorumTXNSchema as FastQuorumTXN,
+  RevokeTXNSchema as RevokeTXN,
+  ComplianceTXNSchema as ComplianceTXN,
+  BurnSBTTXNSchema as BurnSBTTXN,
+  AllowanceTXNSchema as AllowanceTXN
+} from '../../../proto/generated/txn_pb.js';
 import { getKeyTypeFromPublicKey } from '../crypto/address-utils.js';
 import { 
   SIGNATURE_SIZES, 
@@ -268,9 +293,72 @@ function detectKeyTypeFromBytes(keyBytes) {
 }
 
 /**
- * Universal Fee Calculator
- * Uses proper fiat-based, size-dependent calculation
+ * Get the protobuf schema for a transaction type
+ * @param {string} transactionType - Transaction type constant
+ * @returns {Object} Protobuf schema
  */
+function getSchemaForTransactionType(transactionType) {
+  switch (transactionType) {
+    case TRANSACTION_TYPE.COIN_TYPE:
+      return CoinTXN;
+    case TRANSACTION_TYPE.MINT_TYPE:
+      return MintTXN;
+    case TRANSACTION_TYPE.ITEM_MINT_TYPE:
+      return ItemizedMintTXN;
+    case TRANSACTION_TYPE.CONTRACT_TXN_TYPE:
+      return InstrumentContract;
+    case TRANSACTION_TYPE.VOTE_TYPE:
+      return GovernanceVote;
+    case TRANSACTION_TYPE.PROPOSAL_TYPE:
+      return GovernanceProposal;
+    case TRANSACTION_TYPE.SMART_CONTRACT_TYPE:
+      return SmartContractTXN;
+    case TRANSACTION_TYPE.SMART_CONTRACT_EXECUTE_TYPE:
+      return SmartContractExecuteTXN;
+    case TRANSACTION_TYPE.SMART_CONTRACT_INSTANTIATE_TYPE:
+      return SmartContractInstantiateTXN;
+    case TRANSACTION_TYPE.CURRENCY_EQUIV_TYPE:
+      return SelfCurrencyEquiv;
+    case TRANSACTION_TYPE.AUTH_CURRENCY_EQUIV_TYPE:
+      return AuthorizedCurrencyEquiv;
+    case TRANSACTION_TYPE.EXPENSE_RATIO_TYPE:
+      return ExpenseRatioTXN;
+    case TRANSACTION_TYPE.NFT_TYPE:
+      return NFTTXN;
+    case TRANSACTION_TYPE.CONTRACT_UPDATE_TYPE:
+      return ContractUpdateTXN;
+    case TRANSACTION_TYPE.FOUNDATION_TYPE:
+      return FoundationTXN;
+    case TRANSACTION_TYPE.DELEGATED_TYPE:
+      return DelegatedTXN;
+    case TRANSACTION_TYPE.QUASH_TYPE:
+      return QuashTXN;
+    case TRANSACTION_TYPE.FAST_QUORUM_TYPE:
+      return FastQuorumTXN;
+    case TRANSACTION_TYPE.REVOKE_TYPE:
+      return RevokeTXN;
+    case TRANSACTION_TYPE.COMPLIANCE_TYPE:
+      return ComplianceTXN;
+    case TRANSACTION_TYPE.BURN_SBT_TYPE:
+      return BurnSBTTXN;
+    case TRANSACTION_TYPE.ALLOWANCE_TYPE:
+      return AllowanceTXN;
+    default:
+      throw new Error(`Unknown transaction type: ${transactionType}`);
+  }
+}
+
+/**
+ * Calculate protobuf size using proper @bufbuild/protobuf toBinary function
+ * @param {Object} protoObject - The protobuf transaction object
+ * @param {string} transactionType - Transaction type constant
+ * @returns {number} Protobuf size in bytes
+ */
+function calculateProtobufSize(protoObject, transactionType) {
+  const schema = getSchemaForTransactionType(transactionType);
+  const binary = toBinary(schema, protoObject);
+  return binary.length;
+}
 export class UniversalFeeCalculator {
   /**
    * Calculate total transaction size from protobuf object + signatures + hash
@@ -278,8 +366,11 @@ export class UniversalFeeCalculator {
    * @returns {number} Total transaction size in bytes
    */
   static calculateTotalTransactionSize(protoObject) {
-    // Get the serialized size of the protobuf object
-    const protoSize = protoObject.toBinary().length;
+    // Auto-detect transaction type from protobuf object
+    const detectedTransactionType = extractTransactionTypeFromProtoObject(protoObject);
+    
+    // Get the serialized size of the protobuf object using proper @bufbuild/protobuf
+    const protoSize = calculateProtobufSize(protoObject, detectedTransactionType);
     
     // Auto-detect key types from transaction
     const keyTypes = extractKeyTypesFromTransaction(protoObject);
@@ -287,7 +378,7 @@ export class UniversalFeeCalculator {
     // Calculate signature sizes
     let signatureSize = 0;
     for (const keyType of keyTypes) {
-      signatureSize += SIGNATURE_SIZES[keyType] || SIGNATURE_SIZES[KEY_TYPE.ED25519];
+      signatureSize += SIGNATURE_SIZES[keyType.toUpperCase()] || SIGNATURE_SIZES.ED25519;
     }
     
     // Add hash size
@@ -385,8 +476,8 @@ export class UniversalFeeCalculator {
       feeId: baseFeeId,
       feeUSD: totalFeeUSD,
       totalSize: totalSize,
-      protoSize: protoObject.toBinary().length,
-      signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType] || SIGNATURE_SIZES[KEY_TYPE.ED25519]), 0),
+      protoSize: calculateProtobufSize(protoObject, detectedTransactionType),
+      signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType.toUpperCase()] || SIGNATURE_SIZES.ED25519), 0),
       hashSize: HASH_SIZE,
       transactionType: detectedTransactionType,
       breakdown: {
@@ -396,8 +487,8 @@ export class UniversalFeeCalculator {
         totalFeeUSD: totalFeeUSD,
         feeInCurrency: finalFeeInCurrency.toString(),
         totalSize: totalSize,
-        protoSize: protoObject.toBinary().length,
-        signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType] || SIGNATURE_SIZES[KEY_TYPE.ED25519]), 0),
+        protoSize: calculateProtobufSize(protoObject, detectedTransactionType),
+        signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType.toUpperCase()] || SIGNATURE_SIZES.ED25519), 0),
         hashSize: HASH_SIZE,
         transactionType: detectedTransactionType,
         keyCount: keyTypes.length,
@@ -615,7 +706,7 @@ export class UniversalFeeCalculator {
       estimatedSize = 500;
     }
 
-    const signatureSize = SIGNATURE_SIZES[keyType] || SIGNATURE_SIZES[KEY_TYPE.ED25519];
+    const signatureSize = SIGNATURE_SIZES[keyType.toUpperCase()] || SIGNATURE_SIZES.ED25519;
 
     return {
       protobufSize: estimatedSize,
