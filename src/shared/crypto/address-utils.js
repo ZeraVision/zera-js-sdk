@@ -4,8 +4,8 @@
  * This module provides utilities for working with ZERA addresses and public key identifiers.
  */
 
-import { generateZeraAddress } from '../wallet-creation/shared.js';
-import { KEY_TYPE, HASH_TYPE } from '../wallet-creation/constants.js';
+import { generateZeraAddress } from '../../wallet-creation/shared.js';
+import { KEY_TYPE, HASH_TYPE } from '../../wallet-creation/constants.js';
 import bs58 from 'bs58';
 
 /**
@@ -85,6 +85,41 @@ export function getKeyTypeFromPublicKey(publicKeyIdentifier) {
     return KEY_TYPE.ED448;
   } else {
     throw new Error('Invalid public key identifier: missing key type prefix (A_ or B_)');
+  }
+}
+
+/**
+ * Extract raw public key bytes from public key identifier
+ * 
+ * @param {string} publicKeyIdentifier - Base58 public key identifier (e.g., "A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb")
+ * @returns {Uint8Array} Raw public key bytes
+ * @throws {Error} If the public key identifier format is invalid
+ */
+export function getPublicKeyBytes(publicKeyIdentifier) {
+  if (!publicKeyIdentifier || typeof publicKeyIdentifier !== 'string') {
+    throw new Error('Public key identifier must be a non-empty string');
+  }
+
+  // Special cases: if it starts with sc_ or gov_, return as-is
+  if (publicKeyIdentifier.startsWith('sc_') || publicKeyIdentifier.startsWith('gov_')) {
+    return new Uint8Array(Buffer.from(publicKeyIdentifier, 'utf8'));
+  }
+
+  // For other cases, take everything after the last underscore and base58 decode it
+  const lastUnderscoreIndex = publicKeyIdentifier.lastIndexOf('_');
+  if (lastUnderscoreIndex === -1) {
+    throw new Error('Invalid public key identifier: no underscore found');
+  }
+
+  const base58Part = publicKeyIdentifier.substring(lastUnderscoreIndex + 1);
+  if (!base58Part) {
+    throw new Error('Invalid public key identifier: nothing after last underscore');
+  }
+
+  try {
+    return bs58.decode(base58Part);
+  } catch (error) {
+    throw new Error(`Invalid public key identifier: failed to decode base58 part - ${error.message}`);
   }
 }
 

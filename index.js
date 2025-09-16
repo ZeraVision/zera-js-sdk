@@ -22,10 +22,10 @@ import {
   TXN_STATUS,
   TRANSACTION_TYPE,
   CONTRACT_FEE_TYPE
-} from './src/shared/transaction-utils.js';
+} from './src/shared/utils/transaction-utils.js';
 
 // Import universal fee calculator
-import { UniversalFeeCalculator } from './src/shared/universal-fee-calculator.js';
+import { UniversalFeeCalculator } from './src/shared/fee-calculators/universal-fee-calculator.js';
 
 // Export all wallet creation classes and functions
 export {

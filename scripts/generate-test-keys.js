@@ -8,7 +8,7 @@
  */
 
 import { createWallet, generateMnemonicPhrase } from '../src/wallet-creation/index.js';
-import { getAddressFromPublicKey } from '../src/shared/address-utils.js';
+import { getAddressFromPublicKey } from '../src/shared/crypto/address-utils.js';
 import { KEY_TYPE, HASH_TYPE } from '../src/wallet-creation/constants.js';
 import { writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
