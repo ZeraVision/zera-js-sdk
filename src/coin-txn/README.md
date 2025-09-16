@@ -8,28 +8,47 @@ Create and submit coin transactions using modern protobuf schemas and a gRPC (Co
 
 ## FeeConfig (your "struct")
 JS "struct" is a plain object with named fields:
-- `baseFeeId` (string, optional): The fee instrument ID (defaults to `'$ZRA+0000'`)
-- `baseFee` (Decimal|string|number, optional): Base fee amount in user-friendly units (will be converted to smallest units)
-- `contractFeeId` (string, optional): Defaults to the provided `contractId`
-- `contractFee` (Decimal|string|number, optional): Contract fee amount in user-friendly units (will be converted to smallest units)
+- `baseFeeId` (string, optional): The fee instrument ID (defaults to `'$ZRA+0000'`) - **if provided, automatic fee calculation uses this instrument**
+- `baseFee` (Decimal|string|number, optional): Base fee amount in user-friendly units (will be converted to smallest units) - **if not provided, automatic fee calculation is used**
+- `contractFeeId` (string, optional): Contract fee instrument (defaults to `contractId`) - **if provided, automatic fee calculation uses this instrument**
+- `contractFee` (Decimal|string|number, optional): Contract fee amount in user-friendly units (will be converted to smallest units) - **if not provided, automatic fee calculation is used**
+
+**Flexible Behavior**: 
+- **Fee Instrument IDs**: Specify which currency/instrument to use for fees (auto-calculates amounts)
+- **Fee Amounts**: Specify exact amounts (manual control)
+- **Mix and Match**: Use auto for one fee type, manual for another
 
 Examples:
 ```js
-// Minimal - contractId required, baseFeeId defaults to $ZRA+0000
-const feeConfig = {};
+// Fully automatic (default behavior)
+const feeConfig = {}; // Uses automatic fee calculation with default instruments
 
-// Custom base fee
+// Specify fee instruments, auto-calculate amounts
 const feeConfig = {
-  baseFeeId: '$ZRA+0000',
-  baseFee: '0.001'         // user-friendly units (0.001 ZRA)
+  baseFeeId: '$BTC+1234',    // Use BTC for base fees (auto-calculated amount)
+  contractFeeId: '$ETH+5678' // Use ETH for contract fees (auto-calculated amount)
 };
 
-// Full configuration
+// Manual base fee, auto contract fee
 const feeConfig = {
   baseFeeId: '$ZRA+0000',
-  baseFee: '0.001',         // user-friendly units (0.001 ZRA)
-  contractFeeId: '$BTC+1234', // defaults to contractId if not provided
-  contractFee: '0.0005'     // user-friendly units (0.0005 BTC)
+  baseFee: '0.001',          // Manual base fee amount
+  contractFeeId: '$BTC+1234' // Auto-calculated contract fee in BTC
+};
+
+// Manual contract fee, auto base fee
+const feeConfig = {
+  baseFeeId: '$ZRA+0000',    // Auto-calculated base fee in ZRA
+  contractFeeId: '$BTC+1234',
+  contractFee: '0.0005'      // Manual contract fee amount
+};
+
+// Fully manual (explicit control)
+const feeConfig = {
+  baseFeeId: '$ZRA+0000',
+  baseFee: '0.001',          // Manual base fee
+  contractFeeId: '$BTC+1234',
+  contractFee: '0.0005'       // Manual contract fee
 };
 ```
 
@@ -45,20 +64,50 @@ const feeConfig = {
 - `baseMemo`: Optional transaction-level memo
 
 Behavior:
+- **Flexible fee calculation**: Uses automatic fee calculation unless fee amounts are explicitly provided
+- **Fee Instrument IDs**: Specify which currency/instrument to use for fees (auto-calculates amounts)
+- **Fee Amounts**: Specify exact amounts (manual control)
+- **Mix and Match**: Use auto for one fee type, manual for another
 - Converts all amounts (including fees) to smallest units using the token decimals for the respective fee IDs
 - Validates that total inputs == total outputs (exact decimal math)
 - Validates input `feePercent` values sum to exactly 100% (scaled to `100,000,000`)
-- Attaches `BaseTXN` when `baseFee` or `baseMemo` provided
+- Attaches `BaseTXN` with calculated or provided fees
 
-Example:
+Examples:
 ```js
 import { createCoinTXN } from './transaction.js';
 
-const coinTxn = createCoinTXN(
+// Fully automatic (default behavior)
+const coinTxn = await createCoinTXN(
   [{ privateKey: 'alice_private_key', publicKey: 'alice_public_key', amount: '1.0', feePercent: '100' }],
   [{ to: 'bob_address', amount: '1.0', memo: 'payment' }],
   '$BTC+1234',  // contractId required
-  { baseFeeId: '$ZRA+0000', baseFee: '0.001' },
+  {}, // Empty config - uses automatic fee calculation with default instruments
+  'base memo'
+);
+
+// Specify fee instruments, auto-calculate amounts
+const coinTxnWithCustomInstruments = await createCoinTXN(
+  [{ privateKey: 'alice_private_key', publicKey: 'alice_public_key', amount: '1.0', feePercent: '100' }],
+  [{ to: 'bob_address', amount: '1.0', memo: 'payment' }],
+  '$BTC+1234',  // contractId required
+  { 
+    baseFeeId: '$ETH+5678',    // Use ETH for base fees (auto-calculated amount)
+    contractFeeId: '$ZRA+0000' // Use ZRA for contract fees (auto-calculated amount)
+  },
+  'base memo'
+);
+
+// Mix manual and automatic fees
+const coinTxnMixed = await createCoinTXN(
+  [{ privateKey: 'alice_private_key', publicKey: 'alice_public_key', amount: '1.0', feePercent: '100' }],
+  [{ to: 'bob_address', amount: '1.0', memo: 'payment' }],
+  '$BTC+1234',  // contractId required
+  { 
+    baseFeeId: '$ZRA+0000',
+    baseFee: '0.001',          // Manual base fee amount
+    contractFeeId: '$ETH+5678' // Auto-calculated contract fee in ETH
+  },
   'base memo'
 );
 ```

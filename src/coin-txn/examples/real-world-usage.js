@@ -10,7 +10,7 @@
 
 exampleSimplePayment();
 
-import { createCoinTXN } from '../transaction.js';
+import { createCoinTXN, createCoinTXNWithAutoFee } from '../index.js';
 import { 
   ED25519_TEST_KEYS,
   ED448_TEST_KEYS,
@@ -26,7 +26,7 @@ import {
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
-export function exampleSimplePayment() {
+export async function exampleSimplePayment() {
   console.log('💸 Example 1: Simple Payment');
   
   // In a real application, you would pull this data from your database/config
@@ -53,8 +53,8 @@ export function exampleSimplePayment() {
     memo: '(optional) Transfer Memo'
   };
   
-  // Create transaction
-  const transaction = createCoinTXN([input], [output], '$ZRA+0000', MINIMAL_TEST_FEE_CONFIG, '(optional) Base Memo');
+  // Create transaction (fully automatic fee calculation with default instruments)
+  const transaction = await createCoinTXN([input], [output], '$ZRA+0000', {}, '(optional) Base Memo');
   
   console.log('✅ Transaction created:', transaction.$typeName);
   console.log('📤 Input amount:', input.amount, 'ZRA');
@@ -71,7 +71,7 @@ export function exampleSimplePayment() {
  * This demonstrates how users would handle multiple wallets and recipients
  * by pulling data from different sources and constructing complex transactions.
  */
-export function exampleMultiPartyTransaction() {
+export async function exampleMultiPartyTransaction() {
   console.log('👥 Example 2: Multi-Party Transaction');
   
   // In a real application, you would pull these from different data sources
@@ -116,7 +116,7 @@ export function exampleMultiPartyTransaction() {
     }
   ];
   
-  const transaction = createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, '(optional) Base Memo');
+  const transaction = await createCoinTXN(inputs, outputs, '$ZRA+0000', {}, '(optional) Base Memo');
   
   console.log('✅ Multi-party transaction created');
   console.log('📤 Total input:', '3.5 ZRA');
@@ -134,7 +134,7 @@ export function exampleMultiPartyTransaction() {
  * This shows how users would handle custom fee configurations and
  * complex payment distributions in real applications.
  */
-export function exampleComplexTransaction() {
+export async function exampleComplexTransaction() {
   console.log('🏦 Example 3: Complex Transaction');
   
   // Pull wallet data from your data source
@@ -174,15 +174,15 @@ export function exampleComplexTransaction() {
     }
   ];
   
-  // Custom fee configuration (as users would define)
+  // Custom fee configuration (as users would define) - explicitly specifying fees
   const customFeeConfig = {
     baseFeeId: '$ZRA+0000',
-    baseFee: '0.05',      // 0.05 ZRA base fee
+    baseFee: '0.05',      // 0.05 ZRA base fee - explicitly specified
     contractFeeId: '$ZRA+0000',
     contractFee: '0.02'   // 0.02 ZRA contract fee
   };
   
-  const transaction = createCoinTXN([input], outputs, '$ZRA+0000', customFeeConfig, '(optional) Complex payment distribution');
+  const transaction = await createCoinTXN([input], outputs, '$ZRA+0000', customFeeConfig, '(optional) Complex payment distribution');
   
   console.log('✅ Complex transaction created');
   console.log('📤 Input amount:', input.amount, 'ZRA');
@@ -191,4 +191,218 @@ export function exampleComplexTransaction() {
   console.log('💸 Custom fees applied');
   
   return transaction;
+}
+
+/**
+ * Example 4: Automatic Fee Calculation
+ * Alice sends money to Bob with automatically calculated fees
+ * 
+ * This demonstrates the enhanced fee system that automatically calculates
+ * the optimal fee based on transaction size and current exchange rates.
+ */
+export async function exampleAutomaticFeeCalculation() {
+  console.log('🤖 Example 4: Automatic Fee Calculation');
+  
+  // Pull wallet data from your data source
+  const aliceWallet = ED25519_TEST_KEYS.alice;
+  const bobAddress = TEST_WALLET_ADDRESSES.bob;
+  
+  console.log('📋 Wallet data pulled from data source:');
+  console.log('  Alice private key:', aliceWallet.privateKey.substring(0, 20) + '...');
+  console.log('  Alice public key:', aliceWallet.publicKey);
+  console.log('  Bob address:', bobAddress);
+  
+  // Construct input manually (as users would do)
+  const input = {
+    privateKey: aliceWallet.privateKey,
+    publicKey: aliceWallet.publicKey,
+    amount: '2.5',
+    feePercent: '100'
+  };
+  
+  // Construct output manually (as users would do)
+  const output = {
+    to: bobAddress,
+    amount: '2.5',
+    memo: 'Auto-calculated fee payment'
+  };
+  
+  // Create transaction with automatic fee calculation
+  const result = await createCoinTXNWithAutoFee([input], [output], '$ZRA+0000', {
+    baseFeeId: '$ZRA+0000',
+    autoCalculateFee: true, // Enable automatic fee calculation
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.001' // Optional contract fee
+  }, 'Automatic fee calculation demo');
+  
+  console.log('✅ Transaction created with automatic fees:', result.transaction.$typeName);
+  console.log('📤 Input amount:', input.amount, 'ZRA');
+  console.log('📥 Output amount:', output.amount, 'ZRA');
+  console.log('💰 Calculated base fee:', result.feeInfo.baseFee, 'ZRA');
+  console.log('📊 Fee calculation info:');
+  console.log('  - Transaction size:', result.feeInfo.calculationInfo.size, 'bytes');
+  console.log('  - Iterations:', result.feeInfo.calculationInfo.iterations);
+  console.log('  - Converged:', result.feeInfo.calculationInfo.converged);
+  console.log('  - Auto-calculated:', result.feeInfo.autoCalculated);
+  
+  return result;
+}
+
+/**
+ * Example 5: Mixed Manual and Automatic Fees
+ * Charlie sends money to multiple recipients with different fee strategies
+ * 
+ * This shows how users can choose between manual and automatic fee calculation
+ * based on their specific needs and use cases.
+ */
+export async function exampleMixedFeeStrategies() {
+  console.log('🔄 Example 5: Mixed Fee Strategies');
+  
+  // Pull wallet data from your data source
+  const charlieWallet = ED25519_TEST_KEYS.charlie;
+  const aliceAddress = TEST_WALLET_ADDRESSES.alice;
+  const bobAddress = TEST_WALLET_ADDRESSES.bob;
+  
+  console.log('📋 Mixed fee strategy data:');
+  console.log('  Charlie wallet:', charlieWallet.address);
+  console.log('  Recipients:', [aliceAddress, bobAddress].length);
+  
+  // Strategy 1: Manual fee calculation (for predictable costs)
+  console.log('\n📝 Strategy 1: Manual Fee Calculation');
+  const manualInput = {
+    privateKey: charlieWallet.privateKey,
+    publicKey: charlieWallet.publicKey,
+    amount: '3.0',
+    feePercent: '100'
+  };
+  
+  const manualOutput = {
+    to: aliceAddress,
+    amount: '3.0',
+    memo: 'Manual fee - predictable cost'
+  };
+  
+  const manualResult = await createCoinTXN([manualInput], [manualOutput], '$ZRA+0000', {
+    baseFeeId: '$ZRA+0000',
+    baseFee: '0.002', // Fixed manual fee - explicitly specified
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.001'
+  }, 'Manual fee strategy');
+  
+  console.log('✅ Manual fee transaction created');
+  console.log('💰 Fixed base fee: 0.002 ZRA');
+  console.log('💰 Fixed contract fee: 0.001 ZRA');
+  
+  // Strategy 2: Automatic fee calculation (for optimal costs)
+  console.log('\n🤖 Strategy 2: Automatic Fee Calculation');
+  const autoInput = {
+    privateKey: charlieWallet.privateKey,
+    publicKey: charlieWallet.publicKey,
+    amount: '2.0',
+    feePercent: '100'
+  };
+  
+  const autoOutput = {
+    to: bobAddress,
+    amount: '2.0',
+    memo: 'Auto fee - optimal cost'
+  };
+  
+  const autoResult = await createCoinTXN([autoInput], [autoOutput], '$ZRA+0000', {
+    baseFeeId: '$ZRA+0000',
+    // No baseFee specified - uses automatic calculation by default
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.0005' // Lower contract fee
+  }, 'Automatic fee strategy');
+  
+  console.log('✅ Automatic fee transaction created');
+  console.log('💰 Base fee: Automatically calculated');
+  console.log('💰 Contract fee: 0.0005 ZRA');
+  console.log('📊 Transaction created with optimal fees');
+  
+  console.log('\n🎯 Fee Strategy Comparison:');
+  console.log('  Manual: Fixed costs, predictable');
+  console.log('  Automatic: Dynamic costs, optimized for current conditions');
+  
+  return { manual: manualResult, automatic: autoResult };
+}
+
+/**
+ * Example 6: Flexible Fee Instruments
+ * Alice sends money using different fee instruments with automatic calculation
+ * 
+ * This demonstrates how users can specify fee instruments and let the system
+ * automatically calculate the optimal amounts in those currencies.
+ */
+export async function exampleFlexibleFeeInstruments() {
+  console.log('🎯 Example 6: Flexible Fee Instruments');
+  
+  // Pull wallet data from your data source
+  const aliceWallet = ED25519_TEST_KEYS.alice;
+  const bobAddress = TEST_WALLET_ADDRESSES.bob;
+  
+  console.log('📋 Flexible fee instrument data:');
+  console.log('  Alice wallet:', aliceWallet.address);
+  console.log('  Bob address:', bobAddress);
+  
+  // Construct input manually
+  const input = {
+    privateKey: aliceWallet.privateKey,
+    publicKey: aliceWallet.publicKey,
+    amount: '3.0',
+    feePercent: '100'
+  };
+  
+  // Construct output manually
+  const output = {
+    to: bobAddress,
+    amount: '3.0',
+    memo: 'Flexible fee instruments demo'
+  };
+  
+  // Example 1: Specify fee instruments, auto-calculate amounts
+  console.log('\n🎯 Strategy 1: Custom Fee Instruments (Auto Amounts)');
+  const customInstrumentsResult = await createCoinTXN([input], [output], '$ZRA+0000', {
+    baseFeeId: '$BTC+1234',    // Use BTC for base fees (auto-calculated amount)
+    contractFeeId: '$ETH+5678' // Use ETH for contract fees (auto-calculated amount)
+  }, 'Custom fee instruments');
+  
+  console.log('✅ Transaction created with custom fee instruments');
+  console.log('💰 Base fee: Auto-calculated in BTC');
+  console.log('💰 Contract fee: Auto-calculated in ETH');
+  
+  // Example 2: Mix manual and automatic fees
+  console.log('\n🎯 Strategy 2: Mixed Manual/Auto Fees');
+  const mixedFeesResult = await createCoinTXN([input], [output], '$ZRA+0000', {
+    baseFeeId: '$ZRA+0000',
+    baseFee: '0.002',          // Manual base fee amount in ZRA
+    contractFeeId: '$BTC+1234' // Auto-calculated contract fee in BTC
+  }, 'Mixed fee strategy');
+  
+  console.log('✅ Transaction created with mixed fee strategy');
+  console.log('💰 Base fee: Manual 0.002 ZRA');
+  console.log('💰 Contract fee: Auto-calculated in BTC');
+  
+  // Example 3: Manual contract fee, auto base fee
+  console.log('\n🎯 Strategy 3: Auto Base, Manual Contract');
+  const autoBaseManualContractResult = await createCoinTXN([input], [output], '$ZRA+0000', {
+    baseFeeId: '$ZRA+0000',    // Auto-calculated base fee in ZRA
+    contractFeeId: '$ETH+5678',
+    contractFee: '0.001'       // Manual contract fee amount in ETH
+  }, 'Auto base, manual contract');
+  
+  console.log('✅ Transaction created with auto base, manual contract');
+  console.log('💰 Base fee: Auto-calculated in ZRA');
+  console.log('💰 Contract fee: Manual 0.001 ETH');
+  
+  console.log('\n🎯 Flexible Fee Strategy Summary:');
+  console.log('  Custom Instruments: Specify currencies, auto-calculate amounts');
+  console.log('  Mixed Strategy: Manual for one, auto for another');
+  console.log('  Full Control: Manual amounts when you need exact control');
+  
+  return { 
+    customInstruments: customInstrumentsResult, 
+    mixedFees: mixedFeesResult,
+    autoBaseManualContract: autoBaseManualContractResult
+  };
 }

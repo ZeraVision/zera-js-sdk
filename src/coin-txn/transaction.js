@@ -20,6 +20,8 @@ import {
 import { getPublicKeyBytes } from '../shared/crypto/address-utils.js';
 import { signTransactionData, createTransactionHash } from '../shared/crypto/signature-utils.js';
 import { getNonces, nonceToBigInt } from '../shared/utils/nonce-manager.js';
+import { UniversalFeeCalculator } from '../shared/fee-calculators/universal-fee-calculator.js';
+import { TRANSACTION_TYPE } from '../shared/protobuf-enums.js';
 import bs58 from 'bs58';
 
 /**
@@ -165,22 +167,23 @@ function createBaseTransaction(baseFeeId, baseFee, baseMemo) {
 
 /**
  * @typedef {Object} FeeConfig
- * @property {string} baseFeeId - Base fee instrument (e.g., '$ZRA+0000')
- * @property {string} [contractFeeId] - Contract fee instrument (defaults to baseFeeId)
- * @property {Decimal|string|number} baseFee - Base fee amount in user-friendly units (will be converted to smallest units) - required, cannot be 0
- * @property {Decimal|string|number} [contractFee] - Contract fee amount in user-friendly units (will be converted to smallest units)
+ * @property {string} [baseFeeId='$ZRA+0000'] - Base fee instrument (e.g., '$ZRA+0000') - if provided, automatic fee calculation uses this instrument
+ * @property {string} [contractFeeId] - Contract fee instrument (defaults to contractId) - if provided, automatic fee calculation uses this instrument
+ * @property {Decimal|string|number} [baseFee] - Base fee amount in user-friendly units (converted to smallest units) - if not provided, automatic fee calculation is used
+ * @property {Decimal|string|number} [contractFee] - Contract fee amount in user-friendly units (converted to smallest units) - if not provided, automatic fee calculation is used
  */
 
 /**
  * Create a CoinTXN with inputs and outputs using exact decimal arithmetic
+ * Uses automatic fee calculation by default unless fee amounts are explicitly provided
  * @param {Array} inputs - Array of input objects {privateKey: string, publicKey: string, amount: Decimal|string|number, feePercent?: string, keyType?: string}
  * @param {Array} outputs - Array of output objects {to: string, amount: Decimal|string|number, memo?: string}
  * @param {string} contractId - Contract ID (e.g., '$ZRA+0000') - must follow format $[letters]+[4 digits]
  * @param {FeeConfig} feeConfig - Fee configuration object with the following properties:
- *   - baseFeeId (string, optional): The fee instrument ID (defaults to '$ZRA+0000')
- *   - contractFeeId (string, optional): Contract fee instrument, defaults to contractId if not provided
- *   - baseFee (Decimal|string|number, required): Base fee amount in user-friendly units (converted to smallest units) - cannot be 0
- *   - contractFee (Decimal|string|number, optional): Contract fee amount in user-friendly units (converted to smallest units)
+ *   - baseFeeId (string, optional): The fee instrument ID (defaults to '$ZRA+0000') - if provided, automatic fee calculation uses this instrument
+ *   - contractFeeId (string, optional): Contract fee instrument, defaults to contractId if not provided - if provided, automatic fee calculation uses this instrument
+ *   - baseFee (Decimal|string|number, optional): Base fee amount in user-friendly units (converted to smallest units) - if not provided, automatic fee calculation is used
+ *   - contractFee (Decimal|string|number, optional): Contract fee amount in user-friendly units (converted to smallest units) - if not provided, automatic fee calculation is used
  * @param {string} [baseMemo] - Base memo for the transaction (optional)
  * @returns {Promise<proto.zera_txn.CoinTXN>} Signed and hashed transaction
  */
@@ -200,30 +203,77 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     baseFeeId = '$ZRA+0000',
     baseFee,
     contractFeeId = contractId,
-    contractFee
+    contractFee,
+    autoCalculateFee
   } = feeConfig;
 
-  // Step 1: Process inputs (includes nonce generation)
+  // Determine fee calculation strategy
+  const shouldUseAutoBaseFee = baseFee === undefined;
+  const shouldUseAutoContractFee = contractFee === undefined;
+  
+  // Step 1: Calculate automatic fees if needed
+  let calculatedBaseFee = null;
+  let calculatedContractFee = null;
+  let feeCalculationInfo = null;
+  
+  if (shouldUseAutoBaseFee || shouldUseAutoContractFee) {
+    try {
+      const feeResult = await UniversalFeeCalculator.calculateCoinTXNFee({
+        inputs,
+        outputs,
+        contractId,
+        baseFeeId,
+        baseMemo,
+        contractFeeId,
+        contractFee: shouldUseAutoContractFee ? undefined : contractFee,
+        transactionType: TRANSACTION_TYPE.COIN_TYPE
+      });
+      
+      if (shouldUseAutoBaseFee) {
+        calculatedBaseFee = feeResult.fee;
+      }
+      
+      feeCalculationInfo = {
+        size: feeResult.size,
+        iterations: feeResult.iterations,
+        converged: feeResult.converged,
+        breakdown: feeResult.breakdown
+      };
+    } catch (error) {
+      throw new Error(`Failed to calculate automatic fee: ${error.message}`);
+    }
+  }
+
+  // Use calculated fees or provided fees
+  const finalBaseFee = calculatedBaseFee || baseFee;
+  const finalContractFee = calculatedContractFee || contractFee;
+  
+  // Validate base fee is not 0
+  if (!finalBaseFee || finalBaseFee === '0' || finalBaseFee === 0) {
+    throw new Error('Base fee must be provided and cannot be 0');
+  }
+
+  // Step 2: Process inputs (includes nonce generation)
   const { publicKeys, inputTransfers, nonces } = await processInputs(inputs, baseFeeId, contractId);
 
-  // Step 2: Process outputs
+  // Step 3: Process outputs
   const outputTransfers = processOutputs(outputs, baseFeeId);
 
-  // Step 3: Validate balance
+  // Step 4: Validate balance
   const inputAmounts = inputs.map(i => toSmallestUnits(i.amount, baseFeeId));
   const outputAmounts = outputs.map(o => toSmallestUnits(o.amount, baseFeeId));
   validateAmountBalance(inputAmounts, outputAmounts);
 
-  // Step 4: Validate fee percentages
+  // Step 5: Validate fee percentages
   const totalFeePercent = inputTransfers.reduce((sum, t) => new Decimal(sum).add(t.feePercent).toNumber(), 0);
   if (totalFeePercent !== 100000000) {
     throw new Error(`Fee percentages must sum to exactly 100% (100,000,000). Current sum: ${totalFeePercent}`);
   }
 
-  // Step 5: Create base transaction
-  const txnBase = createBaseTransaction(baseFeeId, baseFee, baseMemo);
+  // Step 6: Create base transaction
+  const txnBase = createBaseTransaction(baseFeeId, finalBaseFee, baseMemo);
 
-  // Step 6: Create initial transaction (without signatures)
+  // Step 7: Create initial transaction (without signatures)
   const coinTxnData = {
     base: txnBase,
     contractId,
@@ -232,14 +282,14 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     outputTransfers
   };
 
-  if (contractFee !== undefined) {
-    coinTxnData.contractFeeAmount = toSmallestUnits(contractFee, contractFeeId);
+  if (finalContractFee !== undefined) {
+    coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
     coinTxnData.contractFeeId = contractFeeId;
   }
 
   let coinTxn = create(CoinTXN, coinTxnData);
 
-  // Step 7: Sign transaction
+  // Step 8: Sign transaction
   const signatures = [];
   const serializedTxn = coinTxn.toBinary();
   
@@ -252,7 +302,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     }
   }
 
-  // Step 8: Create final transaction with signatures
+  // Step 9: Create final transaction with signatures
   const finalAuth = createTransferAuth(publicKeys, signatures, nonces);
   const finalCoinTxnData = {
     ...coinTxnData,
@@ -261,7 +311,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 
   coinTxn = create(CoinTXN, finalCoinTxnData);
 
-  // Step 9: Add transaction hash
+  // Step 10: Add transaction hash
   const finalSerializedTxn = coinTxn.toBinary();
   const hash = createTransactionHash(finalSerializedTxn);
 

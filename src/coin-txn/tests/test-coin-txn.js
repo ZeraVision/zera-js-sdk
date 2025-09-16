@@ -5,15 +5,15 @@ export async function testCoinTxnBasic() {
   // Real-world usage: Create inputs with keys and amounts
   const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
   const outputs = [getTestOutput('bob', '1.0', 'payment')];
-  const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000', { baseFeeId: '$ZRA+0000' }, 'memo');
+  const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', {}, 'memo');
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create CoinTXN');
 }
 
-export async function testCoinTxnWithFees() {
-  // Real-world usage: Transaction with fees
+export async function testCoinTXNWithExplicitFees() {
+  // Real-world usage: Transaction with explicitly specified fees
   const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
   const outputs = [getTestOutput('bob', '1.0', 'payment')];
-  const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'memo with fees');
+  const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'memo with fees');
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create CoinTXN with fees');
   assert.ok(coinTxn.base !== undefined, 'Should have base transaction');
@@ -22,14 +22,14 @@ export async function testCoinTxnWithFees() {
 }
 
 export async function testCoinTxnWithOnlyBaseFee() {
-  // Real-world usage: Transaction with only base fee
+  // Real-world usage: Transaction with only base fee explicitly specified
   const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
   const outputs = [getTestOutput('bob', '1.0', 'payment')];
   const feeConfig = { 
     baseFeeId: '$ZRA+0000',
-    baseFee: '0.002'  // User-friendly amount
+    baseFee: '0.002'  // User-friendly amount - explicitly specified
   };
-  const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig);
+  const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig);
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create CoinTXN with base fee only');
   assert.ok(coinTxn.base !== undefined, 'Should have base transaction');
@@ -50,7 +50,7 @@ export async function testCoinTxnMultiParty() {
     getTestOutput('jesse', '1.0', 'Payment to Jesse')
   ];
   
-  const coinTxn = createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'Multi-party transfer');
+  const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'Multi-party transfer');
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create multi-party CoinTXN');
   assert.ok(coinTxn.inputTransfers.length === 2, 'Should have 2 input transfers');
