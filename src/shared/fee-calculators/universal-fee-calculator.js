@@ -402,6 +402,40 @@ function getSchemaForTransactionType(transactionType) {
 }
 
 /**
+ * Sanitize protobuf object by converting BigInt values to strings for serialization
+ * @param {Object} obj - Object to sanitize
+ * @returns {Object} Sanitized object
+ */
+function sanitizeForSerialization(obj) {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+  
+  // Preserve Uint8Array objects (they're needed for key extraction)
+  if (obj instanceof Uint8Array) {
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeForSerialization(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = sanitizeForSerialization(value);
+    }
+    return sanitized;
+  }
+  
+  return obj;
+}
+
+/**
  * Calculate protobuf size using proper @bufbuild/protobuf toBinary function
  * @param {Object} protoObject - The protobuf transaction object
  * @param {string} transactionType - Transaction type constant
@@ -409,10 +443,39 @@ function getSchemaForTransactionType(transactionType) {
  */
 function calculateProtobufSize(protoObject, transactionType) {
   const schema = getSchemaForTransactionType(transactionType);
-  const binary = toBinary(schema, protoObject);
+  // Sanitize the proto object to convert BigInt values to strings
+  const sanitizedProtoObject = sanitizeForSerialization(protoObject);
+  const binary = toBinary(schema, sanitizedProtoObject);
   return binary.length;
 }
 export class UniversalFeeCalculator {
+  // Cache for exchange rates to avoid duplicate API calls
+  static exchangeRateCache = new Map();
+  
+  /**
+   * Get cached exchange rate or fetch and cache it
+   * @param {string} contractId - Contract ID to get exchange rate for
+   * @returns {Promise<Decimal>} Exchange rate
+   */
+  static async getExchangeRate(contractId) {
+    // Check cache first
+    if (this.exchangeRateCache.has(contractId)) {
+      return this.exchangeRateCache.get(contractId);
+    }
+    
+    // Fetch and cache the rate
+    const rate = await aceExchangeService.getExchangeRate(contractId);
+    this.exchangeRateCache.set(contractId, rate);
+    return rate;
+  }
+  
+  /**
+   * Clear the exchange rate cache
+   */
+  static clearExchangeRateCache() {
+    this.exchangeRateCache.clear();
+  }
+
   /**
    * Calculate total transaction size from protobuf object + signatures + hashes
    * @param {Object} protoObject - The protobuf transaction object (without signatures/hash)
@@ -507,7 +570,8 @@ export class UniversalFeeCalculator {
   static async calculateNetworkFee(params) {
     const {
       protoObject,
-      baseFeeId = '$ZRA+0000'
+      baseFeeId = '$ZRA+0000',
+      exchangeRates = null // Optional pre-fetched exchange rates
     } = params;
     
     // Auto-detect transaction type from protobuf object
@@ -533,8 +597,9 @@ export class UniversalFeeCalculator {
     const perByteFeeUSD = feeValues.perByte * totalSize;
     const totalFeeUSD = fixedFeeUSD + perByteFeeUSD;
     
-    // Convert USD to target currency using ACE exchange rate
-    const finalFeeInCurrency = await aceExchangeService.convertUSDToCurrency(totalFeeUSD, baseFeeId);
+    // Convert USD to target currency using cached exchange rate
+    const exchangeRate = exchangeRates ? exchangeRates.get(baseFeeId) : await this.getExchangeRate(baseFeeId);
+    const finalFeeInCurrency = new Decimal(totalFeeUSD).div(exchangeRate);
     
     // Calculate actual hash size based on detected hash types
     let actualHashSize = 0;
@@ -604,11 +669,11 @@ export class UniversalFeeCalculator {
     if (!interfaceFeeId) {
       throw new Error('interfaceFeeId is required for interface fee calculation');
     }
-    
+
     if (!interfaceFeeAmount || parseFloat(interfaceFeeAmount) <= 0) {
       throw new Error('interfaceFeeAmount must be specified and greater than 0 when interfaceFeeId is provided');
     }
-    
+
     if (!interfaceAddress) {
       throw new Error('interfaceAddress is required when interfaceFeeId is specified');
     }
@@ -616,6 +681,23 @@ export class UniversalFeeCalculator {
     // Convert amount to smallest units (like other fee calculations)
     const feeAmountInSmallestUnits = toSmallestUnits(interfaceFeeAmount, interfaceFeeId);
     const feeAmountDecimal = this.toDecimal(feeAmountInSmallestUnits);
+
+    // If the calculated fee is 0, return null values
+    if (feeAmountDecimal.isZero()) {
+      return {
+        fee: null, // Set to null when amount is 0
+        feeDecimal: new Decimal(0),
+        interfaceFeeId: null, // Set to null when amount is 0
+        interfaceAddress: null, // Set to null when amount is 0
+        breakdown: {
+          interfaceFeeAmount: interfaceFeeAmount,
+          interfaceFeeAmountInSmallestUnits: '0',
+          interfaceFeeId: null,
+          interfaceAddress: null,
+          calculatedFee: '0'
+        }
+      };
+    }
 
     return {
       fee: feeAmountDecimal.toString(), // Return as string for protobuf compatibility
@@ -679,6 +761,26 @@ export class UniversalFeeCalculator {
         // No contract fees
         calculatedFeeDecimal = new Decimal(0);
         break;
+    }
+
+    // If the calculated fee is 0, return null values
+    if (calculatedFeeDecimal.isZero()) {
+      return {
+        fee: null, // Set to null when amount is 0
+        feeDecimal: new Decimal(0),
+        contractId: null, // Set to null when amount is 0
+        contractFeeType: contractFeeType,
+        contractFeeAmount: null, // Set to null when amount is 0
+        feeContractId: null, // Set to null when amount is 0
+        breakdown: {
+          contractId: null,
+          contractFeeType: contractFeeType,
+          contractFeeAmount: feeAmountDecimal.toString(),
+          transactionAmount: transactionAmountDecimal.toString(),
+          calculatedFee: '0',
+          feeContractId: null
+        }
+      };
     }
 
     return {
@@ -1034,7 +1136,6 @@ export class UniversalFeeCalculator {
    * @param {Object} params.protoObject - The protobuf transaction object (without signatures/hash)
    * @param {string} [params.baseFeeId='$ZRA+0000'] - Base fee instrument ID
    * @param {string} [params.contractFeeId] - Contract fee instrument ID (for CoinTXN only)
-   * @param {Decimal|string|number} [params.transactionAmount] - Transaction amount (for contract fee calculation)
    * @param {Decimal|string|number} [params.interfaceFeeAmount] - Interface fee amount (required if interfaceFeeId is specified)
    * @param {string} [params.interfaceFeeId] - Interface fee contract ID (triggers interface fee calculation)
    * @param {string} [params.interfaceAddress] - Interface provider address (required if interfaceFeeId is specified)
@@ -1045,7 +1146,6 @@ export class UniversalFeeCalculator {
       protoObject,
       baseFeeId = '$ZRA+0000',
       contractFeeId,
-      transactionAmount,
       interfaceFeeAmount,
       interfaceFeeId,
       interfaceAddress
@@ -1059,19 +1159,52 @@ export class UniversalFeeCalculator {
     let contractFee = null;
     let interfaceFee = null;
 
+    // OPTIMIZATION: Pre-fetch exchange rates for all needed contract IDs to avoid duplicate API calls
+    const neededContractIds = new Set([baseFeeId]);
+    
+    if (transactionType === TRANSACTION_TYPE.COIN_TYPE && contractFeeId) {
+      const contractId = this.extractContractIdFromTransaction(modifiedProtoObject);
+      if (contractId) {
+        neededContractIds.add(contractId);
+        neededContractIds.add(contractFeeId);
+      }
+    }
+    
+    if (interfaceFeeId) {
+      neededContractIds.add(interfaceFeeId);
+    }
+    
+    // Fetch all needed exchange rates in parallel
+    const exchangeRates = new Map();
+    const ratePromises = Array.from(neededContractIds).map(async (contractId) => {
+      const rate = await this.getExchangeRate(contractId);
+      exchangeRates.set(contractId, rate);
+    });
+    
+    await Promise.all(ratePromises);
+
     // STEP 1: Calculate contract fee FIRST (if applicable)
     if (transactionType === TRANSACTION_TYPE.COIN_TYPE && contractFeeId) {
       try {
-        // Extract contract ID from the transaction
-        const contractId = this.extractContractIdFromTransaction(modifiedProtoObject);
+        // Extract contract ID and outputs directly from the protobuf object
+        const contractId = modifiedProtoObject.contract_id;
+        const outputTransfers = modifiedProtoObject.output_transfers || [];
         
-        if (contractId) {
-          // Calculate contract fee using the service
+        if (contractId && outputTransfers.length > 0) {
+          // Calculate transaction amount only when needed for contract fee calculation
+          const { toSmallestUnits } = await import('../../utils/amount-utils.js');
+          const outputAmounts = outputTransfers.map(o => toSmallestUnits(o.amount, baseFeeId));
+          const transactionAmount = outputAmounts.reduce((sum, amount) => {
+            return new Decimal(sum).add(amount).toString();
+          }, '0');
+          
+          // Calculate contract fee using the service with pre-fetched exchange rates
           contractFee = await contractFeeService.calculateContractFee({
             contractId,
-            transactionAmount: transactionAmount || '0',
+            transactionAmount: transactionAmount,
             feeContractId: contractFeeId,
-            transactionContractId: contractId // Use the same contract ID for transaction instrument
+            transactionContractId: contractId, // Use the same contract ID for transaction instrument
+            exchangeRates // Pass pre-fetched rates to avoid duplicate API calls
           });
 
           // Add contract fee to the proto object
@@ -1101,7 +1234,8 @@ export class UniversalFeeCalculator {
     // STEP 3: Calculate network fee based on the modified proto object (which now includes contract and interface fees)
     const networkFee = await this.calculateNetworkFee({
       protoObject: modifiedProtoObject,
-      baseFeeId
+      baseFeeId,
+      exchangeRates // Pass pre-fetched rates to avoid duplicate API calls
     });
 
     // Add network fee to the proto object
@@ -1139,9 +1273,8 @@ export class UniversalFeeCalculator {
    * @returns {Object} Cloned protobuf object
    */
   static cloneProtoObject(protoObject) {
-    // For now, we'll do a shallow clone
-    // In a real implementation, you might want to use protobuf's clone method if available
-    return JSON.parse(JSON.stringify(protoObject));
+    // Use sanitization to handle BigInt values properly
+    return sanitizeForSerialization(protoObject);
   }
 
   /**
@@ -1150,6 +1283,11 @@ export class UniversalFeeCalculator {
    * @param {Object} contractFee - Contract fee calculation result
    */
   static addContractFeeToProtoObject(protoObject, contractFee) {
+    // Only add contract fee if it's not null (i.e., not zero)
+    if (contractFee.fee === null) {
+      return; // Skip adding null/zero fees
+    }
+    
     // For CoinTXN, add contract fee to the base transaction
     if (protoObject.base) {
       protoObject.base.contractFeeAmount = contractFee.fee;
@@ -1185,6 +1323,11 @@ export class UniversalFeeCalculator {
    * @param {Object} interfaceFee - Interface fee calculation result
    */
   static addInterfaceFeeToProtoObject(protoObject, interfaceFee) {
+    // Only add interface fee if it's not null (i.e., not zero)
+    if (interfaceFee.fee === null) {
+      return; // Skip adding null/zero fees
+    }
+    
     // Interface fees are added to the base transaction for all transaction types
     if (protoObject.base) {
       protoObject.base.interfaceFee = interfaceFee.fee;

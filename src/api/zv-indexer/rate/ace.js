@@ -54,11 +54,33 @@ export class ACEExchangeRateService {
       
       return this.applyMinimumRateSafeguard(rateDecimal, contractId);
     } catch (error) {
-      console.warn(`Failed to fetch exchange rate for "${contractId}":`, error.message);
+      // Get detailed fallback rate information
+      const fallbackInfo = this.getFallbackRateInfo(contractId);
       
-      // Use fallback rate
-      const fallbackRate = this.getFallbackRate(contractId);
-      return this.applyMinimumRateSafeguard(new Decimal(fallbackRate), contractId);
+      // If no fallback is available, throw an error
+      if (!fallbackInfo) {
+        throw new Error(`No exchange rate available for "${contractId}" and no fallback rate configured. Please add a fallback rate for this contract ID or ensure the API is accessible.`);
+      }
+      
+      const fallbackRateDecimal = this.applyMinimumRateSafeguard(new Decimal(fallbackInfo.rate), contractId);
+      
+      // Enhanced error message with detailed fallback information
+      let sourceDescription;
+      switch (fallbackInfo.source) {
+        case 'exact_match':
+          sourceDescription = `exact match for ${fallbackInfo.sourceKey}`;
+          break;
+        case 'symbol_match':
+          sourceDescription = `symbol match using ${fallbackInfo.sourceKey}`;
+          break;
+        default:
+          sourceDescription = 'unknown source';
+      }
+      
+      const errorMessage = `Failed to fetch exchange rate for "${contractId}": ${error.message}. Using fallback rate: ${fallbackRateDecimal.toString()} USD per ${contractId} (source: ${sourceDescription})`;
+      console.warn(errorMessage);
+      
+      return fallbackRateDecimal;
     }
   }
 
@@ -70,19 +92,35 @@ export class ACEExchangeRateService {
   async fetchExchangeRateFromAPI(contractId) {
     const url = `${this.baseUrl}/api/v1/exchange-rates/${encodeURIComponent(contractId)}`;
     
-    const response = await fetch(url);
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5 second timeout
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.rate || typeof data.rate !== 'number') {
+        throw new Error('Invalid exchange rate data received');
+      }
+      
+      return data.rate;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout after 2.5 seconds');
+      }
+      throw error;
     }
-    
-    const data = await response.json();
-    
-    if (!data.rate || typeof data.rate !== 'number') {
-      throw new Error('Invalid exchange rate data received');
-    }
-    
-    return data.rate;
   }
 
   /**
@@ -106,10 +144,19 @@ export class ACEExchangeRateService {
    * @param {string} contractId - Contract ID
    * @returns {number} Fallback rate
    */
-  getFallbackRate(contractId) {
+  /**
+   * Get fallback rate for a contract ID with detailed information
+   * @param {string} contractId - Contract ID to get fallback rate for
+   * @returns {Object} Object containing rate and source information
+   */
+  getFallbackRateInfo(contractId) {
     // First try to get exact contract ID match
     if (this.fallbackRates[contractId]) {
-      return this.fallbackRates[contractId];
+      return {
+        rate: this.fallbackRates[contractId],
+        source: 'exact_match',
+        sourceKey: contractId
+      };
     }
     
     // Extract currency symbol from contract ID as fallback
@@ -118,12 +165,29 @@ export class ACEExchangeRateService {
       const symbol = match[1];
       const symbolKey = `$${symbol}+0000`; // Try with +0000 suffix
       if (this.fallbackRates[symbolKey]) {
-        return this.fallbackRates[symbolKey];
+        return {
+          rate: this.fallbackRates[symbolKey],
+          source: 'symbol_match',
+          sourceKey: symbolKey
+        };
       }
     }
     
-    // Default fallback
-    return this.fallbackRates['$ZRA+0000'] || 0.10;
+    // No fallback available - return null to indicate no fallback
+    return null;
+  }
+
+  /**
+   * Get fallback rate for a contract ID (legacy method for backward compatibility)
+   * @param {string} contractId - Contract ID to get fallback rate for
+   * @returns {number} Fallback rate
+   */
+  getFallbackRate(contractId) {
+    const fallbackInfo = this.getFallbackRateInfo(contractId);
+    if (!fallbackInfo) {
+      throw new Error(`No fallback rate available for "${contractId}"`);
+    }
+    return fallbackInfo.rate;
   }
 
   /**

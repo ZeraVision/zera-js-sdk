@@ -202,13 +202,6 @@ export async function runAllInterfaceFeeTests() {
   }
 }
 
-// Export individual test functions
-export {
-  testInterfaceFeeCalculation,
-  testCompleteFeeCalculation,
-  testInterfaceFeesWithDifferentContracts
-};
-
 // Run tests if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   runAllInterfaceFeeTests();

@@ -8,6 +8,38 @@ import chalk from 'chalk';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/**
+ * Format duration in milliseconds to a human-readable string
+ * @param {number} ms - Duration in milliseconds
+ * @returns {string} Human-readable duration
+ */
+function formatDuration(ms) {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(2)}s`;
+  }
+  
+  const minutes = seconds / 60;
+  if (minutes < 60) {
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${Math.floor(minutes)}m ${remainingSeconds}s`;
+  }
+  
+  const hours = minutes / 60;
+  if (hours < 24) {
+    const remainingMinutes = Math.floor(minutes % 60);
+    return `${Math.floor(hours)}h ${remainingMinutes}m`;
+  }
+  
+  const days = hours / 24;
+  const remainingHours = Math.floor(hours % 24);
+  return `${Math.floor(days)}d ${remainingHours}h`;
+}
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 const options = {
@@ -298,7 +330,7 @@ async function runTestFile(testFile) {
             filePassedTests++;
             
             // Show pass status (no logs for passed tests)
-            console.log(chalk.green(`    ✅ ${name} passed (${duration}ms)`));
+            console.log(chalk.green(`    ✅ ${name} passed (${formatDuration(duration)})`));
             
           } catch (error) {
             // Restore console immediately on error
@@ -308,7 +340,7 @@ async function runTestFile(testFile) {
             fileTotalDuration += duration;
             fileFailedTests++;
             
-            console.log(chalk.red(`    ❌ ${name} failed (${duration}ms)`));
+            console.log(chalk.red(`    ❌ ${name} failed (${formatDuration(duration)})`));
             console.error(chalk.red(`       Error: ${error.message}`));
             
             // Show captured output for failed tests
@@ -359,10 +391,10 @@ async function runTestFile(testFile) {
       
       // File summary
       if (fileFailedTests === 0) {
-        console.log(chalk.green(`✅ ${relativePath} completed: ${filePassedTests}/${individualTests.length} tests passed (${fileTotalDuration}ms)`));
+        console.log(chalk.green(`✅ ${relativePath} completed: ${filePassedTests}/${individualTests.length} tests passed (${formatDuration(fileTotalDuration)})`));
         return { success: true, duration: fileTotalDuration, individualTests: individualTests.length, passed: filePassedTests, failed: fileFailedTests };
       } else {
-        console.log(chalk.red(`❌ ${relativePath} completed: ${filePassedTests}/${individualTests.length} tests passed, ${fileFailedTests} failed (${fileTotalDuration}ms)`));
+        console.log(chalk.red(`❌ ${relativePath} completed: ${filePassedTests}/${individualTests.length} tests passed, ${fileFailedTests} failed (${formatDuration(fileTotalDuration)})`));
         return { success: false, duration: fileTotalDuration, individualTests: individualTests.length, passed: filePassedTests, failed: fileFailedTests };
       }
       
@@ -386,7 +418,7 @@ async function runTestFile(testFile) {
         await testFunction();
         const duration = Date.now() - startTime;
         
-        console.log(chalk.green(`✅ ${relativePath} passed (${duration}ms)`));
+        console.log(chalk.green(`✅ ${relativePath} passed (${formatDuration(duration)})`));
         
         // Track results (as single test)
         testResults.total++;
@@ -481,7 +513,7 @@ function printTestSummary() {
   console.log(chalk.red(`❌ Failed: ${testResults.failed}`));
   console.log(chalk.yellow(`⏭️  Skipped: ${testResults.skipped}`));
   console.log(chalk.blue(`📈 Success Rate: ${successRate}%`));
-  console.log(chalk.blue(`⏱️  Duration: ${duration}ms`));
+  console.log(chalk.blue(`⏱️  Duration: ${formatDuration(duration)}`));
   
   // Module breakdown
   if (testResults.modules.size > 0) {

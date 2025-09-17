@@ -168,7 +168,7 @@ export class ContractFeeService {
    * @returns {Promise<Object>} Contract fee calculation result
    */
   async calculateContractFee(params) {
-    const { contractId, transactionAmount, feeContractId, transactionContractId } = params;
+    const { contractId, transactionAmount, feeContractId, transactionContractId, exchangeRates = null } = params;
 
     // Get contract fee information
     const feeInfo = await this.getContractFeeInfo(contractId);
@@ -193,19 +193,32 @@ export class ContractFeeService {
         // 1. Get the value of the transaction amount in the transaction instrument
         // 2. Calculate the percentage of that value
         // 3. Convert the result to the fee contract ID instrument
-        calculatedFeeDecimal = await this.calculatePercentageFee(
-          transactionAmountDecimal,
-          feeAmountDecimal,
-          transactionContractId || contractId,
-          feeContractId || feeInfo.allowedFeeIds[0]
-        );
+        
+        // OPTIMIZATION: If transaction and fee contract IDs are the same, skip USD conversion
+        const txContractId = transactionContractId || contractId;
+        const feeContractIdToUse = feeContractId || feeInfo.allowedFeeIds[0];
+        
+        if (txContractId === feeContractIdToUse) {
+          // Same currency - direct percentage calculation without USD conversion
+          calculatedFeeDecimal = transactionAmountDecimal.mul(feeAmountDecimal).div(100);
+        } else {
+          // Different currencies - need USD conversion
+          calculatedFeeDecimal = await this.calculatePercentageFee(
+            transactionAmountDecimal,
+            feeAmountDecimal,
+            txContractId,
+            feeContractIdToUse,
+            exchangeRates
+          );
+        }
         break;
       
       case CONTRACT_FEE_TYPE.CUR_EQUIVALENT:
         // Currency equivalent fee - convert USD amount to fee contract ID
         calculatedFeeDecimal = await this.convertCurrencyEquivalentFee(
           feeAmountDecimal,
-          feeContractId || feeInfo.allowedFeeIds[0]
+          feeContractId || feeInfo.allowedFeeIds[0],
+          exchangeRates
         );
         break;
       
@@ -237,31 +250,27 @@ export class ContractFeeService {
   }
 
   /**
-   * Calculate percentage-based contract fee with instrument value conversion
+   * Calculate percentage-based contract fee with instrument value conversion using cached rates
    * @param {Decimal} transactionAmount - Transaction amount
    * @param {Decimal} percentage - Percentage (e.g., 0.5 for 0.5%)
    * @param {string} transactionContractId - Contract ID of transaction instrument
    * @param {string} feeContractId - Contract ID to pay fee in
    * @returns {Promise<Decimal>} Calculated fee amount
    */
-  async calculatePercentageFee(transactionAmount, percentage, transactionContractId, feeContractId) {
+  async calculatePercentageFee(transactionAmount, percentage, transactionContractId, feeContractId, exchangeRates = null) {
     try {
-      // Step 1: Convert transaction amount to USD value
-      const transactionValueUSD = await aceExchangeService.convertCurrencyToUSD(
-        transactionAmount.toNumber(),
-        transactionContractId
-      );
+      // Step 1: Convert transaction amount to USD value using cached rate
+      const transactionExchangeRate = exchangeRates ? exchangeRates.get(transactionContractId) : await aceExchangeService.getExchangeRate(transactionContractId);
+      const transactionValueUSD = transactionAmount.mul(transactionExchangeRate);
 
       // Step 2: Calculate percentage of USD value
       const percentageValueUSD = transactionValueUSD.mul(percentage).div(100);
 
-      // Step 3: Convert USD percentage value to fee contract ID
-      const feeAmount = await aceExchangeService.convertUSDToCurrency(
-        percentageValueUSD.toNumber(),
-        feeContractId
-      );
+      // Step 3: Convert USD percentage value to fee contract ID using cached rate
+      const feeExchangeRate = exchangeRates ? exchangeRates.get(feeContractId) : await aceExchangeService.getExchangeRate(feeContractId);
+      const feeAmount = percentageValueUSD.div(feeExchangeRate);
 
-      return new Decimal(feeAmount.toString());
+      return feeAmount;
     } catch (error) {
       console.warn(`Failed to calculate percentage fee with exchange rates: ${error.message}`);
       // Fallback: simple percentage calculation without conversion
@@ -270,18 +279,15 @@ export class ContractFeeService {
   }
 
   /**
-   * Convert currency equivalent fee from USD to target currency
+   * Convert currency equivalent fee from USD to target currency using cached rate
    * @param {Decimal} usdAmount - USD amount
    * @param {string} feeContractId - Target contract ID
    * @returns {Promise<Decimal>} Converted amount
    */
-  async convertCurrencyEquivalentFee(usdAmount, feeContractId) {
+  async convertCurrencyEquivalentFee(usdAmount, feeContractId, exchangeRates = null) {
     try {
-      const convertedAmount = await aceExchangeService.convertUSDToCurrency(
-        usdAmount.toNumber(),
-        feeContractId
-      );
-      return new Decimal(convertedAmount.toString());
+      const exchangeRate = exchangeRates ? exchangeRates.get(feeContractId) : await aceExchangeService.getExchangeRate(feeContractId);
+      return usdAmount.div(exchangeRate);
     } catch (error) {
       console.warn(`Failed to convert currency equivalent fee: ${error.message}`);
       // Fallback: return original amount

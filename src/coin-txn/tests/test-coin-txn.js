@@ -3,7 +3,7 @@ import { createCoinTXN } from '../index.js';
 
 export async function testCoinTxnBasic() {
   // Real-world usage: Create inputs with keys and amounts
-  const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
+  const inputs = [createTestInput('ED25519', 'alice', '1.0', '100')];
   const outputs = [getTestOutput('bob', '1.0', 'payment')];
   const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', {}, 'memo');
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create CoinTXN');
@@ -11,7 +11,7 @@ export async function testCoinTxnBasic() {
 
 export async function testCoinTXNWithExplicitFees() {
   // Real-world usage: Transaction with explicitly specified fees
-  const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
+  const inputs = [createTestInput('ED25519', 'alice', '1.0', '100')];
   const outputs = [getTestOutput('bob', '1.0', 'payment')];
   const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'memo with fees');
   
@@ -23,11 +23,12 @@ export async function testCoinTXNWithExplicitFees() {
 
 export async function testCoinTxnWithOnlyBaseFee() {
   // Real-world usage: Transaction with only base fee explicitly specified
-  const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
+  const inputs = [createTestInput('ED25519', 'alice', '1.0', '100')];
   const outputs = [getTestOutput('bob', '1.0', 'payment')];
   const feeConfig = { 
     baseFeeId: '$ZRA+0000',
-    baseFee: '0.002'  // User-friendly amount - explicitly specified
+    baseFee: '0.002',  // User-friendly amount - explicitly specified
+    contractFee: null   // Explicitly disable contract fees
   };
   const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig);
   
@@ -41,8 +42,8 @@ export async function testCoinTxnMultiParty() {
   // Real-world usage: Multi-party transaction
   // Alice and Bob send money to Charlie and Jesse
   const inputs = createTestInputs([
-    { keyType: 'ed25519', person: 'alice', amount: '2.5', feePercent: '60' },
-    { keyType: 'ed448', person: 'bob', amount: '1.5', feePercent: '40' }
+    { keyType: 'ED25519', person: 'alice', amount: '2.5', feePercent: '60' },
+    { keyType: 'ED448', person: 'bob', amount: '1.5', feePercent: '40' }
   ]);
   
   const outputs = [

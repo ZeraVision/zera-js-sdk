@@ -81,14 +81,14 @@ async function processInputs(inputs, baseFeeId, contractId) {
       const scaledFeePercent = new Decimal(feePercent).mul(1000000).toNumber();
       
       inputTransfers.push(create(InputTransfers, {
-        index: BigInt(i), // Convert to BigInt for uint64 field
+        index: i, // Use number instead of BigInt for serialization compatibility
         amount: finalAmount,
         feePercent: scaledFeePercent
       }));
     }
     
-    // Convert Decimal nonces to BigInt for protobuf uint64 fields
-    const nonces = nonceDecimals.map(nonce => BigInt(nonce.toString()));
+    // Convert Decimal nonces to strings for serialization compatibility
+    const nonces = nonceDecimals.map(nonce => nonce.toString());
     
     return { publicKeys, inputTransfers, nonces };
   } catch (error) {
@@ -143,7 +143,7 @@ function createTimestamp() {
   const seconds = Math.floor(now / 1000);
   
   return {
-    seconds: BigInt(seconds), // Convert to BigInt for uint64 field
+    seconds: seconds, // Use number instead of BigInt for serialization compatibility
     nanos: 0
   };
 }
@@ -256,7 +256,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
       outputTransfers
     };
 
-    if (finalContractFee !== undefined) {
+    if (finalContractFee !== undefined && finalContractFee !== null) {
       tempCoinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
       tempCoinTxnData.contractFeeId = contractFeeId;
     }
@@ -269,7 +269,6 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
         protoObject: tempCoinTxn,
         baseFeeId,
         contractFeeId: shouldUseAutoContractFee ? contractFeeId : undefined,
-        transactionAmount: '0', // Not used for CoinTXN contract fee calculation
         interfaceFeeAmount: shouldUseInterfaceFee ? interfaceFeeAmount : undefined,
         interfaceFeeId: shouldUseInterfaceFee ? interfaceFeeId : undefined,
         interfaceAddress: shouldUseInterfaceFee ? interfaceAddress : undefined
@@ -312,7 +311,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     outputTransfers
   };
 
-  if (finalContractFee !== undefined) {
+  if (finalContractFee !== undefined && finalContractFee !== null) {
     coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
     coinTxnData.contractFeeId = contractFeeId;
   }
@@ -478,7 +477,7 @@ export async function createCoinTXNWithAutoFee(inputs, outputs, contractId, feeC
     outputTransfers
   };
 
-  if (finalContractFee !== undefined) {
+  if (finalContractFee !== undefined && finalContractFee !== null) {
     coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
     coinTxnData.contractFeeId = contractFeeId;
   }
