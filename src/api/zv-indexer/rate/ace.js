@@ -3,7 +3,7 @@
  * Fetches current exchange rates to convert USD fees to coin amounts
  */
 
-import { Decimal } from '../utils/amount-utils.js';
+import { Decimal } from '../../../shared/utils/amount-utils.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -17,7 +17,7 @@ export class ACEExchangeRateService {
   constructor(options = {}) {
     this.cache = new Map();
     this.cacheTimeout = options.cacheTimeout || 3000; // 3 seconds default
-    this.baseUrl = options.baseUrl || process.env.INDEXER_URL || 'https://indexer.zeravision.ca'; // Default API endpoint
+    this.baseUrl = options.baseUrl || process.env.INDEXER_URL || 'https://api.zerascan.io'; // Default API endpoint
     this.fallbackRates = options.fallbackRates || {
       '$ZRA+0000': 0.10,  // $0.10 per ZRA (fallback)
     };
@@ -28,47 +28,47 @@ export class ACEExchangeRateService {
 
   /**
    * Get exchange rate for a currency
-   * @param {string} currencyId - Currency ID (e.g., '$ZRA+0000')
+   * @param {string} contractId - Contract ID (e.g., '$ZRA+0000')
    * @param {boolean} [useCache=true] - Whether to use cached rate
    * @returns {Promise<Decimal>} Exchange rate (USD per unit of currency)
    */
-  async getExchangeRate(currencyId, useCache = true) {
+  async getExchangeRate(contractId, useCache = true) {
     // Check cache first
-    if (useCache && this.cache.has(currencyId)) {
-      const cached = this.cache.get(currencyId);
+    if (useCache && this.cache.has(contractId)) {
+      const cached = this.cache.get(contractId);
       if (Date.now() - cached.timestamp < this.cacheTimeout) {
-        return this.applyMinimumRateSafeguard(cached.rate, currencyId);
+        return this.applyMinimumRateSafeguard(cached.rate, contractId);
       }
     }
 
     try {
       // Fetch from API
-      const rate = await this.fetchExchangeRateFromAPI(currencyId);
+      const rate = await this.fetchExchangeRateFromAPI(contractId);
       const rateDecimal = new Decimal(rate);
       
       // Cache the result
-      this.cache.set(currencyId, {
+      this.cache.set(contractId, {
         rate: rateDecimal,
         timestamp: Date.now()
       });
       
-      return this.applyMinimumRateSafeguard(rateDecimal, currencyId);
+      return this.applyMinimumRateSafeguard(rateDecimal, contractId);
     } catch (error) {
-      console.warn(`Failed to fetch exchange rate for "${currencyId}":`, error.message);
+      console.warn(`Failed to fetch exchange rate for "${contractId}":`, error.message);
       
       // Use fallback rate
-      const fallbackRate = this.getFallbackRate(currencyId);
-      return this.applyMinimumRateSafeguard(new Decimal(fallbackRate), currencyId);
+      const fallbackRate = this.getFallbackRate(contractId);
+      return this.applyMinimumRateSafeguard(new Decimal(fallbackRate), contractId);
     }
   }
 
   /**
    * Fetch exchange rate from API
-   * @param {string} currencyId - Currency ID
+   * @param {string} contractId - Contract ID
    * @returns {Promise<number>} Exchange rate
    */
-  async fetchExchangeRateFromAPI(currencyId) {
-    const url = `${this.baseUrl}/api/v1/exchange-rates/${encodeURIComponent(currencyId)}`;
+  async fetchExchangeRateFromAPI(contractId) {
+    const url = `${this.baseUrl}/api/v1/exchange-rates/${encodeURIComponent(contractId)}`;
     
     const response = await fetch(url);
     
@@ -89,13 +89,13 @@ export class ACEExchangeRateService {
    * Apply minimum rate safeguard for fee evaluation
    * Ensures that rates never go below the network-enforced minimum for fee calculations
    * @param {Decimal} rate - The exchange rate
-   * @param {string} currencyId - Currency ID
+   * @param {string} contractId - Contract ID
    * @returns {Decimal} Rate with minimum safeguard applied
    */
-  applyMinimumRateSafeguard(rate, currencyId) {
-    const minimumRate = this.minimumRates[currencyId];
+  applyMinimumRateSafeguard(rate, contractId) {
+    const minimumRate = this.minimumRates[contractId];
     if (minimumRate && rate.lt(minimumRate)) {
-      console.warn(`Rate ${rate.toString()} for ${currencyId} below minimum ${minimumRate}, applying safeguard`);
+      console.warn(`Rate ${rate.toString()} for ${contractId} below minimum ${minimumRate}, applying safeguard`);
       return new Decimal(minimumRate);
     }
     return rate;
@@ -103,17 +103,17 @@ export class ACEExchangeRateService {
 
   /**
    * Get fallback exchange rate
-   * @param {string} currencyId - Currency ID
+   * @param {string} contractId - Contract ID
    * @returns {number} Fallback rate
    */
-  getFallbackRate(currencyId) {
+  getFallbackRate(contractId) {
     // First try to get exact contract ID match
-    if (this.fallbackRates[currencyId]) {
-      return this.fallbackRates[currencyId];
+    if (this.fallbackRates[contractId]) {
+      return this.fallbackRates[contractId];
     }
     
     // Extract currency symbol from contract ID as fallback
-    const match = currencyId.match(/^\$([A-Za-z]+)\+\d{4}$/);
+    const match = contractId.match(/^\$([A-Za-z]+)\+\d{4}$/);
     if (match) {
       const symbol = match[1];
       const symbolKey = `$${symbol}+0000`; // Try with +0000 suffix
@@ -129,12 +129,12 @@ export class ACEExchangeRateService {
   /**
    * Convert USD amount to currency amount
    * @param {Decimal|string|number} usdAmount - Amount in USD
-   * @param {string} currencyId - Target currency ID
+   * @param {string} contractId - Target contract ID
    * @returns {Promise<Decimal>} Amount in target currency
    */
-  async convertUSDToCurrency(usdAmount, currencyId) {
+  async convertUSDToCurrency(usdAmount, contractId) {
     const usdDecimal = new Decimal(usdAmount);
-    const exchangeRate = await this.getExchangeRate(currencyId);
+    const exchangeRate = await this.getExchangeRate(contractId);
     
     // Convert USD to currency: currencyAmount = usdAmount / exchangeRate
     return usdDecimal.div(exchangeRate);
@@ -143,12 +143,12 @@ export class ACEExchangeRateService {
   /**
    * Convert currency amount to USD
    * @param {Decimal|string|number} currencyAmount - Amount in currency
-   * @param {string} currencyId - Source currency ID
+   * @param {string} contractId - Source contract ID
    * @returns {Promise<Decimal>} Amount in USD
    */
-  async convertCurrencyToUSD(currencyAmount, currencyId) {
+  async convertCurrencyToUSD(currencyAmount, contractId) {
     const currencyDecimal = new Decimal(currencyAmount);
-    const exchangeRate = await this.getExchangeRate(currencyId);
+    const exchangeRate = await this.getExchangeRate(contractId);
     
     // Convert currency to USD: usdAmount = currencyAmount * exchangeRate
     return currencyDecimal.mul(exchangeRate);
@@ -167,8 +167,8 @@ export class ACEExchangeRateService {
    */
   getCacheInfo() {
     const now = Date.now();
-    const entries = Array.from(this.cache.entries()).map(([currencyId, data]) => ({
-      currencyId,
+    const entries = Array.from(this.cache.entries()).map(([contractId, data]) => ({
+      contractId,
       rate: data.rate.toString(),
       age: now - data.timestamp,
       expired: now - data.timestamp >= this.cacheTimeout
@@ -189,29 +189,29 @@ export const aceExchangeService = new ACEExchangeRateService();
 
 /**
  * Convenience function to get exchange rate
- * @param {string} currencyId - Currency ID
+ * @param {string} contractId - Contract ID
  * @returns {Promise<Decimal>} Exchange rate
  */
-export async function getExchangeRate(currencyId) {
-  return aceExchangeService.getExchangeRate(currencyId);
+export async function getExchangeRate(contractId) {
+  return aceExchangeService.getExchangeRate(contractId);
 }
 
 /**
  * Convenience function to convert USD to currency
  * @param {Decimal|string|number} usdAmount - Amount in USD
- * @param {string} currencyId - Target currency ID
+ * @param {string} contractId - Target contract ID
  * @returns {Promise<Decimal>} Amount in target currency
  */
-export async function convertUSDToCurrency(usdAmount, currencyId) {
-  return aceExchangeService.convertUSDToCurrency(usdAmount, currencyId);
+export async function convertUSDToCurrency(usdAmount, contractId) {
+  return aceExchangeService.convertUSDToCurrency(usdAmount, contractId);
 }
 
 /**
  * Convenience function to convert currency to USD
  * @param {Decimal|string|number} currencyAmount - Amount in currency
- * @param {string} currencyId - Source currency ID
+ * @param {string} contractId - Source contract ID
  * @returns {Promise<Decimal>} Amount in USD
  */
-export async function convertCurrencyToUSD(currencyAmount, currencyId) {
-  return aceExchangeService.convertCurrencyToUSD(currencyAmount, currencyId);
+export async function convertCurrencyToUSD(currencyAmount, contractId) {
+  return aceExchangeService.convertCurrencyToUSD(currencyAmount, contractId);
 }

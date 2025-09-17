@@ -15,7 +15,7 @@ import {
   calculatePercentage,
   Decimal 
 } from '../utils/amount-utils.js';
-import { aceExchangeService } from './ace-exchange-rate-service.js';
+import { aceExchangeService } from '../../api/zv-indexer/rate/ace.js';
 import { contractFeeService } from './contract-fee-service.js';
 import { toBinary } from '@bufbuild/protobuf';
 import {

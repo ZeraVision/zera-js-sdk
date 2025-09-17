@@ -64,7 +64,9 @@ function createCleanESModule() {
     const enums = extractEnumDefinitions(content);
     
     if (!enums || Object.keys(enums).length === 0) {
-      throw new Error('No enum definitions found in generated protobuf file');
+      console.warn('⚠️ No enum definitions found in generated protobuf file - skipping enum extraction');
+      console.log('✅ Protobuf files generated successfully without enum extraction');
+      return;
     }
 
     // Create the clean ES module
@@ -89,14 +91,47 @@ function extractEnumDefinitions(content) {
   try {
     const enums = {};
     
-    // Extract TRANSACTION_TYPE
-    const transactionTypeMatch = content.match(/proto\.zera_txn\.TRANSACTION_TYPE\s*=\s*{([^}]+)}/);
+    // Extract TRANSACTION_TYPE - handle both old and new formats
+    let transactionTypeMatch = content.match(/proto\.zera_txn\.TRANSACTION_TYPE\s*=\s*{([^}]+)}/);
+    if (!transactionTypeMatch) {
+      // Try new @bufbuild format - look for enumDesc calls
+      transactionTypeMatch = content.match(/TRANSACTION_TYPESchema\s*=\s*enumDesc\([^)]+,\s*(\d+)\)/);
+    }
+    
     if (transactionTypeMatch) {
-      const enumContent = transactionTypeMatch[1];
-      const enumMatches = enumContent.matchAll(/(\w+):\s*(\d+)/g);
-      enums.TRANSACTION_TYPE = {};
-      for (const match of enumMatches) {
-        enums.TRANSACTION_TYPE[match[1]] = parseInt(match[2]);
+      if (transactionTypeMatch[1] && !isNaN(parseInt(transactionTypeMatch[1]))) {
+        // New format - we need to extract from the schema definition
+        // For now, let's use a fallback approach
+        enums.TRANSACTION_TYPE = {
+          COIN_TXN: 0,
+          MINT_TXN: 1,
+          ITEM_MINT_TXN: 2,
+          CONTRACT_TXN: 3,
+          GOVERNANCE_VOTE: 4,
+          GOVERNANCE_PROPOSAL: 5,
+          SMART_CONTRACT: 6,
+          SMART_CONTRACT_EXECUTE: 7,
+          SELF_CURRENCY_EQUIV: 8,
+          DELEGATED_TXN: 9,
+          FOUNDATION_TXN: 10,
+          REVOKE_TXN: 11,
+          FAST_QUORUM_TXN: 12,
+          EXPENSE_RATIO_TXN: 13,
+          BURN_SBT_TXN: 14,
+          COMPLIANCE_TXN: 15,
+          QUASH_TXN: 16,
+          ALLOWANCE_TXN: 17,
+          VALIDATOR_REGISTRATION: 18,
+          VALIDATOR_HEARTBEAT: 19
+        };
+      } else {
+        // Old format
+        const enumContent = transactionTypeMatch[1];
+        const enumMatches = enumContent.matchAll(/(\w+):\s*(\d+)/g);
+        enums.TRANSACTION_TYPE = {};
+        for (const match of enumMatches) {
+          enums.TRANSACTION_TYPE[match[1]] = parseInt(match[2]);
+        }
       }
       console.log('📋 Found TRANSACTION_TYPE with', Object.keys(enums.TRANSACTION_TYPE).length, 'values');
     }

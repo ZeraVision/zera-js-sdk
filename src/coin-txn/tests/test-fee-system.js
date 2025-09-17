@@ -6,7 +6,7 @@
 // Legacy fee-calculator.js removed - functionality moved to universal-fee-calculator.js
 // ProperFeeCalculator removed - functionality moved to UniversalFeeCalculator
 import { UniversalFeeCalculator } from '../../shared/fee-calculators/universal-fee-calculator.js';
-import { aceExchangeService } from '../../shared/fee-calculators/ace-exchange-rate-service.js';
+import { aceExchangeService } from '../../api/zv-indexer/rate/ace.js';
 import { 
   calculateCoinTXNSize, 
   estimateTransactionSizeWithFee,

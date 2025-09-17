@@ -116,7 +116,7 @@ const coinTxnMixed = await createCoinTXN(
 - `coinTxn`: A CoinTXN protobuf message or a plain object matching the schema
 - `grpcConfig`:
   - `endpoint`: `'http://host:port'` or `'host:port'`
-  - `host` (default `'routing.zeravision.ca'`)
+  - `host` (default `'routing.zerascan.io'`)
   - `port` (default `50052`)
   - `protocol` (default `'http'`)
   - `nodeOptions`: optional Node HTTP/2 connect options (TLS, CA, etc.)

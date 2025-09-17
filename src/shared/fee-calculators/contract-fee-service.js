@@ -11,7 +11,7 @@ import {
   DEFAULT_CONTRACT_FEE_CONFIG 
 } from './contract-fee-constants.js';
 import { Decimal } from '../utils/amount-utils.js';
-import { aceExchangeService } from './ace-exchange-rate-service.js';
+import { aceExchangeService } from '../../api/zv-indexer/rate/ace.js';
 
 /**
  * Contract Fee Service

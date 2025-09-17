@@ -1,101 +1,113 @@
 # Scripts Directory
 
-This directory contains utility scripts for the ZERA JS SDK.
+This directory contains utility scripts for the ZERA JS SDK development workflow.
 
-## generate-test-keys.js
+## update-test-scripts.js
 
-Generates real ED25519 and ED448 key pairs using the wallet creation module and updates the `src/test-utils/test-keys.js` file with the generated data.
+Automatically discovers modules in the SDK and updates the package.json with module-specific test scripts. This script integrates with the broader testing infrastructure to maintain consistency across all SDK modules.
 
 ### Usage
 
 ```bash
-node scripts/generate-test-keys.js
+# Run the script directly
+node scripts/update-test-scripts.js
+
+# Or use the npm script
+npm run update:test-scripts
 ```
 
 ### What it does
 
-1. **Generates Real Keys**: Creates actual ED25519 and ED448 wallets using proper BIP39 mnemonics
-2. **Uses Different Hash Types**: Each person uses different hash algorithms:
-   - **Alice**: BLAKE3 (prefixes: `A_c_`, `B_c_`)
-   - **Bob**: SHA3_256 + SHA3_512 (prefixes: `A_a_b_`, `B_a_b_`)
-   - **Charlie**: SHA3_512 + SHA3_256 (prefixes: `A_b_a_`, `B_b_a_`)
-   - **Jesse**: SHA3_256 (output-only recipient with provided address)
-3. **Extracts Key Data**: Gets private keys, public key identifiers, and derived addresses
-4. **Updates Test File**: Automatically updates `src/test-utils/test-keys.js` with the new keys
-5. **Provides Summary**: Shows all generated addresses for verification
+1. **Module Discovery**: Automatically scans the `src/` directory to find all modules
+2. **Script Generation**: Creates `test:module-name` scripts for each discovered module
+3. **Package.json Updates**: Automatically updates the scripts section in package.json
+4. **Integration**: Works seamlessly with the main test runner (`test-runner.js`)
 
-### Generated Data Structure
+### Integration with Broader Library
 
-The script generates keys for three test personas (alice, bob, charlie) for both key types:
+The update-test-scripts functionality is deeply integrated with the ZERA JS SDK's testing architecture:
 
-```javascript
-// ED25519 Keys with different hash types
-ED25519_TEST_KEYS = {
-  alice: {
-    privateKey: 'AJ8bNx8iYeVjBLAy5s2M6FfvWzFt26S3b2MsdxpfqnPT',
-    publicKey: 'A_c_2Sbe89QBcCxmeu5LMEUUQBfnX3r2W1W3RVbcZAphcXC2', // BLAKE3
-    address: '8mDFNM7Hxi2vaztoBzmFwkx6myUJDBjVsdTAb83M76vH'
-  },
-  bob: {
-    privateKey: '5m2bpycKkUmwGjJ54L2cMMk6wfvchCPKg7j9L61wS7DV',
-    publicKey: 'A_a_b_4TzsZXiHhEeEMjE5BcKvDEQ6eLUtRuK3CCLNLSLZymyf', // SHA3_256 + SHA3_512
-    address: 'CcmdvCu9fz7usYjaWrcA6iwffPUeu5KtM6hcnQNTS9px'
-  },
-  charlie: {
-    privateKey: 'AhUCfZ5u4paLgPPi8oiJxnbxN6SucgUuAH6aXPPpaCPx',
-    publicKey: 'A_b_a_vMgtWDr9ZzTWviBPhyNTpnWRED1yrG7TtQ5h7y1DqhR', // SHA3_512 + SHA3_256
-    address: '2V9uqjSNrvdQtRoGZQRjEYoyYURzEhBKPH2kBLK3SkWmxxNhDWRzBbB3nyTZTDSeT9PNrjr4dJydJXT8yNocx7Tx'
+#### **Test Runner Integration**
+- Generated scripts work with the main `test-runner.js` file
+- Each module gets its own isolated test command: `npm run test:module-name`
+- Supports all test runner options: `--watch`, `--coverage`, `--verbose`, etc.
+
+#### **Module Structure Integration**
+- Discovers modules based on the SDK's directory structure (`src/module-name/`)
+- Automatically handles special cases like the `proto/` directory
+- Maintains consistency with the SDK's modular architecture
+
+#### **Development Workflow Integration**
+- Integrates with the SDK's development workflow
+- Automatically updates when new modules are added
+- Ensures all modules have consistent testing capabilities
+
+### Generated Scripts
+
+The script automatically generates test commands for each module:
+
+```json
+{
+  "scripts": {
+    "test:wallet-creation": "node test-runner.js --module=wallet-creation",
+    "test:coin-txn": "node test-runner.js --module=coin-txn",
+    "test:shared": "node test-runner.js --module=shared",
+    "test:api": "node test-runner.js --module=api",
+    "test:proto": "node test-runner.js --module=proto"
   }
-};
-
-// ED448 Keys with different hash types
-ED448_TEST_KEYS = {
-  alice: {
-    privateKey: '7fedxjzsZp7tqHk2PzcYuUd8Z8qxGLMS46kbR3DvqTCy',
-    publicKey: 'B_c_U8LfyPpagcrDVm7gVMhfwvJdfLoYzZqY1RyaNHCziqjD96LZPyrks58BspgNmkiv7biAfNmbfbhuvF', // BLAKE3
-    address: '38J2aZoi2gpbSZH3GUPyreNxntAUXeQG2XPMbVifmsPk'
-  },
-  bob: {
-    privateKey: 'Ft3hcbig9Ua2Aouwskhj8z53HHriNqS4qmDBDQ6J75pF',
-    publicKey: 'B_a_b_AygkMwL1iY9xv4ayamgnkdDWHHdFwCi6QNkmyKpshN5Y6MTVvPnyYmPKXm3zMRYM1ngimkN8hkJFeF', // SHA3_256 + SHA3_512
-    address: '5oyfvRALS1g8qRVFeSj7aPViK1SdjwzXrdZTZK1x4X6a'
-  },
-  charlie: {
-    privateKey: '5ieMPMr1DNvW59vrLjCK3QLL4MCExCNYGdR2yF3RCP7g',
-    publicKey: 'B_b_a_QYKoKDrtBN2F2euL4pak23w4jcSjaE8eRg3eLkz6W1ud2dvffazD3e3RnEnz5XJhsWaYm2PqkDzfcs', // SHA3_512 + SHA3_256
-    address: '2z3p4RE1N6eUjy1viUnCgbz2dj1mgoZDb3EZFyFj32oZKgJmSBHfxATBc8fHnMvi9X9SwfuqKQjg2kHP9QuyUSNd'
-  }
-};
+}
 ```
 
-### Test Wallet Addresses
+### Module Discovery
 
-All test addresses are derived from real wallets:
+The script discovers modules by scanning:
+- `src/*/` - All subdirectories in src (e.g., `src/wallet-creation/`, `src/coin-txn/`)
+- `proto/` - Special handling for the protocol buffer module
 
-```javascript
-export const TEST_WALLET_ADDRESSES = {
-  alice: '7AC43j5mVxGZDZraaDN3Guz68rRoh2S7P6VXcS8GGJ8b',
-  bob: 'G5F1NDFmpLsym7TvAt67Ju1jzRL2mPLxev25JFi7ZSWt',
-  charlie: 'AMdCPzvcLFyPBBebsfBfXdzsaGCKrENq76fa4xLNFoJqR8Bfvgedi3D8GTNTw77Unw1meKR297z2263ooLX5kYi',
-  jesse: 'WYEKj2jB1exPn7BStQ7WBkr8WpST9x3iT7gvoPjyZcYAP'
-};
+### When to Run
+
+Run this script when:
+- **Adding new modules** to the SDK
+- **Restructuring** the codebase
+- **Setting up** a new development environment
+- **Ensuring consistency** across test scripts
+
+### Benefits
+
+- **Automation**: No manual script maintenance required
+- **Consistency**: All modules follow the same testing pattern
+- **Scalability**: Automatically handles new modules as they're added
+- **Integration**: Works seamlessly with existing test infrastructure
+
+### Example Output
+
+```
+🚀 Test Script Auto-Updater
+
+🔍 Discovering modules...
+✅ Found 5 modules:
+  📁 wallet-creation
+  📁 coin-txn
+  📁 shared
+  📁 api
+  📁 proto
+
+📝 Updating package.json...
+  ✨ Added script: test:wallet-creation
+  ✨ Added script: test:coin-txn
+  ✨ Added script: test:shared
+  ✨ Added script: test:api
+  ✨ Added script: test:proto
+
+✅ package.json updated successfully!
+
+🎉 Test scripts updated successfully!
+💡 You can now run:
+  npm run test:wallet-creation
+  npm run test:coin-txn
+  npm run test:shared
+  npm run test:api
+  npm run test:proto
 ```
 
-### Key Features
-
-- **Real Cryptographic Keys**: Uses actual wallet creation with proper entropy
-- **Multiple Hash Types**: Each person uses different hash algorithm combinations for comprehensive testing
-- **Proper Address Derivation**: Addresses are derived from public keys using the address-utils module
-- **Universal Test Support**: Generated keys work with all test utilities (`getTestInput`, `getTestOutput`, etc.)
-
-### When to Regenerate
-
-Regenerate test keys when:
-- Starting a new test environment
-- Need fresh keys for security testing
-- Keys become compromised (unlikely for test keys)
-- Want to test with different key combinations
-
-### Security Note
-
-These are **test keys only** and should never be used in production. They are designed for consistent testing across the SDK modules.
+This script ensures that the ZERA JS SDK maintains a consistent, automated testing infrastructure that scales with the library's growth.

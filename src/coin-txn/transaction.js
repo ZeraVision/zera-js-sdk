@@ -522,7 +522,7 @@ export async function createCoinTXNWithAutoFee(inputs, outputs, contractId, feeC
  * @param {object} coinTxnInput - CoinTXN protobuf message or plain object
  * @param {object} [grpcConfig]
  * @param {string} [grpcConfig.endpoint] - 'http://host:50052' or 'host:50052'
- * @param {string} [grpcConfig.host='routing.zeravision.ca']
+ * @param {string} [grpcConfig.host='routing.zerascan.io']
  * @param {number} [grpcConfig.port=50052]
  * @param {('http'|'https')} [grpcConfig.protocol='http']
  * @param {object} [grpcConfig.nodeOptions]
@@ -531,7 +531,7 @@ export async function createCoinTXNWithAutoFee(inputs, outputs, contractId, feeC
 export async function sendCoinTXN(coinTxnInput, grpcConfig = {}) {
   // Parse GRPC_ADDR environment variable if available
   const grpcAddr = process.env.GRPC_ADDR;
-  let defaultHost = 'routing.zeravision.ca';
+  let defaultHost = 'routing.zerascan.io';
   let defaultPort = 50052;
   
   if (grpcAddr) {
