@@ -9,6 +9,7 @@ import { TRANSACTION_TYPE, CONTRACT_FEE_TYPE } from '../protobuf-enums.js';
 import { 
   toDecimal, 
   toAmountString, 
+  toSmallestUnits,
   addAmounts, 
   multiplyAmounts, 
   divideAmounts, 
@@ -583,6 +584,55 @@ export class UniversalFeeCalculator {
   }
 
   /**
+   * Calculate interface-specific fee using Decimal for exact arithmetic
+   * Interface fees can be applied to any transaction type and are typically used for
+   * third-party services, APIs, or interface providers
+   * @param {Object} params - Interface fee parameters
+   * @param {Decimal|string|number} params.interfaceFeeAmount - Interface fee amount (in human-readable units)
+   * @param {string} params.interfaceFeeId - Contract ID to pay the interface fee in
+   * @param {string} params.interfaceAddress - Interface provider address (required when interfaceFeeId is specified)
+   * @returns {Object} Interface fee calculation result
+   */
+  static calculateInterfaceFee(params) {
+    const {
+      interfaceFeeAmount,
+      interfaceFeeId,
+      interfaceAddress
+    } = params;
+
+    // Validate required parameters
+    if (!interfaceFeeId) {
+      throw new Error('interfaceFeeId is required for interface fee calculation');
+    }
+    
+    if (!interfaceFeeAmount || parseFloat(interfaceFeeAmount) <= 0) {
+      throw new Error('interfaceFeeAmount must be specified and greater than 0 when interfaceFeeId is provided');
+    }
+    
+    if (!interfaceAddress) {
+      throw new Error('interfaceAddress is required when interfaceFeeId is specified');
+    }
+
+    // Convert amount to smallest units (like other fee calculations)
+    const feeAmountInSmallestUnits = toSmallestUnits(interfaceFeeAmount, interfaceFeeId);
+    const feeAmountDecimal = this.toDecimal(feeAmountInSmallestUnits);
+
+    return {
+      fee: feeAmountDecimal.toString(), // Return as string for protobuf compatibility
+      feeDecimal: feeAmountDecimal, // Also provide Decimal version
+      interfaceFeeId: interfaceFeeId,
+      interfaceAddress: interfaceAddress,
+      breakdown: {
+        interfaceFeeAmount: interfaceFeeAmount, // Original human-readable amount
+        interfaceFeeAmountInSmallestUnits: feeAmountDecimal.toString(), // Converted to smallest units
+        interfaceFeeId: interfaceFeeId,
+        interfaceAddress: interfaceAddress,
+        calculatedFee: feeAmountDecimal.toString()
+      }
+    };
+  }
+
+  /**
    * Calculate contract-specific fee using Decimal for exact arithmetic
    * @param {Object} params - Contract fee parameters
    * @param {string} params.contractId - Contract ID
@@ -650,7 +700,7 @@ export class UniversalFeeCalculator {
   }
 
   /**
-   * Calculate total fees (network + contract) using Decimal for exact arithmetic
+   * Calculate total fees (network + contract + interface) using Decimal for exact arithmetic
    * @param {Object} params - Fee calculation parameters
    * @param {Object} params.protoObject - The protobuf transaction object (without signatures/hash)
    * @param {string} params.contractId - Contract ID
@@ -659,6 +709,9 @@ export class UniversalFeeCalculator {
    * @param {Decimal|string|number} params.transactionAmount - Transaction amount
    * @param {string} params.feeContractId - Contract ID to pay fees in
    * @param {string} [params.baseFeeId='$ZRA+0000'] - Base fee instrument ID
+   * @param {Decimal|string|number} [params.interfaceFeeAmount] - Interface fee amount (required if interfaceFeeId is specified)
+   * @param {string} [params.interfaceFeeId] - Interface fee contract ID (triggers interface fee calculation)
+   * @param {string} [params.interfaceAddress] - Interface provider address (required if interfaceFeeId is specified)
    * @returns {Promise<Object>} Total fee calculation result
    */
   static async calculateTotalFees(params) {
@@ -677,12 +730,20 @@ export class UniversalFeeCalculator {
       feeContractId: params.feeContractId
     });
 
-    // Convert network fee to Decimal for exact calculation
+    // Calculate interface fee (only if interfaceFeeId is specified)
+    const interfaceFee = params.interfaceFeeId ? this.calculateInterfaceFee({
+      interfaceFeeAmount: params.interfaceFeeAmount,
+      interfaceFeeId: params.interfaceFeeId,
+      interfaceAddress: params.interfaceAddress
+    }) : null;
+
+    // Convert fees to Decimal for exact calculation
     const networkFeeDecimal = this.toDecimal(networkFee.fee);
     const contractFeeDecimal = contractFee.feeDecimal;
+    const interfaceFeeDecimal = interfaceFee ? interfaceFee.feeDecimal : new Decimal(0);
     const transactionAmountDecimal = this.toDecimal(params.transactionAmount);
 
-    const totalFeeDecimal = addAmounts(networkFeeDecimal, contractFeeDecimal);
+    const totalFeeDecimal = addAmounts(addAmounts(networkFeeDecimal, contractFeeDecimal), interfaceFeeDecimal);
     const totalAmountDecimal = addAmounts(transactionAmountDecimal, totalFeeDecimal);
 
     return {
@@ -690,11 +751,13 @@ export class UniversalFeeCalculator {
       totalFeeDecimal: totalFeeDecimal, // Decimal version
       networkFee: networkFee.fee,
       contractFee: contractFee.fee,
+      interfaceFee: interfaceFee ? interfaceFee.fee : '0',
       totalAmount: totalAmountDecimal.toString(), // String for protobuf compatibility
       totalAmountDecimal: totalAmountDecimal, // Decimal version
       breakdown: {
         network: networkFee,
         contract: contractFee,
+        interface: interfaceFee,
         total: totalFeeDecimal.toString()
       }
     };
@@ -965,13 +1028,16 @@ export class UniversalFeeCalculator {
 
   /**
    * Unified fee calculation method
-   * Calculates both network fees and contract fees (for CoinTXN transactions)
+   * Calculates network fees, contract fees, and interface fees
    * Adds fees to the protobuf object and returns the modified object
    * @param {Object} params - Fee calculation parameters
    * @param {Object} params.protoObject - The protobuf transaction object (without signatures/hash)
    * @param {string} [params.baseFeeId='$ZRA+0000'] - Base fee instrument ID
    * @param {string} [params.contractFeeId] - Contract fee instrument ID (for CoinTXN only)
    * @param {Decimal|string|number} [params.transactionAmount] - Transaction amount (for contract fee calculation)
+   * @param {Decimal|string|number} [params.interfaceFeeAmount] - Interface fee amount (required if interfaceFeeId is specified)
+   * @param {string} [params.interfaceFeeId] - Interface fee contract ID (triggers interface fee calculation)
+   * @param {string} [params.interfaceAddress] - Interface provider address (required if interfaceFeeId is specified)
    * @returns {Promise<Object>} Unified fee calculation result with modified proto object
    */
   static async calculateFee(params) {
@@ -979,7 +1045,10 @@ export class UniversalFeeCalculator {
       protoObject,
       baseFeeId = '$ZRA+0000',
       contractFeeId,
-      transactionAmount
+      transactionAmount,
+      interfaceFeeAmount,
+      interfaceFeeId,
+      interfaceAddress
     } = params;
 
     // Create a copy of the proto object to avoid modifying the original
@@ -988,6 +1057,7 @@ export class UniversalFeeCalculator {
     // Check if this is a CoinTXN transaction and contractFeeId is provided
     const transactionType = extractTransactionTypeFromProtoObject(modifiedProtoObject);
     let contractFee = null;
+    let interfaceFee = null;
 
     // STEP 1: Calculate contract fee FIRST (if applicable)
     if (transactionType === TRANSACTION_TYPE.COIN_TYPE && contractFeeId) {
@@ -1012,7 +1082,23 @@ export class UniversalFeeCalculator {
       }
     }
 
-    // STEP 2: Calculate network fee based on the modified proto object (which now includes contract fees)
+    // STEP 2: Calculate interface fee (only if interfaceFeeId is specified)
+    if (interfaceFeeId) {
+      try {
+        interfaceFee = this.calculateInterfaceFee({
+          interfaceFeeAmount,
+          interfaceFeeId,
+          interfaceAddress
+        });
+
+        // Add interface fee to the proto object
+        this.addInterfaceFeeToProtoObject(modifiedProtoObject, interfaceFee);
+      } catch (error) {
+        throw new Error(`Interface fee calculation failed: ${error.message}`);
+      }
+    }
+
+    // STEP 3: Calculate network fee based on the modified proto object (which now includes contract and interface fees)
     const networkFee = await this.calculateNetworkFee({
       protoObject: modifiedProtoObject,
       baseFeeId
@@ -1024,7 +1110,8 @@ export class UniversalFeeCalculator {
     // Calculate total fees
     const networkFeeDecimal = this.toDecimal(networkFee.fee);
     const contractFeeDecimal = contractFee ? this.toDecimal(contractFee.fee) : new Decimal(0);
-    const totalFeeDecimal = addAmounts(networkFeeDecimal, contractFeeDecimal);
+    const interfaceFeeDecimal = interfaceFee ? interfaceFee.feeDecimal : new Decimal(0);
+    const totalFeeDecimal = addAmounts(addAmounts(networkFeeDecimal, contractFeeDecimal), interfaceFeeDecimal);
 
     return {
       protoObject: modifiedProtoObject, // Return the modified proto object
@@ -1032,11 +1119,15 @@ export class UniversalFeeCalculator {
       totalFeeDecimal: totalFeeDecimal,
       networkFee: networkFee.fee,
       contractFee: contractFee ? contractFee.fee : '0',
+      interfaceFee: interfaceFee ? interfaceFee.fee : '0',
       feeId: baseFeeId,
       contractFeeId: contractFeeId || null,
+      interfaceFeeId: interfaceFeeId || null,
+      interfaceAddress: interfaceAddress || null,
       breakdown: {
         network: networkFee,
         contract: contractFee,
+        interface: interfaceFee,
         total: totalFeeDecimal.toString()
       }
     };
@@ -1085,6 +1176,31 @@ export class UniversalFeeCalculator {
       // For other transaction types, add directly to the object
       protoObject.baseFeeAmount = networkFee.fee;
       protoObject.baseFeeId = baseFeeId;
+    }
+  }
+
+  /**
+   * Add interface fee to the protobuf object
+   * @param {Object} protoObject - Protobuf object to modify
+   * @param {Object} interfaceFee - Interface fee calculation result
+   */
+  static addInterfaceFeeToProtoObject(protoObject, interfaceFee) {
+    // Interface fees are added to the base transaction for all transaction types
+    if (protoObject.base) {
+      protoObject.base.interfaceFee = interfaceFee.fee;
+      protoObject.base.interfaceFeeId = interfaceFee.interfaceFeeId;
+      if (interfaceFee.interfaceAddress) {
+        // Decode base58 address to bytes for protobuf
+        protoObject.base.interfaceAddress = bs58.decode(interfaceFee.interfaceAddress);
+      }
+    } else {
+      // For transactions without base field, add directly to the object
+      protoObject.interfaceFee = interfaceFee.fee;
+      protoObject.interfaceFeeId = interfaceFee.interfaceFeeId;
+      if (interfaceFee.interfaceAddress) {
+        // Decode base58 address to bytes for protobuf
+        protoObject.interfaceAddress = bs58.decode(interfaceFee.interfaceAddress);
+      }
     }
   }
 

@@ -403,3 +403,97 @@ export async function exampleFlexibleFeeInstruments() {
     autoBaseManualContract: autoBaseManualContractResult
   };
 }
+
+/**
+ * Example 7: Interface Fees for Third-Party Services
+ * Alice sends money to Bob with interface fees for API service
+ * 
+ * This demonstrates how users can include interface fees for third-party services
+ * like payment processors, API gateways, or marketplace fees.
+ */
+export async function exampleInterfaceFees() {
+  console.log('🔌 Example 7: Interface Fees for Third-Party Services');
+  
+  // Pull wallet data from your data source
+  const aliceWallet = ED25519_TEST_KEYS.alice;
+  const bobAddress = TEST_WALLET_ADDRESSES.bob;
+  
+  console.log('📋 Interface fee transaction data:');
+  console.log('  Alice wallet:', aliceWallet.address);
+  console.log('  Bob address:', bobAddress);
+  
+  // Construct input manually
+  const input = {
+    privateKey: aliceWallet.privateKey,
+    publicKey: aliceWallet.publicKey,
+    amount: '2.0',
+    feePercent: '100'
+  };
+  
+  // Construct output manually
+  const output = {
+    to: bobAddress,
+    amount: '2.0',
+    memo: 'Payment with interface fees'
+  };
+  
+  // Example 1: Payment with API service interface fee
+  console.log('\n🔌 Strategy 1: API Service Interface Fee');
+  const apiServiceResult = await createCoinTXN([input], [output], '$ZRA+0000', {
+    baseFeeId: '$ZRA+0000',
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.001',
+    interfaceFeeAmount: '0.005',
+    interfaceFeeId: '$ZRA+0000',
+    interfaceAddress: 'api_service_provider_address' // Required when interfaceFeeId is specified
+  }, 'API service payment');
+  
+  console.log('✅ Transaction created with API service interface fee');
+  console.log('💰 Base fee: Auto-calculated');
+  console.log('💰 Contract fee: 0.001 ZRA');
+  console.log('🔌 Interface fee: 0.005 ZRA (API service)');
+  console.log('📍 Interface provider:', 'api_service_provider_address');
+  
+  // Example 2: Payment with marketplace interface fee
+  console.log('\n🔌 Strategy 2: Marketplace Interface Fee');
+  const marketplaceResult = await createCoinTXN([input], [output], '$ZRA+0000', {
+    baseFeeId: '$ZRA+0000',
+    // contractFeeId: '$ZRA+0000', // if the contract has a contract feeID
+    // contractFee: '0.002',
+    interfaceFeeAmount: '0.01', // 0.01 ZRA for marketplace
+    interfaceFeeId: '$ZRA+0000',
+    interfaceAddress: 'interface_provider_base58_address' // Required when interfaceFeeId is specified
+  }, 'Marketplace payment');
+  
+  console.log('✅ Transaction created with marketplace interface fee');
+  console.log('💰 Base fee: Auto-calculated');
+  console.log('💰 Contract fee: 0.002 ZRA');
+  console.log('🔌 Interface fee: 0.01 ZRA');
+  console.log('📍 Interface provider:', 'interface_provider_base58_address');
+  
+  // Example 3: Payment without interface fees (default behavior)
+  console.log('\n🔌 Strategy 3: No Interface Fees (Default)');
+  const noInterfaceResult = await createCoinTXN([input], [output], '$ZRA+0000', {
+    baseFeeId: '$ZRA+0000',
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.001'
+    // No interfaceFeeId specified - interface fees remain null
+  }, 'Standard payment');
+  
+  console.log('✅ Transaction created without interface fees');
+  console.log('💰 Base fee: Auto-calculated');
+  console.log('💰 Contract fee: 0.001 ZRA');
+  console.log('🔌 Interface fee: null (default behavior)');
+  
+  console.log('\n🔌 Interface Fee Strategy Summary:');
+  console.log('  API Service: Small fee for API access');
+  console.log('  Marketplace: Higher fee for marketplace services');
+  console.log('  No Interface: Standard payment without third-party fees');
+  console.log('  Note: interfaceFeeId triggers calculation, all parameters required when specified');
+  
+  return { 
+    apiService: apiServiceResult, 
+    marketplace: marketplaceResult,
+    noInterface: noInterfaceResult
+  };
+}

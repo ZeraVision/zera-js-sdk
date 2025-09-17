@@ -19,7 +19,7 @@ service TXNService{
     rpc SmartContractInstantiate(SmartContractInstantiateTXN) returns (google.protobuf.Empty);
     rpc CurrencyEquiv(SelfCurrencyEquiv) returns (google.protobuf.Empty);
     rpc AuthCurrencyEquiv(AuthorizedCurrencyEquiv) returns (google.protobuf.Empty);
-    rpc ExpenseRatio(ExpenseRatioTXN) returns (google.protobuf.Empty); //TODO - change to stream
+    rpc ExpenseRatio(ExpenseRatioTXN) returns (google.protobuf.Empty); 
     rpc NFT(NFTTXN) returns (google.protobuf.Empty);
     rpc ContractUpdate(ContractUpdateTXN) returns (google.protobuf.Empty); 
     rpc Foundation(FoundationTXN) returns (google.protobuf.Empty);
@@ -290,6 +290,9 @@ message BaseTXN{
     optional string memo = 8;
     optional bool safe_send = 9;
     uint64 nonce = 10;
+    optional string interface_fee = 11;
+    optional string interface_fee_id = 12;
+    optional bytes interface_address = 13;
 }
 message PublicKey{
     bytes single = 1;
@@ -569,8 +572,8 @@ message AllowanceTXN{
     BaseTXN base = 1;
     string contract_id = 2;                          //contract id of the token to allow
     bytes wallet_address = 3;                        //address of the wallet to allow
-    optional string allowed_currency_equivelent = 4; //1000000000000000000 = $1.00 can only have either this or allowed_amount
-    optional string allowed_amount = 5;              //Amount of parts of token can only have either this or allowed_currency_equivelent
+    optional string allowed_currency_equivalent = 4; //1000000000000000000 = $1.00 can only have either this or allowed_amount
+    optional string allowed_amount = 5;              //Amount of parts of token can only have either this or allowed_currency_equivalent
     optional uint32 period_months = 6;               //How many months until this allowance resets, can only have this or period_seconds
     optional uint32 period_seconds = 7;              //How many seconds until this allowance resets, can only have this or period_months
     google.protobuf.Timestamp start_time = 9;        //Start time of the allowance.
@@ -634,6 +637,14 @@ message TXNStatusFees{
     optional string native_function_fees = 12;
     optional uint64 gas = 13;
     repeated DelegatedData delegated_data = 14;
+    optional string interface_fee = 15;
+    optional string interface_fee_id = 16;
+}
+message ProposalContract
+{
+    string contract_id = 1;
+    repeated bytes proposal_ids = 2;
+    uint32 stage = 3;
 }
 
 message TXNWrapper{
@@ -668,6 +679,6 @@ message TXNWrapper{
     
     TRANSACTION_TYPE txn_type = 26;
     repeated bytes proposal_ids = 27;
-    repeated bytes proposal_contracts = 28;
+    repeated ProposalContract proposal_contracts = 28;
     optional bool smart_contract_txn = 29;
 }

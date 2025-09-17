@@ -213,7 +213,10 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     baseFeeId = '$ZRA+0000',
     baseFee,
     contractFeeId,
-    contractFee
+    contractFee,
+    interfaceFeeAmount,
+    interfaceFeeId,
+    interfaceAddress
   } = feeConfig;
 
   // Step 1: Process inputs (includes nonce generation)
@@ -236,12 +239,13 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
   // Step 5: Determine fee calculation strategy
   const shouldUseAutoBaseFee = baseFee === undefined;
   const shouldUseAutoContractFee = contractFee === undefined;
+  const shouldUseInterfaceFee = interfaceFeeId !== undefined;
   
   // Step 6: Create initial transaction without fees (for fee calculation)
   let finalBaseFee = baseFee;
   let finalContractFee = contractFee;
   
-  if (shouldUseAutoBaseFee || shouldUseAutoContractFee) {
+  if (shouldUseAutoBaseFee || shouldUseAutoContractFee || shouldUseInterfaceFee) {
     // Create a temporary transaction without fees for size calculation
     const tempTxnBase = createBaseTransaction(baseFeeId, '1', baseMemo); // Use 1 fee temporarily
     const tempCoinTxnData = {
@@ -259,15 +263,23 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 
     const tempCoinTxn = create(CoinTXN, tempCoinTxnData);
 
-    // Use UniversalFeeCalculator with the protobuf object
+    // Use UniversalFeeCalculator unified fee calculation (supports interface fees)
     try {
-      const feeResult = await UniversalFeeCalculator.calculateNetworkFee({
+      const feeResult = await UniversalFeeCalculator.calculateFee({
         protoObject: tempCoinTxn,
-        baseFeeId
+        baseFeeId,
+        contractFeeId: shouldUseAutoContractFee ? contractFeeId : undefined,
+        transactionAmount: '0', // Not used for CoinTXN contract fee calculation
+        interfaceFeeAmount: shouldUseInterfaceFee ? interfaceFeeAmount : undefined,
+        interfaceFeeId: shouldUseInterfaceFee ? interfaceFeeId : undefined,
+        interfaceAddress: shouldUseInterfaceFee ? interfaceAddress : undefined
       });
       
       if (shouldUseAutoBaseFee) {
-        finalBaseFee = feeResult.fee;
+        finalBaseFee = feeResult.networkFee;
+      }
+      if (shouldUseAutoContractFee) {
+        finalContractFee = feeResult.contractFee;
       }
     } catch (error) {
       throw new Error(`Failed to calculate automatic fee: ${error.message}`);
@@ -281,6 +293,15 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 
   // Step 7: Create final base transaction with correct fees
   const txnBase = createBaseTransaction(baseFeeId, finalBaseFee, baseMemo);
+
+  // Add interface fees to base transaction if specified
+  if (shouldUseInterfaceFee) {
+    txnBase.interfaceFee = toSmallestUnits(interfaceFeeAmount, interfaceFeeId);
+    txnBase.interfaceFeeId = interfaceFeeId;
+    if (interfaceAddress) {
+      txnBase.interfaceAddress = bs58.decode(interfaceAddress);
+    }
+  }
 
   // Step 8: Create initial transaction (without signatures)
   const coinTxnData = {
