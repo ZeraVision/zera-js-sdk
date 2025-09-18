@@ -361,37 +361,76 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 
 /**
  * Send a CoinTXN via gRPC using Connect client
- * @param {object} coinTxnInput - CoinTXN protobuf message or plain object
+ * @param {object} coinTxn - CoinTXN protobuf message
  * @param {object} [grpcConfig] - gRPC configuration object
  * @param {string} [grpcConfig.endpoint] - Full endpoint URL (e.g., 'http://host:50052' or 'host:50052')
  * @param {string} [grpcConfig.host='routing.zerascan.io'] - Host address
  * @param {number} [grpcConfig.port=50052] - Port number
- * @param {('http'|'https')} [grpcConfig.protocol='http'] - Protocol to use
+ * @param {('grpc'|'grpcs')} [grpcConfig.protocol='grpc'] - Protocol to use
  * @param {object} [grpcConfig.nodeOptions] - Additional Node.js options for the transport
- * @returns {Promise<void>}
+ * @returns {Promise<{success: boolean, transactionHash?: string, error?: string}>}
  */
-export async function sendCoinTXN(coinTxnInput, grpcConfig = {}) {
+export async function sendCoinTXN(coinTxn, grpcConfig = {}) {
   const {
     endpoint,
     host = 'routing.zerascan.io',
     port = 50052,
-    protocol = 'http',
+    protocol = 'grpc',
     nodeOptions
   } = grpcConfig;
 
   // Use endpoint if provided, otherwise construct from host:port
   const resolved = endpoint ?? `${host}:${port}`;
-  const baseUrl = resolved.startsWith('http') ? resolved : `${protocol}://${resolved}`;
+  // Connect v2 expects full URL with protocol
+  const baseUrl = resolved.startsWith('http') ? resolved : `http://${resolved}`;
+  
+  console.log('🔍 Debug - resolved:', resolved);
+  console.log('🔍 Debug - baseUrl:', baseUrl);
 
-  const coinTxnMessage = coinTxnInput?.$typeName === 'zera_txn.CoinTXN'
-    ? coinTxnInput
-    : create(CoinTXN, coinTxnInput ?? {});
+  console.log('🚀 Sending CoinTXN...');
+  console.log('📍 Endpoint:', baseUrl);
+  console.log('🔧 Config:', grpcConfig);
 
-  const { createPromiseClient } = await import('@connectrpc/connect');
-  const { createGrpcTransport } = await import('@connectrpc/connect-node');
-  const transport = createGrpcTransport({ baseUrl, nodeOptions });
-  const client = createPromiseClient(TXNService, transport);
-  await client.coin(coinTxnMessage);
+  try {
+    console.log('📦 Creating gRPC client...');
+    const { createClient } = await import('@connectrpc/connect');
+    const { createGrpcTransport } = await import('@connectrpc/connect-node');
+    
+    console.log('🔗 Creating transport...');
+    console.log('🔍 Debug - baseUrl for transport:', baseUrl);
+    const transport = createGrpcTransport({ 
+      baseUrl,
+      ...nodeOptions 
+    });
+    
+    console.log('👤 Creating client...');
+    const client = createClient(TXNService, transport);
+    
+    console.log('📡 Making gRPC call...');
+    
+    // Use modern Connect approach with proper error handling
+    const response = await client.coin(coinTxn);
+    console.log('✅ Transaction sent successfully!');
+    
+    // Extract transaction hash from the message for success response
+    const transactionHash = coinTxn.base?.hash ? 
+      Buffer.from(coinTxn.base.hash).toString('hex') : undefined;
+    
+    console.log('🔗 Transaction hash:', transactionHash);
+    
+    return {
+      success: true,
+      transactionHash
+    };
+  } catch (error) {
+    console.log('❌ Transaction failed:', error.message);
+    console.log('🔍 Error details:', error);
+    
+    return {
+      success: false,
+      error: error.message || 'Unknown error occurred'
+    };
+  }
 }
 
 

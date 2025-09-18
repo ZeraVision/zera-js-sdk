@@ -57,6 +57,11 @@ export async function exampleSimplePayment() {
   console.log('📤 Input amount:', input.amount, 'ZRA');
   console.log('📥 Output amount:', output.amount, 'ZRA');
   console.log('💳 Fee percentage:', input.feePercent + '%');
+
+  await sendCoinTXN(transaction, {
+    host: '146.190.114.124',
+    port: 50052,
+  });
   
   return transaction;
 }
