@@ -12,6 +12,7 @@ import {
 } from '../../proto/generated/txn_pb.js';
 import { create } from '@bufbuild/protobuf';
 import { toBinary } from '@bufbuild/protobuf';
+import { protoInt64 } from '@bufbuild/protobuf';
 import { TXNService } from '../../proto/generated/txn_pb.js';
 import {
   toSmallestUnits,
@@ -87,8 +88,8 @@ async function processInputs(inputs, baseFeeId, contractId) {
       }));
     }
     
-    // Convert Decimal nonces to strings for serialization compatibility
-    const nonces = nonceDecimals.map(nonce => nonce.toString());
+    // Convert Decimal nonces to uint64 using protobuf utilities
+    const nonces = nonceDecimals.map(nonce => protoInt64.uParse(nonce.toString()));
     
     return { publicKeys, inputTransfers, nonces };
   } catch (error) {
@@ -124,14 +125,22 @@ function processOutputs(outputs, baseFeeId) {
  * @param {Array} nonces - Nonces
  * @returns {Object} Transfer authentication
  */
-function createTransferAuth(publicKeys, signatures, nonces, allowanceAddresses = [], allowanceNonces = []) {
-  return create(TransferAuthentication, {
+function createTransferAuth(publicKeys, signatures, nonces, allowanceAddresses = null, allowanceNonces = null) {
+  const authData = {
     publicKey: publicKeys,
     signature: signatures,
-    nonce: nonces,
-    allowanceAddress: allowanceAddresses,
-    allowanceNonce: allowanceNonces
-  });
+    nonce: nonces
+  };
+  
+  // Only include allowance fields if they have values
+  if (allowanceAddresses && allowanceAddresses.length > 0) {
+    authData.allowanceAddress = allowanceAddresses;
+  }
+  if (allowanceNonces && allowanceNonces.length > 0) {
+    authData.allowanceNonce = allowanceNonces;
+  }
+  
+  return create(TransferAuthentication, authData);
 }
 
 /**
@@ -251,7 +260,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     const tempCoinTxnData = {
       base: tempTxnBase,
       contractId,
-      auth: createTransferAuth(publicKeys, [], nonces), // Empty signatures initially
+      auth: createTransferAuth(publicKeys, null, nonces), // No signatures initially
       inputTransfers,
       outputTransfers
     };
@@ -306,7 +315,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
   const coinTxnData = {
     base: txnBase,
     contractId,
-    auth: createTransferAuth(publicKeys, [], nonces), // Empty signatures initially
+    auth: createTransferAuth(publicKeys, null, nonces), // No signatures initially
     inputTransfers,
     outputTransfers
   };
@@ -318,44 +327,45 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 
   let coinTxn = create(CoinTXN, coinTxnData);
 
-  // Step 9: Sign transaction
+  // Step 9: Sign transaction (without hash)
   const signatures = [];
-  const serializedTxn = toBinary(CoinTXN, coinTxn);
+  const serializedTxnWithoutHash = toBinary(CoinTXN, coinTxn);
   
   for (let i = 0; i < inputs.length; i++) {
     try {
-      const signature = signTransactionData(serializedTxn, inputs[i].privateKey, inputs[i].publicKey);
+      const signature = signTransactionData(serializedTxnWithoutHash, inputs[i].privateKey, inputs[i].publicKey);
       signatures.push(signature);
     } catch (error) {
       throw new Error(`Failed to sign transaction with input ${i}: ${error.message}`);
     }
   }
 
-  // Step 10: Create final transaction with signatures
+  // Step 10: Create transaction with signatures
   const finalAuth = createTransferAuth(publicKeys, signatures, nonces);
-  const finalCoinTxnData = {
+  const coinTxnDataWithSignatures = {
     ...coinTxnData,
     auth: finalAuth
   };
 
-  coinTxn = create(CoinTXN, finalCoinTxnData);
+  coinTxn = create(CoinTXN, coinTxnDataWithSignatures);
 
-  // Step 11: Add transaction hash
-  const finalSerializedTxn = toBinary(CoinTXN, coinTxn);
-  const hash = createTransactionHash(finalSerializedTxn);
+  // Step 11: Serialize transaction with signatures and create hash
+  const serializedTxnWithSignatures = toBinary(CoinTXN, coinTxn);
+  const hash = createTransactionHash(serializedTxnWithSignatures);
 
+  // Step 12: Add hash to final transaction
   const finalBaseData = {
     ...txnBase,
     hash
   };
 
   const finalTxnBase = create(BaseTXN, finalBaseData);
-  const finalTransactionData = {
-    ...finalCoinTxnData,
+  const finalCoinTxnData = {
+    ...coinTxnDataWithSignatures,
     base: finalTxnBase
   };
 
-  return create(CoinTXN, finalTransactionData);
+  return create(CoinTXN, finalCoinTxnData);
 }
 
 
