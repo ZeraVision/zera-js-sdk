@@ -358,216 +358,28 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
   return create(CoinTXN, finalTransactionData);
 }
 
-/**
- * Enhanced CoinTXN creation with automatic fee calculation and detailed fee information
- * This version returns both the transaction and detailed fee calculation information
- * @param {Array} inputs - Array of input objects {privateKey: string, publicKey: string, amount: Decimal|string|number, feePercent?: string, keyType?: string}
- * @param {Array} outputs - Array of output objects {to: string, amount: Decimal|string|number, memo?: string}
- * @param {string} contractId - Contract ID (e.g., '$ZRA+0000') - must follow format $[letters]+[4 digits]
- * @param {Object} [feeConfig] - Fee configuration object
- * @param {string} [feeConfig.baseFeeId='$ZRA+0000'] - Base fee instrument ID
- * @param {string} [feeConfig.contractFeeId] - Contract fee instrument, defaults to contractId
- * @param {Decimal|string|number} [feeConfig.contractFee] - Contract fee amount (optional)
- * @param {Decimal|string|number} [feeConfig.baseFee] - Manual base fee amount (optional)
- * @param {string} [baseMemo] - Base memo for the transaction (optional)
- * @returns {Promise<Object>} Result object with transaction and fee information
- */
-export async function createCoinTXNWithAutoFee(inputs, outputs, contractId, feeConfig = {}, baseMemo = '') {
-  // Validate inputs
-  if (!Array.isArray(inputs) || !Array.isArray(outputs)) {
-    throw new Error('Inputs and outputs must be arrays');
-  }
-  if (inputs.length === 0 || outputs.length === 0) {
-    throw new Error('Must have at least one input and one output');
-  }
-  if (!contractId || !validateContractId(contractId)) {
-    throw new Error('ContractId must be provided and follow the format $[letters]+[4 digits] (e.g., $ZRA+0000)');
-  }
-
-  const {
-    baseFeeId = '$ZRA+0000',
-    contractFeeId,
-    baseFee,
-    contractFee
-  } = feeConfig;
-
-  // Determine fee calculation strategy
-  const shouldUseAutoBaseFee = baseFee === undefined;
-  const shouldUseAutoContractFee = contractFee === undefined;
-  
-  // Step 1: Process inputs (includes nonce generation)
-  const { publicKeys, inputTransfers, nonces } = await processInputs(inputs, baseFeeId, contractId);
-
-  // Step 2: Process outputs
-  const outputTransfers = processOutputs(outputs, baseFeeId);
-
-  // Step 3: Validate balance
-  const inputAmounts = inputs.map(i => toSmallestUnits(i.amount, baseFeeId));
-  const outputAmounts = outputs.map(o => toSmallestUnits(o.amount, baseFeeId));
-  validateAmountBalance(inputAmounts, outputAmounts);
-
-  // Step 4: Validate fee percentages
-  const totalFeePercent = inputTransfers.reduce((sum, t) => new Decimal(sum).add(t.feePercent).toNumber(), 0);
-  if (totalFeePercent !== 100000000) {
-    throw new Error(`Fee percentages must sum to exactly 100% (100,000,000). Current sum: ${totalFeePercent}`);
-  }
-
-  // Step 5: Calculate automatic fees if needed
-  let calculatedBaseFee = null;
-  let calculatedContractFee = null;
-  let feeCalculationInfo = null;
-  
-  if (shouldUseAutoBaseFee || shouldUseAutoContractFee) {
-    // Create a temporary transaction without fees for size calculation
-    const tempTxnBase = createBaseTransaction(baseFeeId, '0', baseMemo); // Use 0 fee temporarily
-    const tempCoinTxnData = {
-      base: tempTxnBase,
-      contractId,
-      auth: createTransferAuth(publicKeys, [], nonces), // Empty signatures initially
-      inputTransfers,
-      outputTransfers
-    };
-
-    if (contractFee !== undefined) {
-      tempCoinTxnData.contractFeeAmount = toSmallestUnits(contractFee, contractFeeId);
-      tempCoinTxnData.contractFeeId = contractFeeId;
-    }
-
-    const tempCoinTxn = create(CoinTXN, tempCoinTxnData);
-
-    // Use UniversalFeeCalculator with the protobuf object
-    try {
-      const feeResult = await UniversalFeeCalculator.calculateNetworkFee({
-        protoObject: tempCoinTxn,
-        baseFeeId
-      });
-      
-      if (shouldUseAutoBaseFee) {
-        calculatedBaseFee = feeResult.fee;
-      }
-      
-      feeCalculationInfo = {
-        size: feeResult.size,
-        feeBreakdown: feeResult.breakdown,
-        autoCalculated: true
-      };
-    } catch (error) {
-      throw new Error(`Failed to calculate automatic fee: ${error.message}`);
-    }
-  }
-  
-  // Use calculated fees or provided fees
-  const finalBaseFee = calculatedBaseFee || baseFee;
-  const finalContractFee = calculatedContractFee || contractFee;
-  
-  // Validate base fee is not 0
-  if (!finalBaseFee || finalBaseFee === '0' || finalBaseFee === 0) {
-    throw new Error('Base fee must be provided and cannot be 0');
-  }
-
-  // Step 6: Create final base transaction with correct fees
-  const txnBase = createBaseTransaction(baseFeeId, finalBaseFee, baseMemo);
-
-  // Step 7: Create initial transaction (without signatures)
-  const coinTxnData = {
-    base: txnBase,
-    contractId,
-    auth: createTransferAuth(publicKeys, [], nonces), // Empty signatures initially
-    inputTransfers,
-    outputTransfers
-  };
-
-  if (finalContractFee !== undefined && finalContractFee !== null) {
-    coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
-    coinTxnData.contractFeeId = contractFeeId;
-  }
-
-  let coinTxn = create(CoinTXN, coinTxnData);
-
-  // Step 8: Sign transaction
-  const signatures = [];
-  const serializedTxn = toBinary(CoinTXN, coinTxn);
-  
-  for (let i = 0; i < inputs.length; i++) {
-    try {
-      const signature = signTransactionData(serializedTxn, inputs[i].privateKey, inputs[i].publicKey);
-      signatures.push(signature);
-    } catch (error) {
-      throw new Error(`Failed to sign transaction with input ${i}: ${error.message}`);
-    }
-  }
-
-  // Step 9: Create final transaction with signatures
-  const finalAuth = createTransferAuth(publicKeys, signatures, nonces);
-  const finalCoinTxnData = {
-    ...coinTxnData,
-    auth: finalAuth
-  };
-
-  coinTxn = create(CoinTXN, finalCoinTxnData);
-
-  // Step 10: Add transaction hash
-  const finalSerializedTxn = toBinary(CoinTXN, coinTxn);
-  const hash = createTransactionHash(finalSerializedTxn);
-
-  const finalBaseData = {
-    ...txnBase,
-    hash
-  };
-
-  const finalTxnBase = create(BaseTXN, finalBaseData);
-  const finalTransactionData = {
-    ...finalCoinTxnData,
-    base: finalTxnBase
-  };
-
-  const finalTransaction = create(CoinTXN, finalTransactionData);
-
-  // Return result with transaction and fee information
-  return {
-    transaction: finalTransaction,
-    feeInfo: {
-      baseFee: finalBaseFee,
-      baseFeeId,
-      contractFee: finalContractFee,
-      contractFeeId: contractFeeId || contractId,
-      autoCalculated: shouldUseAutoBaseFee || shouldUseAutoContractFee,
-      calculationInfo: feeCalculationInfo
-    }
-  };
-}
 
 /**
  * Send a CoinTXN via gRPC using Connect client
  * @param {object} coinTxnInput - CoinTXN protobuf message or plain object
- * @param {object} [grpcConfig]
- * @param {string} [grpcConfig.endpoint] - 'http://host:50052' or 'host:50052'
- * @param {string} [grpcConfig.host='routing.zerascan.io']
- * @param {number} [grpcConfig.port=50052]
- * @param {('http'|'https')} [grpcConfig.protocol='http']
- * @param {object} [grpcConfig.nodeOptions]
+ * @param {object} [grpcConfig] - gRPC configuration object
+ * @param {string} [grpcConfig.endpoint] - Full endpoint URL (e.g., 'http://host:50052' or 'host:50052')
+ * @param {string} [grpcConfig.host='routing.zerascan.io'] - Host address
+ * @param {number} [grpcConfig.port=50052] - Port number
+ * @param {('http'|'https')} [grpcConfig.protocol='http'] - Protocol to use
+ * @param {object} [grpcConfig.nodeOptions] - Additional Node.js options for the transport
  * @returns {Promise<void>}
  */
 export async function sendCoinTXN(coinTxnInput, grpcConfig = {}) {
-  // Parse GRPC_ADDR environment variable if available
-  const grpcAddr = process.env.GRPC_ADDR;
-  let defaultHost = 'routing.zerascan.io';
-  let defaultPort = 50052;
-  
-  if (grpcAddr) {
-    const [hostPart, portPart] = grpcAddr.split(':');
-    if (hostPart) defaultHost = hostPart;
-    if (portPart) defaultPort = parseInt(portPart, 10);
-  }
-  
   const {
     endpoint,
-    host = defaultHost,
-    port = defaultPort,
+    host = 'routing.zerascan.io',
+    port = 50052,
     protocol = 'http',
     nodeOptions
   } = grpcConfig;
 
+  // Use endpoint if provided, otherwise construct from host:port
   const resolved = endpoint ?? `${host}:${port}`;
   const baseUrl = resolved.startsWith('http') ? resolved : `${protocol}://${resolved}`;
 

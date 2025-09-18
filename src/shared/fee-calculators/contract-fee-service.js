@@ -5,6 +5,7 @@
  */
 
 import { CONTRACT_FEE_TYPE } from '../protobuf-enums.js';
+import { UniversalFeeCalculator } from './universal-fee-calculator.js';
 import { 
   getContractFeeConfig, 
   isFeeContractIdAllowed,
@@ -255,19 +256,32 @@ export class ContractFeeService {
    * @param {Decimal} percentage - Percentage (e.g., 0.5 for 0.5%)
    * @param {string} transactionContractId - Contract ID of transaction instrument
    * @param {string} feeContractId - Contract ID to pay fee in
+   * @param {Map} exchangeRates - Pre-fetched exchange rates map
    * @returns {Promise<Decimal>} Calculated fee amount
    */
   async calculatePercentageFee(transactionAmount, percentage, transactionContractId, feeContractId, exchangeRates = null) {
     try {
       // Step 1: Convert transaction amount to USD value using cached rate
-      const transactionExchangeRate = exchangeRates ? exchangeRates.get(transactionContractId) : await aceExchangeService.getExchangeRate(transactionContractId);
+      let transactionExchangeRate;
+      if (exchangeRates && exchangeRates.has(transactionContractId)) {
+        transactionExchangeRate = exchangeRates.get(transactionContractId);
+      } else {
+        console.warn(`Transaction exchange rate for ${transactionContractId} not found in pre-fetched rates, fetching separately`);
+        transactionExchangeRate = await UniversalFeeCalculator.getExchangeRate(transactionContractId);
+      }
       const transactionValueUSD = transactionAmount.mul(transactionExchangeRate);
 
       // Step 2: Calculate percentage of USD value
       const percentageValueUSD = transactionValueUSD.mul(percentage).div(100);
 
       // Step 3: Convert USD percentage value to fee contract ID using cached rate
-      const feeExchangeRate = exchangeRates ? exchangeRates.get(feeContractId) : await aceExchangeService.getExchangeRate(feeContractId);
+      let feeExchangeRate;
+      if (exchangeRates && exchangeRates.has(feeContractId)) {
+        feeExchangeRate = exchangeRates.get(feeContractId);
+      } else {
+        console.warn(`Fee exchange rate for ${feeContractId} not found in pre-fetched rates, fetching separately`);
+        feeExchangeRate = await UniversalFeeCalculator.getExchangeRate(feeContractId);
+      }
       const feeAmount = percentageValueUSD.div(feeExchangeRate);
 
       return feeAmount;
@@ -282,11 +296,18 @@ export class ContractFeeService {
    * Convert currency equivalent fee from USD to target currency using cached rate
    * @param {Decimal} usdAmount - USD amount
    * @param {string} feeContractId - Target contract ID
+   * @param {Map} exchangeRates - Pre-fetched exchange rates map
    * @returns {Promise<Decimal>} Converted amount
    */
   async convertCurrencyEquivalentFee(usdAmount, feeContractId, exchangeRates = null) {
     try {
-      const exchangeRate = exchangeRates ? exchangeRates.get(feeContractId) : await aceExchangeService.getExchangeRate(feeContractId);
+      let exchangeRate;
+      if (exchangeRates && exchangeRates.has(feeContractId)) {
+        exchangeRate = exchangeRates.get(feeContractId);
+      } else {
+        console.warn(`Exchange rate for ${feeContractId} not found in pre-fetched rates, fetching separately`);
+        exchangeRate = await UniversalFeeCalculator.getExchangeRate(feeContractId);
+      }
       return usdAmount.div(exchangeRate);
     } catch (error) {
       console.warn(`Failed to convert currency equivalent fee: ${error.message}`);

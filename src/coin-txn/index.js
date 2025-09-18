@@ -1,2 +1,2 @@
-export { createCoinTXN, createCoinTXNWithAutoFee, sendCoinTXN } from './transaction.js';
+export { createCoinTXN, sendCoinTXN } from './transaction.js';
 

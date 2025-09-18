@@ -10,8 +10,8 @@
 /**
  * Test Key Pairs for ED25519 with different hash types:
  * - Alice: BLAKE3 (A_c_ prefix)
- * - Bob: SHA3_256 + SHA3_512 (A_b_a_ prefix) 
- * - Charlie: SHA3_512 + SHA3_256 (A_a_b_ prefix)
+ * - Bob: SHA3_256 + SHA3_512 (A_a_b_ prefix) 
+ * - Charlie: SHA3_512 + SHA3_256 (A_b_a_ prefix)
  */
 export const ED25519_TEST_KEYS = {
   alice: {
@@ -34,8 +34,8 @@ export const ED25519_TEST_KEYS = {
 /**
  * Test Key Pairs for ED448 with different hash types:
  * - Alice: BLAKE3 (B_c_ prefix)
- * - Bob: SHA3_256 + SHA3_512 (B_b_a_ prefix)
- * - Charlie: SHA3_512 + SHA3_256 (B_a_b_ prefix)
+ * - Bob: SHA3_256 + SHA3_512 (B_a_b_ prefix)
+ * - Charlie: SHA3_512 + SHA3_256 (B_b_a_ prefix)
  */
 export const ED448_TEST_KEYS = {
   alice: {

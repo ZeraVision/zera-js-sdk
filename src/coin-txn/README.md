@@ -114,18 +114,19 @@ const coinTxnMixed = await createCoinTXN(
 
 ### sendCoinTXN(coinTxn, grpcConfig?)
 - `coinTxn`: A CoinTXN protobuf message or a plain object matching the schema
-- `grpcConfig`:
-  - `endpoint`: `'http://host:port'` or `'host:port'`
+- `grpcConfig`: **Parameter-based configuration (no environment variables needed)**
+  - `endpoint`: `'http://host:port'` or `'host:port'` (overrides host/port if provided)
   - `host` (default `'routing.zerascan.io'`)
   - `port` (default `50052`)
   - `protocol` (default `'http'`)
   - `nodeOptions`: optional Node HTTP/2 connect options (TLS, CA, etc.)
 
 Notes:
+- **All configuration is parameter-based** - no environment variables required
 - If you call `sendCoinTXN`, you need the Connect runtime installed at runtime:
   - `@connectrpc/connect`
   - `@connectrpc/connect-node`
-- The module uses dynamic imports so simply importing this file won’t require those dependencies until you actually call `sendCoinTXN`.
+- The module uses dynamic imports so simply importing this file won't require those dependencies until you actually call `sendCoinTXN`.
 
 Example:
 ```js

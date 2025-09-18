@@ -449,24 +449,74 @@ function calculateProtobufSize(protoObject, transactionType) {
   return binary.length;
 }
 export class UniversalFeeCalculator {
-  // Cache for exchange rates to avoid duplicate API calls
-  static exchangeRateCache = new Map();
+  // Cache for exchange rates with timestamps to avoid duplicate API calls
+  static exchangeRateCache = new Map(); // contractId -> { rate: Decimal, timestamp: number }
+  // Pending requests to prevent duplicate API calls for the same contract ID
+  static pendingRequests = new Map(); // contractId -> Promise<Decimal>
   
   /**
-   * Get cached exchange rate or fetch and cache it
+   * Get cached exchange rate or fetch and cache it with 2-second expiration
+   * Prevents duplicate API calls even when called in parallel
    * @param {string} contractId - Contract ID to get exchange rate for
    * @returns {Promise<Decimal>} Exchange rate
    */
   static async getExchangeRate(contractId) {
-    // Check cache first
-    if (this.exchangeRateCache.has(contractId)) {
-      return this.exchangeRateCache.get(contractId);
+    const now = Date.now();
+    const cacheEntry = this.exchangeRateCache.get(contractId);
+    
+    // Check if we have a valid cache entry (less than 2 seconds old)
+    if (cacheEntry && (now - cacheEntry.timestamp) < 2000) {
+      return cacheEntry.rate;
     }
     
-    // Fetch and cache the rate
+    // Check if there's already a pending request for this contract ID
+    if (this.pendingRequests.has(contractId)) {
+      return await this.pendingRequests.get(contractId);
+    }
+    
+    // Create a new request and store it to prevent duplicates
+    const requestPromise = this.fetchAndCacheRate(contractId, now);
+    this.pendingRequests.set(contractId, requestPromise);
+    
+    try {
+      const rate = await requestPromise;
+      return rate;
+    } finally {
+      // Clean up the pending request
+      this.pendingRequests.delete(contractId);
+    }
+  }
+  
+  /**
+   * Fetch exchange rate from API and cache it
+   * @param {string} contractId - Contract ID to fetch rate for
+   * @param {number} timestamp - Current timestamp
+   * @returns {Promise<Decimal>} Exchange rate
+   */
+  static async fetchAndCacheRate(contractId, timestamp) {
+    // Fetch and cache the rate with timestamp
     const rate = await aceExchangeService.getExchangeRate(contractId);
-    this.exchangeRateCache.set(contractId, rate);
+    this.exchangeRateCache.set(contractId, {
+      rate: rate,
+      timestamp: timestamp
+    });
+    
+    // Clean up expired entries (older than 2 seconds)
+    this.cleanupExpiredCacheEntries(timestamp);
+    
     return rate;
+  }
+  
+  /**
+   * Clean up expired cache entries (older than 2 seconds)
+   * @param {number} currentTime - Current timestamp
+   */
+  static cleanupExpiredCacheEntries(currentTime) {
+    for (const [contractId, entry] of this.exchangeRateCache.entries()) {
+      if (currentTime - entry.timestamp >= 2000) {
+        this.exchangeRateCache.delete(contractId);
+      }
+    }
   }
   
   /**
@@ -474,6 +524,40 @@ export class UniversalFeeCalculator {
    */
   static clearExchangeRateCache() {
     this.exchangeRateCache.clear();
+  }
+  
+  /**
+   * Get cache statistics for debugging
+   * @returns {Object} Cache statistics
+   */
+  static getCacheStats() {
+    const now = Date.now();
+    const stats = {
+      totalEntries: this.exchangeRateCache.size,
+      validEntries: 0,
+      expiredEntries: 0,
+      entries: []
+    };
+    
+    for (const [contractId, entry] of this.exchangeRateCache.entries()) {
+      const age = now - entry.timestamp;
+      const isValid = age < 2000;
+      
+      if (isValid) {
+        stats.validEntries++;
+      } else {
+        stats.expiredEntries++;
+      }
+      
+      stats.entries.push({
+        contractId,
+        age: age,
+        isValid: isValid,
+        rate: entry.rate.toString()
+      });
+    }
+    
+    return stats;
   }
 
   /**
@@ -598,7 +682,13 @@ export class UniversalFeeCalculator {
     const totalFeeUSD = fixedFeeUSD + perByteFeeUSD;
     
     // Convert USD to target currency using cached exchange rate
-    const exchangeRate = exchangeRates ? exchangeRates.get(baseFeeId) : await this.getExchangeRate(baseFeeId);
+    let exchangeRate;
+    if (exchangeRates && exchangeRates.has(baseFeeId)) {
+      exchangeRate = exchangeRates.get(baseFeeId);
+    } else {
+      console.warn(`Exchange rate for ${baseFeeId} not found in pre-fetched rates, fetching separately`);
+      exchangeRate = await this.getExchangeRate(baseFeeId);
+    }
     const finalFeeInCurrency = new Decimal(totalFeeUSD).div(exchangeRate);
     
     // Calculate actual hash size based on detected hash types
@@ -634,7 +724,7 @@ export class UniversalFeeCalculator {
         keyCount: keyTypes.length,
         hashTypes: hashTypes,
         hashCount: hashTypes.length,
-        exchangeRate: (await aceExchangeService.getExchangeRate(baseFeeId)).toString()
+        exchangeRate: exchangeRate.toString()
       }
     };
   }
@@ -1179,6 +1269,7 @@ export class UniversalFeeCalculator {
     const ratePromises = Array.from(neededContractIds).map(async (contractId) => {
       const rate = await this.getExchangeRate(contractId);
       exchangeRates.set(contractId, rate);
+      return rate;
     });
     
     await Promise.all(ratePromises);
@@ -1252,8 +1343,8 @@ export class UniversalFeeCalculator {
       totalFee: totalFeeDecimal.toString(),
       totalFeeDecimal: totalFeeDecimal,
       networkFee: networkFee.fee,
-      contractFee: contractFee ? contractFee.fee : '0',
-      interfaceFee: interfaceFee ? interfaceFee.fee : '0',
+      contractFee: contractFee ? contractFee.fee : null,
+      interfaceFee: interfaceFee ? interfaceFee.fee : null,
       feeId: baseFeeId,
       contractFeeId: contractFeeId || null,
       interfaceFeeId: interfaceFeeId || null,

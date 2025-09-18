@@ -47,7 +47,7 @@ export async function testUnifiedCalculateFee() {
     assert(networkOnlyResult.protoObject.base.contractFeeAmount === undefined, 'Contract fee should not be added when not specified');
     
     assert(networkOnlyResult.totalFee === networkOnlyResult.networkFee, 'Total fee should equal network fee when no contract fee');
-    assert(networkOnlyResult.contractFee === '0', 'Contract fee should be 0 when not specified');
+    assert(networkOnlyResult.contractFee === null, 'Contract fee should be null when not specified');
     console.log('   ✅ Network fee only working\n');
 
     // Test 2: Network fee + contract fee (CoinTXN with contractFeeId)
@@ -123,7 +123,7 @@ export async function testUnifiedCalculateFee() {
 
     console.log(`   Total fee: ${mintResult.totalFee} ZRA`);
     console.log(`   Contract fee: ${mintResult.contractFee} ZRA`);
-    assert(mintResult.contractFee === '0', 'Contract fee should be 0 for non-CoinTXN transactions');
+    assert(mintResult.contractFee === null, 'Contract fee should be null for non-CoinTXN transactions');
     console.log('   ✅ Non-CoinTXN transaction handling working\n');
 
     // Test 5: Verify original proto object is not modified

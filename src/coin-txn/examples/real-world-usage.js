@@ -8,7 +8,7 @@
  * Memo's optional. Base memo more typically used. Transfer memo for multi-output if required.
  */
 
-import { createCoinTXN, createCoinTXNWithAutoFee } from '../index.js';
+import { createCoinTXN, sendCoinTXN} from '../index.js';
 import { 
   ED25519_TEST_KEYS,
   ED448_TEST_KEYS,
@@ -22,6 +22,7 @@ import {
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
+exampleSimplePayment()
 export async function exampleSimplePayment() {
   console.log('💸 Example 1: Simple Payment');
   
@@ -67,7 +68,6 @@ export async function exampleSimplePayment() {
  * This demonstrates how users would handle multiple wallets and recipients
  * by pulling data from different sources and constructing complex transactions.
  */
-exampleMultiPartyTransaction()
 export async function exampleMultiPartyTransaction() {
   console.log('👥 Example 2: Multi-Party Transaction');
   
@@ -190,70 +190,16 @@ export async function exampleComplexTransaction() {
   return transaction;
 }
 
-/**
- * Example 4: Automatic Fee Calculation
- * Alice sends money to Bob with automatically calculated fees
- * 
- * This demonstrates the enhanced fee system that automatically calculates
- * the optimal fee based on transaction size and current exchange rates.
- */
-export async function exampleAutomaticFeeCalculation() {
-  console.log('🤖 Example 4: Automatic Fee Calculation');
-  
-  // Pull wallet data from your data source
-  const aliceWallet = ED25519_TEST_KEYS.alice;
-  const bobAddress = TEST_WALLET_ADDRESSES.bob;
-  
-  console.log('📋 Wallet data pulled from data source:');
-  console.log('  Alice private key:', aliceWallet.privateKey.substring(0, 20) + '...');
-  console.log('  Alice public key:', aliceWallet.publicKey);
-  console.log('  Bob address:', bobAddress);
-  
-  // Construct input manually (as users would do)
-  const input = {
-    privateKey: aliceWallet.privateKey,
-    publicKey: aliceWallet.publicKey,
-    amount: '2.5',
-    feePercent: '100'
-  };
-  
-  // Construct output manually (as users would do)
-  const output = {
-    to: bobAddress,
-    amount: '2.5',
-    memo: 'Auto-calculated fee payment'
-  };
-  
-  // Create transaction with automatic fee calculation
-  const result = await createCoinTXNWithAutoFee([input], [output], '$ZRA+0000', {
-    baseFeeId: '$ZRA+0000',
-    autoCalculateFee: true, // Enable automatic fee calculation
-    contractFeeId: '$ZRA+0000',
-    contractFee: '0.001' // Optional contract fee
-  }, 'Automatic fee calculation demo');
-  
-  console.log('✅ Transaction created with automatic fees:', result.transaction.$typeName);
-  console.log('📤 Input amount:', input.amount, 'ZRA');
-  console.log('📥 Output amount:', output.amount, 'ZRA');
-  console.log('💰 Calculated base fee:', result.feeInfo.baseFee, 'ZRA');
-  console.log('📊 Fee calculation info:');
-  console.log('  - Transaction size:', result.feeInfo.calculationInfo.size, 'bytes');
-  console.log('  - Iterations:', result.feeInfo.calculationInfo.iterations);
-  console.log('  - Converged:', result.feeInfo.calculationInfo.converged);
-  console.log('  - Auto-calculated:', result.feeInfo.autoCalculated);
-  
-  return result;
-}
 
 /**
- * Example 5: Mixed Manual and Automatic Fees
+ * Example 4: Mixed Manual and Automatic Fees
  * Charlie sends money to multiple recipients with different fee strategies
  * 
  * This shows how users can choose between manual and automatic fee calculation
  * based on their specific needs and use cases.
  */
 export async function exampleMixedFeeStrategies() {
-  console.log('🔄 Example 5: Mixed Fee Strategies');
+  console.log('🔄 Example 4: Mixed Fee Strategies');
   
   // Pull wallet data from your data source
   const charlieWallet = ED25519_TEST_KEYS.charlie;
@@ -325,14 +271,14 @@ export async function exampleMixedFeeStrategies() {
 }
 
 /**
- * Example 6: Flexible Fee Instruments
+ * Example 5: Flexible Fee Instruments
  * Alice sends money using different fee instruments with automatic calculation
  * 
  * This demonstrates how users can specify fee instruments and let the system
  * automatically calculate the optimal amounts in those currencies.
  */
 export async function exampleFlexibleFeeInstruments() {
-  console.log('🎯 Example 6: Flexible Fee Instruments');
+  console.log('🎯 Example 5: Flexible Fee Instruments');
   
   // Pull wallet data from your data source
   const aliceWallet = ED25519_TEST_KEYS.alice;
@@ -405,14 +351,14 @@ export async function exampleFlexibleFeeInstruments() {
 }
 
 /**
- * Example 7: Interface Fees for Third-Party Services
+ * Example 6: Interface Fees for Third-Party Services
  * Alice sends money to Bob with interface fees for API service
  * 
  * This demonstrates how users can include interface fees for third-party services
  * like payment processors, API gateways, or marketplace fees.
  */
 export async function exampleInterfaceFees() {
-  console.log('🔌 Example 7: Interface Fees for Third-Party Services');
+  console.log('🔌 Example 6: Interface Fees for Third-Party Services');
   
   // Pull wallet data from your data source
   const aliceWallet = ED25519_TEST_KEYS.alice;
@@ -445,14 +391,14 @@ export async function exampleInterfaceFees() {
     contractFee: '0.001',
     interfaceFeeAmount: '0.005',
     interfaceFeeId: '$ZRA+0000',
-    interfaceAddress: 'api_service_provider_address' // Required when interfaceFeeId is specified
+    interfaceAddress: 'interface_provider_base58_address' // Required when interfaceFeeId is specified
   }, 'API service payment');
   
   console.log('✅ Transaction created with API service interface fee');
   console.log('💰 Base fee: Auto-calculated');
   console.log('💰 Contract fee: 0.001 ZRA');
   console.log('🔌 Interface fee: 0.005 ZRA (API service)');
-  console.log('📍 Interface provider:', 'api_service_provider_address');
+  console.log('📍 Interface provider:', 'interface_provider_base58_address');
   
   // Example 2: Payment with marketplace interface fee
   console.log('\n🔌 Strategy 2: Marketplace Interface Fee');
@@ -495,5 +441,153 @@ export async function exampleInterfaceFees() {
     apiService: apiServiceResult, 
     marketplace: marketplaceResult,
     noInterface: noInterfaceResult
+  };
+}
+
+/**
+ * Example 7: Sending Transactions with gRPC Configuration
+ * Alice sends money to Bob and demonstrates various ways to configure gRPC connection
+ * 
+ * This shows how users can send transactions to different endpoints with various
+ * configuration options for production, testing, and development environments.
+ */
+export async function exampleSendTransactionWithGrpcConfig() {
+  console.log('🚀 Example 7: Sending Transactions with gRPC Configuration');
+  
+  // Pull wallet data from your data source
+  const aliceWallet = ED25519_TEST_KEYS.alice;
+  const bobAddress = TEST_WALLET_ADDRESSES.bob;
+  
+  console.log('📋 Transaction sending data:');
+  console.log('  Alice wallet:', aliceWallet.address);
+  console.log('  Bob address:', bobAddress);
+  
+  // Construct input and output manually
+  const input = {
+    privateKey: aliceWallet.privateKey,
+    publicKey: aliceWallet.publicKey,
+    amount: '1.0',
+    feePercent: '100'
+  };
+  
+  const output = {
+    to: bobAddress,
+    amount: '1.0',
+    memo: 'gRPC configuration demo'
+  };
+  
+  // Create transaction
+  const transaction = await createCoinTXN([input], [output], '$ZRA+0000', {}, 'gRPC demo transaction');
+  
+  console.log('✅ Transaction created successfully');
+  
+  // Example 1: Default configuration (production)
+  console.log('\n🌐 Strategy 1: Default Production Configuration');
+  try {
+    await sendCoinTXN(transaction, {
+      // Uses defaults: host='routing.zerascan.io', port=50052, protocol='http'
+    });
+    console.log('✅ Transaction sent to production endpoint successfully');
+  } catch (error) {
+    console.log('❌ Production send failed:', error.message);
+  }
+  
+  // Example 2: Custom host and port
+  console.log('\n🌐 Strategy 2: Custom Host and Port');
+  try {
+    await sendCoinTXN(transaction, {
+      host: 'custom-node.example.com',
+      port: 8080,
+      protocol: 'https'
+    });
+    console.log('✅ Transaction sent to custom endpoint successfully');
+  } catch (error) {
+    console.log('❌ Custom endpoint send failed:', error.message);
+  }
+  
+  // Example 3: Full endpoint URL
+  console.log('\n🌐 Strategy 3: Full Endpoint URL');
+  try {
+    await sendCoinTXN(transaction, {
+      endpoint: 'https://testnet.zerascan.io:50052'
+    });
+    console.log('✅ Transaction sent to full endpoint URL successfully');
+  } catch (error) {
+    console.log('❌ Full endpoint send failed:', error.message);
+  }
+  
+  // Example 4: Development/Testing configuration
+  console.log('\n🌐 Strategy 4: Development Configuration');
+  try {
+    await sendCoinTXN(transaction, {
+      host: 'localhost',
+      port: 50052,
+      protocol: 'http',
+      nodeOptions: {
+        // Additional Node.js options for development
+        timeout: 30000, // 30 second timeout
+        keepAlive: true
+      }
+    });
+    console.log('✅ Transaction sent to development endpoint successfully');
+  } catch (error) {
+    console.log('❌ Development endpoint send failed:', error.message);
+  }
+  
+  // Example 5: Testnet configuration
+  console.log('\n🌐 Strategy 5: Testnet Configuration');
+  try {
+    await sendCoinTXN(transaction, {
+      host: 'testnet.zerascan.io',
+      port: 50052,
+      protocol: 'https',
+      nodeOptions: {
+        timeout: 15000, // 15 second timeout for testnet
+        retryAttempts: 3
+      }
+    });
+    console.log('✅ Transaction sent to testnet successfully');
+  } catch (error) {
+    console.log('❌ Testnet send failed:', error.message);
+  }
+  
+  // Example 6: High-performance configuration
+  console.log('\n🌐 Strategy 6: High-Performance Configuration');
+  try {
+    await sendCoinTXN(transaction, {
+      host: 'high-perf.zerascan.io',
+      port: 50052,
+      protocol: 'https',
+      nodeOptions: {
+        timeout: 5000, // 5 second timeout for speed
+        keepAlive: true,
+        maxRetries: 1,
+        compression: 'gzip'
+      }
+    });
+    console.log('✅ Transaction sent with high-performance config successfully');
+  } catch (error) {
+    console.log('❌ High-performance send failed:', error.message);
+  }
+  
+  console.log('\n🌐 gRPC Configuration Summary:');
+  console.log('  Default: Uses production routing.zerascan.io:50052');
+  console.log('  Custom Host/Port: Specify different server');
+  console.log('  Full Endpoint: Complete URL override');
+  console.log('  Development: Localhost with custom options');
+  console.log('  Testnet: Test environment configuration');
+  console.log('  High-Performance: Optimized for speed and reliability');
+  console.log('  Note: All configurations are parameter-based, no environment variables needed');
+  
+  return { 
+    transaction,
+    configurations: {
+      default: 'routing.zerascan.io:50052',
+      custom: 'custom-node.example.com:8080',
+      endpoint: 'https://testnet.zerascan.io:50052',
+      development: 'localhost:50052',
+      testnet: 'testnet.zerascan.io:50052',
+      highPerf: 'high-perf.zerascan.io:50052'
+    }
   };
 }
