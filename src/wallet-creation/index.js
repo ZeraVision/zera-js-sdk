@@ -154,8 +154,11 @@ export {
 
 // Re-export shared utilities
 export {
-  generateZeraAddress, generateZeraPublicKeyIdentifier, createBaseWallet
+  generateZeraPublicKeyIdentifier, createBaseWallet
 } from './shared.js';
+
+// Re-export address utilities
+export { generateZeraAddress } from '../shared/crypto/address-utils.js';
 
 // Re-export crypto utilities
 export { CryptoUtils } from './crypto-core.js';

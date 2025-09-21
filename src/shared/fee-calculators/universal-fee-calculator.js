@@ -16,7 +16,7 @@ import {
   calculatePercentage,
   Decimal 
 } from '../utils/amount-utils.js';
-import { aceExchangeService } from '../../api/zv-indexer/rate/ace.js';
+import { aceExchangeService } from '../../api/zv-indexer/rate/service.js';
 import { contractFeeService } from './contract-fee-service.js';
 import { toBinary } from '@bufbuild/protobuf';
 import {
@@ -197,6 +197,7 @@ function extractKeyTypesFromTransaction(protoObject) {
       for (const publicKey of protoObject.auth.publicKey) {
         if (publicKey.single) {
           // Single key - convert bytes back to string identifier for key type detection
+          // The bytes contain "A_c_" prefix + decoded base58 bytes
           const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
           const keyType = detectKeyTypeFromIdentifier(publicKeyString);
           if (keyType) {

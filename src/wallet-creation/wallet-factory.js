@@ -7,9 +7,10 @@ import {
   generateMnemonicPhrase, generateSeed, buildDerivationPath, 
   createHDWallet, deriveMultipleAddresses
 } from './hd-utils.js';
-import {
-  generateZeraAddress, generateZeraPublicKeyIdentifier, createBaseWallet
+import { 
+  generateZeraPublicKeyIdentifier, createBaseWallet
 } from './shared.js';
+import { generateZeraAddress } from '../shared/crypto/address-utils.js';
 import {
   MissingParameterError, InvalidKeyTypeError, InvalidHashTypeError, InvalidMnemonicLengthError
 } from './errors.js';

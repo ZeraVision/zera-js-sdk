@@ -233,5 +233,5 @@ export const MINIMAL_TEST_FEE_CONFIG = {
  * const output = getTestOutput('charlie', '3.0', 'Payment to Charlie');
  * 
  * // Complete transaction
- * const coinTxn = createCoinTXN(inputs, [output], DEFAULT_TEST_FEE_CONFIG);
+ * const coinTxn = createCoinTXN(inputs, output, DEFAULT_TEST_FEE_CONFIG);
  */

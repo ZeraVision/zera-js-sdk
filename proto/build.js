@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-import { rmSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { rmSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -37,6 +37,18 @@ try {
 
   console.log('✅ Protocol Buffers built successfully!');
   console.log(`📁 Generated files in: ${GENERATED_DIR}`);
+
+  // Fix import paths in generated files
+  console.log('🔧 Fixing import paths...');
+  fixImportPaths();
+  
+  // Fix Connect client imports
+  console.log('🔧 Fixing Connect client imports...');
+  fixConnectClientImports();
+  
+  // Create message type exports for Connect client compatibility
+  console.log('🔧 Creating message type exports...');
+  createMessageTypeExports();
 
   // Create a clean ES module that directly references the generated enums
   console.log('🔧 Creating clean ES module...');
@@ -254,4 +266,131 @@ ${Object.keys(enums).map(name => `  ${name}`).join(',\n')}
 
 export default PROTOBUF_ENUMS;
 `;
+}
+
+/**
+ * Create message type exports for Connect client compatibility
+ * This adds message type exports to the generated protobuf files
+ */
+function createMessageTypeExports() {
+  try {
+    const files = ['validator_pb.js', 'txn_pb.js', 'api_pb.js'];
+    
+    for (const file of files) {
+      const filePath = join(GENERATED_DIR, file);
+      if (existsSync(filePath)) {
+        let content = readFileSync(filePath, 'utf8');
+        
+        // Don't add message type exports to avoid circular dependencies
+        console.log(`✅ Skipped message type exports for ${file} to avoid circular dependencies`);
+      }
+    }
+    
+    console.log('✅ All message type exports skipped');
+  } catch (error) {
+    console.error('❌ Failed to create message type exports:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Generate message type exports from protobuf content
+ */
+function generateMessageTypeExports(content) {
+  try {
+    const exports = [];
+    const existingExports = new Set();
+    
+    // Find all existing exports to avoid duplicates
+    const existingMatches = content.matchAll(/export const (\w+) =/g);
+    for (const match of existingMatches) {
+      existingExports.add(match[1]);
+    }
+    
+    // Also check for exports that might be added later in the file
+    const laterExports = content.matchAll(/export const (\w+) = \1;/g);
+    for (const match of laterExports) {
+      existingExports.add(match[1]);
+    }
+    
+    // Find all schema exports and create corresponding message type exports
+    const schemaMatches = content.matchAll(/export const (\w+)Schema =/g);
+    
+    for (const match of schemaMatches) {
+      const schemaName = match[1];
+      const messageName = schemaName.replace('Schema', '');
+      
+      // Only add if it doesn't already exist
+      if (!existingExports.has(messageName)) {
+        exports.push(`export const ${messageName} = ${schemaName};`);
+      }
+    }
+    
+    if (exports.length > 0) {
+      return `// Message type exports for Connect client compatibility\nexport { create } from "@bufbuild/protobuf";\n\n${exports.join('\n')}`;
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn('⚠️ Failed to generate message type exports:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Fix Connect client imports
+ */
+function fixConnectClientImports() {
+  try {
+    const connectFiles = ['validator_connect.js', 'txn_connect.js', 'api_connect.js'];
+    
+    for (const file of connectFiles) {
+      const filePath = join(GENERATED_DIR, file);
+      if (existsSync(filePath)) {
+        let content = readFileSync(filePath, 'utf8');
+        
+        // Fix Empty import from @bufbuild/protobuf to @bufbuild/protobuf/wkt
+        content = content.replace(
+          /import { Empty, MethodKind } from "@bufbuild\/protobuf";/g,
+          'import { MethodKind } from "@bufbuild/protobuf"; import { EmptySchema as Empty } from "@bufbuild/protobuf/wkt";'
+        );
+        
+        writeFileSync(filePath, content);
+        console.log(`✅ Fixed Connect client imports in ${file}`);
+      }
+    }
+    
+    console.log('✅ All Connect client imports fixed');
+  } catch (error) {
+    console.error('❌ Failed to fix Connect client imports:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fix import paths in generated protobuf files by adding .js extensions
+ */
+function fixImportPaths() {
+  try {
+    const files = ['validator_pb.js', 'txn_pb.js', 'api_pb.js'];
+    
+    for (const file of files) {
+      const filePath = join(GENERATED_DIR, file);
+      if (existsSync(filePath)) {
+        let content = readFileSync(filePath, 'utf8');
+        
+        // Fix imports from other protobuf files
+        content = content.replace(/from "\.\/([^"]+)_pb"/g, 'from "./$1_pb.js"');
+        content = content.replace(/from "\.\/([^"]+)_pb\.js"/g, 'from "./$1_pb.js"');
+        
+        writeFileSync(filePath, content);
+        console.log(`✅ Fixed import paths in ${file}`);
+      }
+    }
+    
+    console.log('✅ All import paths fixed');
+  } catch (error) {
+    console.error('❌ Failed to fix import paths:', error.message);
+    throw error;
+  }
 }

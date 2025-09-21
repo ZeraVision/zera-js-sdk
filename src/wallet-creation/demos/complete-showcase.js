@@ -42,13 +42,12 @@ import {
   benchmarkHashAlgorithm 
 } from '../hash-utils.js';
 import { 
-  generateZeraAddress, 
   generateZeraPublicKeyFormat,
-  validateAddress,
   validatePublicKeyFormat,
   getWalletInfo,
   exportWallet
 } from '../shared.js';
+import { generateZeraAddress, validateAddress } from '../../shared/crypto/address-utils.js';
 import { KEY_TYPE, HASH_TYPE, ZERA_TYPE } from '../constants.js';
 
 runCompleteDemo();

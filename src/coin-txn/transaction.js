@@ -13,15 +13,14 @@ import {
 import { create } from '@bufbuild/protobuf';
 import { toBinary } from '@bufbuild/protobuf';
 import { protoInt64 } from '@bufbuild/protobuf';
-import { TXNService } from '../../proto/generated/txn_pb.js';
 import {
   toSmallestUnits,
   validateAmountBalance,
   Decimal
 } from '../shared/utils/amount-utils.js';
-import { getPublicKeyBytes } from '../shared/crypto/address-utils.js';
+import { getPublicKeyBytes, getAddressFromPublicKey, generateAddressFromPublicKey } from '../shared/crypto/address-utils.js';
 import { signTransactionData, createTransactionHash } from '../shared/crypto/signature-utils.js';
-import { getNonces } from '../shared/utils/nonce-manager.js';
+import { getNonces } from '../api/validator/nonce/index.js';
 import { UniversalFeeCalculator } from '../shared/fee-calculators/universal-fee-calculator.js';
 import { TRANSACTION_TYPE } from '../shared/protobuf-enums.js';
 import bs58 from 'bs58';
@@ -46,38 +45,51 @@ export function validateContractId(contractId) {
 /**
  * Process inputs and create authentication data
  * @param {Array} inputs - Input objects
- * @param {string} baseFeeId - Base fee ID
- * @param {string} contractId - Contract ID
+ * @param {string} contractID - Contract ID
+ * @param {Object} options - Nonce options
  * @returns {Promise<Object>} Processed input data
  */
-async function processInputs(inputs, baseFeeId, contractId) {
+async function processInputs(inputs, contractID, nonceOptions = {}) {
   const publicKeys = [];
   const inputTransfers = [];
   const addresses = [];
   
   try {
     // Extract addresses for nonce requests
+
+    // TODO 2025-09-20 -- this doesnt work with allowance and processes the address incorrectly
     for (const input of inputs) {
-      if (!input.publicKey) {
+
+      if (!input.publicKey && !input.allowanceAddress) {
         throw new Error(`Input ${inputs.indexOf(input)} is missing publicKey`);
       }
-      const address = getPublicKeyBytes(input.publicKey);
-      addresses.push(bs58.encode(address));
+
+      var address = "";
+
+      if (input.publicKey) {
+        address = generateAddressFromPublicKey(input.publicKey);
+      } else if (input.allowanceAddress) {
+        address = input.allowanceAddress;
+      } else {
+        throw new Error(`Input ${inputs.indexOf(input)} is missing or using unsupported publicKey type`);
+      }
+
+      addresses.push(address);
     }
     
-    // Get nonces for all inputs (as Decimals)
-    const nonceDecimals = await getNonces(addresses, contractId);
+    // Get nonces for all inputs
+    const nonceDecimals = await getNonces(addresses, nonceOptions);
     
     // Process each input
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
       
       // Store the full public key identifier (e.g., "A_c_pubkeybytes")
-      const publicKeyObj = create(PublicKey, { single: new Uint8Array(Buffer.from(input.publicKey, 'utf8')) });
+      const publicKeyObj = create(PublicKey, { single: getPublicKeyBytes(input.publicKey) });
       publicKeys.push(publicKeyObj);
       
       // Create input transfer
-      const finalAmount = toSmallestUnits(input.amount, baseFeeId);
+      const finalAmount = toSmallestUnits(input.amount, contractID);
       const feePercent = input.feePercent !== undefined ? input.feePercent : '100';
       const scaledFeePercent = new Decimal(feePercent).mul(1000000).toNumber();
       
@@ -101,12 +113,12 @@ async function processInputs(inputs, baseFeeId, contractId) {
 /**
  * Process outputs
  * @param {Array} outputs - Output objects
- * @param {string} baseFeeId - Base fee ID
+ * @param {string} contractId - Contract ID
  * @returns {Array} Processed output transfers
  */
-function processOutputs(outputs, baseFeeId) {
+function processOutputs(outputs, contractId) {
   return outputs.map(output => {
-    const finalAmount = toSmallestUnits(output.amount, baseFeeId);
+    const finalAmount = toSmallestUnits(output.amount, contractId);
     const data = {
       walletAddress: bs58.decode(output.to),
       amount: finalAmount
@@ -125,23 +137,22 @@ function processOutputs(outputs, baseFeeId) {
  * @param {Array} nonces - Nonces
  * @returns {Object} Transfer authentication
  */
-function createTransferAuth(publicKeys, signatures, nonces, allowanceAddresses = null, allowanceNonces = null) {
-  const authData = {
-    publicKey: publicKeys,
-    signature: signatures,
-    nonce: nonces
-  };
-  
-  // Only include allowance fields if they have values
-  if (allowanceAddresses && allowanceAddresses.length > 0) {
-    authData.allowanceAddress = allowanceAddresses;
-  }
-  if (allowanceNonces && allowanceNonces.length > 0) {
-    authData.allowanceNonce = allowanceNonces;
-  }
-  
+function createTransferAuth(
+  publicKeys,
+  signatures,
+  nonces,
+  allowanceAddresses = null,
+  allowanceNonces = null
+) {
+  const authData = {};
+  if (publicKeys && publicKeys.length > 0) authData.publicKey = publicKeys;
+  if (nonces && nonces.length > 0) authData.nonce = nonces;
+  if (signatures && signatures.length > 0) authData.signature = signatures;
+  if (allowanceAddresses && allowanceAddresses.length > 0) authData.allowanceAddress = allowanceAddresses;
+  if (allowanceNonces && allowanceNonces.length > 0) authData.allowanceNonce = allowanceNonces;
   return create(TransferAuthentication, authData);
 }
+
 
 /**
  * Create timestamp for protobuf
@@ -206,7 +217,7 @@ function createBaseTransaction(baseFeeId, baseFee, baseMemo) {
  * @param {string} [baseMemo] - Base memo for the transaction (optional)
  * @returns {Promise<proto.zera_txn.CoinTXN>} Signed and hashed transaction
  */
-export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {}, baseMemo = '') {
+export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {}, baseMemo = '', nonceOptions = {}) {
   // Validate inputs
   if (!Array.isArray(inputs) || !Array.isArray(outputs)) {
     throw new Error('Inputs and outputs must be arrays');
@@ -223,20 +234,20 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     baseFee,
     contractFeeId,
     contractFee,
-    interfaceFeeAmount,
     interfaceFeeId,
+    interfaceFeeAmount,
     interfaceAddress
   } = feeConfig;
 
   // Step 1: Process inputs (includes nonce generation)
-  const { publicKeys, inputTransfers, nonces } = await processInputs(inputs, baseFeeId, contractId);
+  const { publicKeys, inputTransfers, nonces } = await processInputs(inputs, contractId, nonceOptions);
 
   // Step 2: Process outputs
-  const outputTransfers = processOutputs(outputs, baseFeeId);
+  const outputTransfers = processOutputs(outputs, contractId);
 
   // Step 3: Validate balance
-  const inputAmounts = inputs.map(i => toSmallestUnits(i.amount, baseFeeId));
-  const outputAmounts = outputs.map(o => toSmallestUnits(o.amount, baseFeeId));
+  const inputAmounts = inputs.map(i => toSmallestUnits(i.amount, contractId));
+  const outputAmounts = outputs.map(o => toSmallestUnits(o.amount, contractId));
   validateAmountBalance(inputAmounts, outputAmounts);
 
   // Step 4: Validate fee percentages
@@ -311,11 +322,11 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     }
   }
 
-  // Step 8: Create initial transaction (without signatures)
+  // Step 8: Create initial transaction (without signatures and without hash) - Match Go SDK
   const coinTxnData = {
-    base: txnBase,
+    base: txnBase, // This base doesn't have hash yet
     contractId,
-    auth: createTransferAuth(publicKeys, null, nonces), // No signatures initially
+    auth: createTransferAuth(publicKeys, null, nonces), // Only add fields that have values
     inputTransfers,
     outputTransfers
   };
@@ -327,45 +338,34 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 
   let coinTxn = create(CoinTXN, coinTxnData);
 
-  // Step 9: Sign transaction (without hash)
-  const signatures = [];
+  // Step 9: Sign transaction (without hash) - Match Go SDK process exactly
   const serializedTxnWithoutHash = toBinary(CoinTXN, coinTxn);
+  
+  // Sign and add signatures directly to the existing transaction (like Go SDK)
+  // Initialize signature array if it doesn't exist (field was not present initially)
+  if (!coinTxn.auth.signature) {
+    coinTxn.auth.signature = [];
+  }
   
   for (let i = 0; i < inputs.length; i++) {
     try {
       const signature = signTransactionData(serializedTxnWithoutHash, inputs[i].privateKey, inputs[i].publicKey);
-      signatures.push(signature);
+      coinTxn.auth.signature.push(signature); // Add signature directly to existing auth
     } catch (error) {
       throw new Error(`Failed to sign transaction with input ${i}: ${error.message}`);
     }
   }
 
-  // Step 10: Create transaction with signatures
-  const finalAuth = createTransferAuth(publicKeys, signatures, nonces);
-  const coinTxnDataWithSignatures = {
-    ...coinTxnData,
-    auth: finalAuth
-  };
-
-  coinTxn = create(CoinTXN, coinTxnDataWithSignatures);
-
-  // Step 11: Serialize transaction with signatures and create hash
+  // Step 10: Marshal the transaction with signatures
   const serializedTxnWithSignatures = toBinary(CoinTXN, coinTxn);
+
+  // Step 11: Hash the serialized data with signatures
   const hash = createTransactionHash(serializedTxnWithSignatures);
 
-  // Step 12: Add hash to final transaction
-  const finalBaseData = {
-    ...txnBase,
-    hash
-  };
+  // Step 12: Add the hash to the existing transaction
+  coinTxn.base.hash = hash;
 
-  const finalTxnBase = create(BaseTXN, finalBaseData);
-  const finalCoinTxnData = {
-    ...coinTxnDataWithSignatures,
-    base: finalTxnBase
-  };
-
-  return create(CoinTXN, finalCoinTxnData);
+  return coinTxn;
 }
 
 
@@ -382,35 +382,8 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
  * @throws {Error} Error message with failure reason
  */
 export async function sendCoinTXN(coinTxn, grpcConfig = {}) {
-  const {
-    endpoint,
-    host = 'routing.zerascan.io',
-    port = 50052,
-    protocol = 'http',
-    nodeOptions
-  } = grpcConfig;
-
-  // Use endpoint if provided, otherwise construct from host:port
-  const resolved = endpoint ?? `${host}:${port}`;
-  const baseUrl = resolved.startsWith('http') ? resolved : `${protocol}://${resolved}`;
-
-  try {
-    const { createClient } = await import('@connectrpc/connect');
-    const { createGrpcTransport } = await import('@connectrpc/connect-node');
-    
-    const transport = createGrpcTransport({ baseUrl, ...nodeOptions });
-    const client = createClient(TXNService, transport);
-    
-    await client.coin(coinTxn);
-    
-    // Return transaction hash on success
-    return coinTxn.base?.hash ? 
-      Buffer.from(coinTxn.base.hash).toString('hex') : 
-      'Transaction sent successfully (no hash available)';
-      
-  } catch (error) {
-    throw new Error(`Failed to send CoinTXN: ${error.message}`);
-  }
+  const { submitCoinTransaction } = await import('../api/transaction/service.js');
+  return await submitCoinTransaction(coinTxn, grpcConfig);
 }
 
 

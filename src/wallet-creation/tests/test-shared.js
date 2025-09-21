@@ -1,10 +1,10 @@
 import { 
   validateMnemonic, 
-  validateAddress, 
   createBaseWallet, 
   validateKeyType, 
   validateHashTypesArray 
 } from '../shared.js';
+import { validateAddress } from '../../shared/crypto/address-utils.js';
 
 /**
  * Test 1: Mnemonic validation

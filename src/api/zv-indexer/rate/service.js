@@ -1,9 +1,11 @@
 /**
- * ACE (Authorized Currency Equivalent) Exchange Rate Fetcher
- * Fetches current exchange rates to convert USD fees to coin amounts
+ * ACE Exchange Rate Service
+ * 
+ * Handles fetching and caching exchange rates for currency conversion.
+ * Moved to structured organization.
  */
 
-import { Decimal } from '../../../shared/utils/amount-utils.js';
+import { Decimal } from '../../../../src/shared/utils/amount-utils.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -140,11 +142,6 @@ export class ACEExchangeRateService {
   }
 
   /**
-   * Get fallback exchange rate
-   * @param {string} contractId - Contract ID
-   * @returns {number} Fallback rate
-   */
-  /**
    * Get fallback rate for a contract ID with detailed information
    * @param {string} contractId - Contract ID to get fallback rate for
    * @returns {Object} Object containing rate and source information
@@ -175,19 +172,6 @@ export class ACEExchangeRateService {
     
     // No fallback available - return null to indicate no fallback
     return null;
-  }
-
-  /**
-   * Get fallback rate for a contract ID (legacy method for backward compatibility)
-   * @param {string} contractId - Contract ID to get fallback rate for
-   * @returns {number} Fallback rate
-   */
-  getFallbackRate(contractId) {
-    const fallbackInfo = this.getFallbackRateInfo(contractId);
-    if (!fallbackInfo) {
-      throw new Error(`No fallback rate available for "${contractId}"`);
-    }
-    return fallbackInfo.rate;
   }
 
   /**

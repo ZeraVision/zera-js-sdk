@@ -6,47 +6,9 @@ import {
   isValidKeyType,
   isValidHashType
 } from './constants.js';
-import { createHashChain } from './hash-utils.js';
 import { CryptoUtils } from './crypto-core.js';
 import bs58 from 'bs58';
 
-/**
- * Generate ZERA address from public key and hash types
- * 
- * ZERA Network uses a simple address format: base58-encoded hashed public key
- * This is different from Bitcoin-style addresses which include version bytes and checksums.
- * 
- * @param {Uint8Array} publicKey - Public key bytes
- * @param {string} keyType - Key type from KEY_TYPE enum
- * @param {Array<string>} hashTypes - Array of hash types from HASH_TYPE enum
- * @returns {string} Generated ZERA address (base58-encoded hashed public key)
- */
-export function generateZeraAddress(publicKey, keyType, hashTypes = []) {
-  if (!publicKey || !(publicKey instanceof Uint8Array)) {
-    throw new Error('Public key must be a Uint8Array');
-  }
-
-  if (!isValidKeyType(keyType)) {
-    throw new Error(`Invalid key type: ${keyType}`);
-  }
-
-  if (!Array.isArray(hashTypes) || hashTypes.length === 0) {
-    throw new Error('Hash types must be a non-empty array');
-  }
-
-  // Validate all hash types
-  for (const hashType of hashTypes) {
-    if (!isValidHashType(hashType)) {
-      throw new Error(`Invalid hash type: ${hashType}`);
-    }
-  }
-
-  // Apply hash chain to public key
-  const hashedPublicKey = createHashChain(hashTypes, publicKey);
-  
-  // Return simple base58-encoded hashed public key (ZERA Network format)
-  return bs58.encode(hashedPublicKey);
-}
 
 /**
  * Generate ZERA public key identifier (human-readable format with type prefixes)
@@ -140,45 +102,6 @@ export function createBaseWallet(
   };
 }
 
-/**
- * Validate ZERA address format
- * 
- * ZERA addresses are simple base58-encoded hashed public keys.
- * This function validates that the address is properly base58 encoded
- * and has a reasonable length for a hashed public key.
- * 
- * @param {string} address - Address to validate
- * @returns {boolean} True if valid ZERA address format
- */
-export function validateAddress(address) {
-  if (!address || typeof address !== 'string') {
-    return false;
-  }
-
-  try {
-    // Decode base58
-    const decoded = bs58.decode(address);
-    
-    // ZERA addresses should be hashed public keys (typically 32 bytes for SHA3-256, 64 for SHA3-512, etc.)
-    // Allow reasonable range for different hash algorithms
-    if (decoded.length < 16 || decoded.length > 128) {
-      return false;
-    }
-
-    // Check that it's not all zeros or all ones (basic sanity check)
-    const allZeros = decoded.every(byte => byte === 0);
-    const allOnes = decoded.every(byte => byte === 255);
-    
-    if (allZeros || allOnes) {
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    // Invalid base58 encoding
-    return false;
-  }
-}
 
 /**
  * Validate BIP39 mnemonic phrase
