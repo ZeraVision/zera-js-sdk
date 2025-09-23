@@ -366,60 +366,6 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 }
 
 
-function sanitizeGrpcPayload(value) {
-  const optionalFalseKeys = new Set(['safeSend']);
-
-  const visit = (input, keyPath = []) => {
-    if (input === undefined || input === null) {
-      return undefined;
-    }
-
-    if (input instanceof Uint8Array) {
-      return input.length === 0 ? undefined : input;
-    }
-
-    if (Array.isArray(input)) {
-      const pruned = input
-        .map((item, index) => visit(item, keyPath.concat(index)))
-        .filter((item) => item !== undefined);
-      return pruned.length > 0 ? pruned : undefined;
-    }
-
-    if (typeof input === 'object') {
-      const result = {};
-      for (const [key, value] of Object.entries(input)) {
-        if (key.startsWith('$')) {
-          continue;
-        }
-        const sanitized = visit(value, keyPath.concat(key));
-        if (sanitized !== undefined) {
-          result[key] = sanitized;
-        }
-      }
-      return Object.keys(result).length > 0 ? result : undefined;
-    }
-
-    if (typeof input === 'string') {
-      return input.length === 0 ? undefined : input;
-    }
-
-    if (typeof input === 'bigint') {
-      return input.toString();
-    }
-
-    if (typeof input === 'boolean') {
-      const currentKey = keyPath[keyPath.length - 1];
-      if (input === false && optionalFalseKeys.has(currentKey)) {
-        return undefined;
-      }
-      return input;
-    }
-
-    return input;
-  };
-
-  return visit(value) ?? {};
-}
 /**
  * Send a CoinTXN via gRPC using Connect client
  * @param {object} coinTxn - CoinTXN protobuf message
@@ -436,8 +382,7 @@ export async function sendCoinTXN(coinTxn, grpcConfig = {}) {
 
   try {
     const client = createTransactionClient(grpcConfig);
-    const requestPayload = sanitizeGrpcPayload(coinTxn);
-    const response = await client.submitCoinTransaction(requestPayload);
+    const response = await client.submitCoinTransaction(coinTxn);
     
     // Return transaction hash on success
     return coinTxn.base?.hash ? 

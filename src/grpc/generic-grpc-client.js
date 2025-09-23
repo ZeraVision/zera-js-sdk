@@ -7,6 +7,7 @@
 
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
+import sanitizeGrpcPayload from './utils/sanitize-grpc-payload.js';
 
 /**
  * Create a generic gRPC client for any protobuf service
@@ -62,10 +63,12 @@ export function createGenericGRPCClient(options) {
  */
 export function makeGRPCCall(client, method, request) {
   return new Promise((resolve, reject) => {
+    const sanitizedRequest = sanitizeGrpcPayload(request);
+
     if (process.env.DEBUG_GRPC_REQUESTS === 'true') {
       try {
         console.log('gRPC request to', method);
-        console.log(JSON.stringify(request, (key, value) => {
+        console.log(JSON.stringify(sanitizedRequest, (key, value) => {
           if (value instanceof Uint8Array) {
             return Buffer.from(value).toString('hex');
           }
@@ -76,7 +79,7 @@ export function makeGRPCCall(client, method, request) {
       }
     }
 
-    client[method](request, (error, response) => {
+    client[method](sanitizedRequest, (error, response) => {
       if (error) {
         reject(error);
       } else {
