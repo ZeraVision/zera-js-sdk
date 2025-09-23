@@ -18,11 +18,11 @@ import {
   validateAmountBalance,
   Decimal
 } from '../shared/utils/amount-utils.js';
-import { getPublicKeyBytes, getAddressFromPublicKey, generateAddressFromPublicKey } from '../shared/crypto/address-utils.js';
+import { getPublicKeyBytes, generateAddressFromPublicKey } from '../shared/crypto/address-utils.js';
 import { signTransactionData, createTransactionHash } from '../shared/crypto/signature-utils.js';
 import { getNonces } from '../api/validator/nonce/index.js';
 import { UniversalFeeCalculator } from '../shared/fee-calculators/universal-fee-calculator.js';
-import { TRANSACTION_TYPE } from '../shared/protobuf-enums.js';
+import { createTransactionClient } from '../grpc/transaction/transaction-client.js';
 import bs58 from 'bs58';
 
 /**
@@ -56,8 +56,6 @@ async function processInputs(inputs, contractID, nonceOptions = {}) {
   
   try {
     // Extract addresses for nonce requests
-
-    // TODO 2025-09-20 -- this doesnt work with allowance and processes the address incorrectly
     for (const input of inputs) {
 
       if (!input.publicKey && !input.allowanceAddress) {
@@ -382,8 +380,18 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
  * @throws {Error} Error message with failure reason
  */
 export async function sendCoinTXN(coinTxn, grpcConfig = {}) {
-  const { submitCoinTransaction } = await import('../api/transaction/service.js');
-  return await submitCoinTransaction(coinTxn, grpcConfig);
+
+  try {
+    const client = createTransactionClient(grpcConfig);
+    const response = await client.submitCoinTransaction(coinTxn);
+    
+    // Return transaction hash on success
+    return coinTxn.base?.hash ? 
+      Buffer.from(coinTxn.base.hash).toString('hex') : 
+      'Transaction sent successfully (no hash available)';
+  } catch (error) {
+    throw new Error(`Failed to submit coin transaction: ${error.message}`);
+  }
 }
 
 

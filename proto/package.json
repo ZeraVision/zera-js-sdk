@@ -19,6 +19,7 @@
   "dependencies": {
     "@bufbuild/protobuf": "^2.8.0",
     "@bufbuild/protoc-gen-es": "^2.7.0",
+    "@connectrpc/connect": "^2.1.0",
     "grpc-web": "^1.4.2"
   },
   "devDependencies": {
