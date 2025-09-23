@@ -37,10 +37,11 @@ export function createValidatorAPIClient(options = {}) {
      */
     async getNonce(address) {
       const request = {
-        wallet_address: bs58.decode(address), // Convert base58 to bytes
+        walletAddress: bs58.decode(address), // Convert base58 to bytes
         encoded: false
       };
       return await makeGRPCCall(this.client, 'Nonce', request);
     }
   };
 }
+

@@ -29,10 +29,8 @@ export function createGenericGRPCClient(options) {
 
   // Load the protobuf definition
   const packageDefinition = protoLoader.loadSync(protoFile, {
-    keepCase: true,
     longs: String,
     enums: String,
-    defaults: true,
     oneofs: true
   });
 
@@ -64,6 +62,20 @@ export function createGenericGRPCClient(options) {
  */
 export function makeGRPCCall(client, method, request) {
   return new Promise((resolve, reject) => {
+    if (process.env.DEBUG_GRPC_REQUESTS === 'true') {
+      try {
+        console.log('gRPC request to', method);
+        console.log(JSON.stringify(request, (key, value) => {
+          if (value instanceof Uint8Array) {
+            return Buffer.from(value).toString('hex');
+          }
+          return value;
+        }, 2));
+      } catch (logError) {
+        console.warn('Failed to log gRPC request', logError);
+      }
+    }
+
     client[method](request, (error, response) => {
       if (error) {
         reject(error);
@@ -73,3 +85,4 @@ export function makeGRPCCall(client, method, request) {
     });
   });
 }
+
