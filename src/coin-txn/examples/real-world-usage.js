@@ -478,7 +478,6 @@ export async function exampleInterfaceFees() {
  * Alice sends 1.5 ZRA to Bob from Charlie (assuming alice has permission)
  */
 
-exampleAllowancePayment()
 export async function exampleAllowancePayment() {
   console.log('💸 Example 7: Simple Allowance');
   
