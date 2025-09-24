@@ -18,12 +18,19 @@ import { createHash } from 'crypto';
  */
 export function signTransactionData(data, privateKeyBase58, publicKeyIdentifier) {
   const keyType = getKeyTypeFromPublicKey(publicKeyIdentifier);
-  const privateKeyBytes = bs58.decode(privateKeyBase58);
+  var privateKeyBytes = bs58.decode(privateKeyBase58);  
   
   if (keyType === 'ed25519') {
+
+    // Compatibility with some legacy systems
+    if (privateKeyBytes.length === 64) {
+      privateKeyBytes = privateKeyBytes.slice(0, 32);
+    }
+  
     const keyPair = Ed25519KeyPair.fromPrivateKey(privateKeyBytes);
     return keyPair.sign(data);
   } else if (keyType === 'ed448') {
+    // Ed448KeyPair now supports both 32-byte and 57-byte private keys
     const keyPair = Ed448KeyPair.fromPrivateKey(privateKeyBytes);
     return keyPair.sign(data);
   } else {

@@ -1069,8 +1069,8 @@ async function demonstrateEnhancedStorage() {
       console.log('');
     });
 
-    // ===== COMPREHENSIVE DEMONSTRATION =====
-    console.log('🎯 Comprehensive Demonstration (Using Keychain Storage):');
+    // ===== DEMONSTRATION =====
+    console.log('🎯 Demonstration (Using Keychain Storage):');
     
     const storageManager = new EnhancedWalletStorageManager('keychain');
     
@@ -1271,7 +1271,7 @@ async function demonstrateEnhancedStorage() {
     console.log('   ✅ Count and statistics');
     console.log('   ✅ ED25519 + BLAKE3 default configuration');
 
-    console.log('\n🎉 Enhanced storage demonstration completed successfully!');
+    console.log('\n🎉 Storage demonstration completed!');
 
   } catch (error) {
     console.error('❌ Error:', error.message);

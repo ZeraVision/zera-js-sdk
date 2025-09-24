@@ -22,7 +22,7 @@ import {
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
-exampleSimplePayment()
+//exampleSimplePayment()
 export async function exampleSimplePayment() {
   console.log('💸 Example 1: Simple Payment');
   
@@ -478,7 +478,7 @@ export async function exampleInterfaceFees() {
  * Alice sends 1.5 ZRA to Bob from Charlie (assuming alice has permission)
  */
 
-//exampleAllowancePayment()
+exampleAllowancePayment()
 export async function exampleAllowancePayment() {
   console.log('💸 Example 7: Simple Allowance');
   
@@ -496,32 +496,29 @@ export async function exampleAllowancePayment() {
     {
       privateKey: aliceWallet.privateKey,
       publicKey: aliceWallet.publicKey,
-      feePercent: '100'  // Authorizee ALWAYS pays 100% of fees for allowance()
+      feePercent: '100'  // Authorizee ALWAYS pays 100% of fees for allowance() (shown in example for clarity)
     },
     //allowance starts at index [1]
     {
-      allowanceAddress: "3yygVMvY5DdRENZuM4J7NUXwiMhyfZE1nBfjnnodeHve",
-      amount: '1000000',
+      allowanceAddress: bobAddress,
+      amount: '2.5',
     }
   ];
   
   // Construct multiple outputs manually
   const outputs = [
     {
-      //to: charlieAddress,
-      //amount: '2.5',
-      to: "84m18TDfiV6svdYFpHfP8ysRb3sxZ8zVjDaJNutLu4ZD",
-      amount: '1000000',
+      to: charlieAddress,
+      amount: '2.5',
     }
   ];
   
   // Create transaction (fully automatic fee calculation with default instruments)
-  const transaction = await createCoinTXN(inputs, outputs, '$ZRA+0000', {}, 'ROL');
+  const transaction = await createCoinTXN(inputs, outputs, '$ZRA+0000', {}, 'ROL', {
+    host: '146.190.114.124',
+  });
   
   console.log('✅ Transaction created:', transaction.$typeName);
-  console.log('📤 Input amount:', input.amount, 'ZRA');
-  console.log('📥 Output amount:', output.amount, 'ZRA');
-  console.log('💳 Fee percentage:', input.feePercent + '%');
 
   var hash = await sendCoinTXN(transaction, {
     host: '146.190.114.124',

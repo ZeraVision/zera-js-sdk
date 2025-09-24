@@ -1,7 +1,7 @@
 /**
  * Validator Nonce Service Examples
  * 
- * This provides comprehensive examples for the validator nonce service.
+ * This provides examples for the validator nonce service.
  */
 
 import { getNonce, getNonces } from '../service.js';
@@ -15,7 +15,7 @@ export async function runNonceExamples() {
   
   const examples = [
     { name: 'Basic Usage', runner: basicUsageExample },
-    { name: 'Advanced Features', runner: advancedFeaturesExample },
+    { name: 'Additional Features', runner: advancedFeaturesExample },
     { name: 'Error Handling', runner: errorHandlingExample },
     { name: 'Performance', runner: performanceExample },
     { name: 'Integration', runner: integrationExample }
@@ -61,7 +61,7 @@ async function basicUsageExample() {
 }
 
 /**
- * Example 2: Advanced Features
+ * Example 2: Additional Features
  */
 async function advancedFeaturesExample() {
   console.log('Getting nonces for multiple test addresses with custom config...');

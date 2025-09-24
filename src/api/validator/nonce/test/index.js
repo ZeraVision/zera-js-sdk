@@ -1,7 +1,7 @@
 /**
  * Validator Nonce Service Tests
  * 
- * This provides comprehensive tests for the validator nonce service.
+ * This provides tests for the validator nonce service.
  */
 
 import { getNonce, getNonces } from '../service.js';

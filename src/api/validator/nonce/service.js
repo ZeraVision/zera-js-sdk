@@ -18,6 +18,12 @@ export async function getNonce(address, options = {}) {
   try {
     const client = createValidatorAPIClient(options);
     const response = await client.getNonce(address);
+
+    // Address likely doesn't exist, default to 1
+    if (!response.nonce) {
+      return new Decimal(1);
+    }
+    
     return new Decimal(response.nonce.toString()).add(1);
   } catch (error) {
     throw new Error(`Failed to get nonce from validator: ${error.message}`);

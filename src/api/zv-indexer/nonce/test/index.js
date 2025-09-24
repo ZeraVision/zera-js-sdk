@@ -1,7 +1,7 @@
 /**
  * ZV-Indexer Nonce Service Tests
  * 
- * This provides comprehensive tests for the ZV-Indexer nonce service.
+ * This provides tests for the ZV-Indexer nonce service.
  */
 
 import { createZVIndexerNonceService } from '../service.js';

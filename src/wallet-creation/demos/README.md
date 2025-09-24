@@ -1,6 +1,6 @@
 # Demos
 
-This folder contains comprehensive demonstrations showcasing the full capabilities of the ZERA wallet creation system.
+This folder contains demonstrations of the ZERA wallet creation system.
 
 ## 📁 Contents
 
@@ -11,7 +11,7 @@ This folder contains comprehensive demonstrations showcasing the full capabiliti
   - SLIP-0010 compliance demonstration
   - Hash algorithms showcase
   - Complete wallet creation workflow
-  - Advanced features demonstration
+  - Additional features demonstration
 
 - **`unified-curves.js`** - Unified curves demonstration
   - Shows how Ed25519 and Ed448 work together
@@ -46,11 +46,11 @@ node src/wallet-creation/demos/complete-showcase.js
 ## 🎯 Purpose
 
 These demos are designed to:
-- **Showcase capabilities** to stakeholders or users
+- **Show capabilities** to stakeholders or users
 - **Demonstrate real-world usage** scenarios
-- **Provide comprehensive overview** of the system
+- **Provide overview** of the system
 - **Serve as educational tools** for learning the API
-- **Highlight advanced features** and use cases
+- **Highlight additional features** and use cases
 
 ## 📚 When to Use
 
@@ -58,5 +58,5 @@ These demos are designed to:
 - Teaching new team members
 - Documenting system capabilities
 - Creating marketing materials
-- Understanding advanced features
+- Understanding additional features
 - Learning complete workflows

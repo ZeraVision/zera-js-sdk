@@ -78,7 +78,7 @@ async function quickStart() {
     console.log(`   • Full SLIP-0010 compliance with hardened derivation`);
     console.log(`   • Extended keys (xpub/xpriv) for each wallet`);
     console.log(`   • Secure memory clearing available for all wallets`);
-    console.log('\n💡 You now have 6 fully functional HD wallets with memory safety!');
+    console.log('\n💡 Created 6 HD wallets with memory safety features');
 
     // ===== MEMORY SAFETY DEMONSTRATION =====
     console.log('\n🧹 Memory Safety Demonstration:');

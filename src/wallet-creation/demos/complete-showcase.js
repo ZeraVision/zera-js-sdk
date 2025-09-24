@@ -79,10 +79,10 @@ await demonstrateSLIP0010Compliance();
     // Section 6: Complete Wallet Creation
     await demonstrateWalletCreation();
     
-    // Section 7: Advanced Features
+    // Section 7: Additional Features
     await demonstrateAdvancedFeatures();
     
-    console.log('\n🎉 Demo completed successfully!');    
+    console.log('\n🎉 Demo finished!');    
   } catch (error) {
     console.error('❌ Demo failed:', error.message);
     console.error('Stack trace:', error.stack);
@@ -361,10 +361,10 @@ async function demonstrateWalletCreation() {
 }
 
 /**
- * Demonstrate advanced features
+ * Demonstrate additional features
  */
 async function demonstrateAdvancedFeatures() {
-  console.log('🚀 Section 7: Advanced Features');
+  console.log('🚀 Section 7: Additional Features');
   console.log('--------------------------------');
   
   // HD wallet information

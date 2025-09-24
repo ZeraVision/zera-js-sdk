@@ -13,7 +13,7 @@ ZV-Indexer provides continuous on-chain activity indexing for low-latency access
 - Low-latency access to blockchain data
 - Real-time updates for blocks, transactions, and states
 
-### Advanced Access Control
+### Additional Access Control
 - Standard API Keys support
 - Bearer token authentication for reduced latency
 - Flexible access control options

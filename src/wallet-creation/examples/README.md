@@ -29,7 +29,7 @@ These examples are designed to be:
 - **Simple and focused** - one concept per example
 - **Copy-paste ready** - minimal dependencies and setup
 - **Quick to understand** - shows the essence without complexity
-- **Production-ready** - can be used as starting point for real code
+- **Ready to use** - can be used as starting point for real code
 
 ## 📚 When to Use
 

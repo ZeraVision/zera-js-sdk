@@ -65,6 +65,9 @@ export function toAmountString(amount, contractId = '$ZRA+0000') {
  * @returns {string} Amount in smallest units as string
  */
 export function toSmallestUnits(amount, contractId = '$ZRA+0000') {
+  if (amount === undefined || amount === null || amount === '') {
+    return;
+  }
   const decimalAmount = toDecimal(amount);
   const decimals = getTokenDecimals(contractId);
   const multiplier = new Decimal(10).pow(decimals);
@@ -211,7 +214,7 @@ export function parseAmount(input) {
   return toDecimal(cleaned);
 }
 
-// Export Decimal class for advanced usage
+// Export Decimal class for additional usage
 export { Decimal };
 
 // Re-export getTokenDecimals from token-config for convenience

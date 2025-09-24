@@ -176,8 +176,8 @@ async function demoUnifiedCurves() {
     
     const summary = {
       'Library Used': '@noble/curves (unified)',
-      'Ed25519 Support': '✅ Full production-ready',
-      'Ed448 Support': '✅ Full production-ready',
+      'Ed25519 Support': '✅ Working',
+      'Ed448 Support': '✅ Working',
       'SLIP-0010 Compliance': '✅ Full HD wallet support',
       'BIP39 Compliance': '✅ Mnemonic generation & validation',
       'SLIP-0010 Compliance': '✅ Multi-account structure (hardened)',
@@ -192,8 +192,8 @@ async function demoUnifiedCurves() {
     }
     
     console.log('\n🎉 Demo completed successfully!');
-    console.log('✨ Both Ed25519 and Ed448 are now fully functional using @noble/curves');
-    console.log('🔐 Full SLIP-0010 compliance achieved with production-ready cryptography');
+    console.log('✨ Both Ed25519 and Ed448 are working with @noble/curves');
+    console.log('🔐 SLIP-0010 compliance implemented');
     
   } catch (error) {
     console.error('❌ Demo failed:', error.message);

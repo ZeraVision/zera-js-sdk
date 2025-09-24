@@ -53,6 +53,8 @@ async function processInputs(inputs, contractID, nonceOptions = {}) {
   const publicKeys = [];
   const inputTransfers = [];
   const addresses = [];
+
+  var isAllowance = false;
   
   try {
     // Extract addresses for nonce requests
@@ -60,6 +62,8 @@ async function processInputs(inputs, contractID, nonceOptions = {}) {
 
       if (!input.publicKey && !input.allowanceAddress) {
         throw new Error(`Input ${inputs.indexOf(input)} is missing publicKey`);
+      } else if (input.allowanceAddress) {
+        isAllowance = true;
       }
 
       var address = "";
@@ -77,31 +81,67 @@ async function processInputs(inputs, contractID, nonceOptions = {}) {
     
     // Get nonces for all inputs
     const nonceDecimals = await getNonces(addresses, nonceOptions);
+
+    // For allowance transactions, split the results more efficiently
+    let allowanceNonceDecimals = [];
+    let allowanceAddresses = [];
+    let finalNonceDecimals = nonceDecimals;
+    let finalAddresses = addresses;
+
+    if (isAllowance) {
+      // Extract allowance data: everything from index 1 onwards (maintaining order)
+      allowanceNonceDecimals = nonceDecimals.slice(1);
+      allowanceAddresses = addresses.slice(1);
+      
+      // Keep only index 0 for the main transaction (non-allowance)
+      finalNonceDecimals = nonceDecimals.slice(0, 1);
+      finalAddresses = addresses.slice(0, 1);
+    }
     
     // Process each input
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
-      
-      // Store the full public key identifier (e.g., "A_c_pubkeybytes")
-      const publicKeyObj = create(PublicKey, { single: getPublicKeyBytes(input.publicKey) });
-      publicKeys.push(publicKeyObj);
+
+      // Add public key for auth
+      if (input.publicKey) {
+        const publicKeyObj = create(PublicKey, { single: getPublicKeyBytes(input.publicKey) });
+        publicKeys.push(publicKeyObj);
+      } else if (!input.publicKey && !isAllowance) {
+        throw new Error(`Input ${inputs.indexOf(input)} is missing publicKey`);
+      } 
+
+      // Allowance authorizor does not have an input
+      if (isAllowance && input.publicKey) {
+        continue;
+      }
       
       // Create input transfer
       const finalAmount = toSmallestUnits(input.amount, contractID);
       const feePercent = input.feePercent !== undefined ? input.feePercent : '100';
       const scaledFeePercent = new Decimal(feePercent).mul(1000000).toNumber();
       
-      inputTransfers.push(create(InputTransfers, {
-        index: i, // Use number instead of BigInt for serialization compatibility
+      const inputTransferData = {
+        index: i,
         amount: finalAmount,
         feePercent: scaledFeePercent
-      }));
+      };
+      
+      inputTransfers.push(create(InputTransfers, inputTransferData));
     }
     
     // Convert Decimal nonces to uint64 using protobuf utilities
-    const nonces = nonceDecimals.map(nonce => protoInt64.uParse(nonce.toString()));
+    const nonces = finalNonceDecimals.map(nonce => protoInt64.uParse(nonce.toString()));
     
-    return { publicKeys, inputTransfers, nonces };
+    // Parse allowance nonces to uint64 and handle empty arrays
+    const allowanceNonces = allowanceNonceDecimals.length > 0 
+      ? allowanceNonceDecimals.map(nonce => protoInt64.uParse(nonce.toString()))
+      : null;
+    
+    const finalAllowanceAddresses = allowanceAddresses.length > 0 
+      ? allowanceAddresses.map(addr => bs58.decode(addr)) 
+      : null;
+    
+    return { publicKeys, inputTransfers, nonces, allowanceAddresses: finalAllowanceAddresses, allowanceNonces };
   } catch (error) {
     console.error('Error in processInputs:', error);
     throw error;
@@ -118,9 +158,14 @@ function processOutputs(outputs, contractId) {
   return outputs.map(output => {
     const finalAmount = toSmallestUnits(output.amount, contractId);
     const data = {
-      walletAddress: bs58.decode(output.to),
-      amount: finalAmount
+      walletAddress: bs58.decode(output.to)
     };
+    
+    // Only include amount if it's not '0' or empty
+    if (finalAmount && finalAmount !== '0' && finalAmount !== 0) {
+      data.amount = finalAmount;
+    }
+    
     if (output.memo && output.memo.trim() !== '') {
       data.memo = output.memo;
     }
@@ -237,7 +282,16 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
   } = feeConfig;
 
   // Step 1: Process inputs (includes nonce generation)
-  const { publicKeys, inputTransfers, nonces } = await processInputs(inputs, contractId, nonceOptions);
+  const { publicKeys, inputTransfers, nonces, allowanceAddresses, allowanceNonces } = await processInputs(inputs, contractId, nonceOptions);
+
+  // Used for signatures at bottom, accounts for allowance inputs (filtered to exclude allowance-based inputs)
+  const signersArray = JSON.parse(JSON.stringify(inputs)).filter(input => !input.allowanceAddress);
+
+  // If allowance, remove them from input
+  if (allowanceAddresses && allowanceAddresses.length > 0) {    
+    // Remove index 0 from inputs (allowance authorizer)
+    inputs.splice(0, 1);
+  }
 
   // Step 2: Process outputs
   const outputTransfers = processOutputs(outputs, contractId);
@@ -263,12 +317,13 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
   let finalContractFee = contractFee;
   
   if (shouldUseAutoBaseFee || shouldUseAutoContractFee || shouldUseInterfaceFee) {
+
     // Create a temporary transaction without fees for size calculation
     const tempTxnBase = createBaseTransaction(baseFeeId, '1', baseMemo); // Use 1 fee temporarily
     const tempCoinTxnData = {
       base: tempTxnBase,
       contractId,
-      auth: createTransferAuth(publicKeys, null, nonces), // No signatures initially
+      auth: createTransferAuth(publicKeys, null, nonces, allowanceAddresses, allowanceNonces), // No signatures initially
       inputTransfers,
       outputTransfers
     };
@@ -323,7 +378,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
   const coinTxnData = {
     base: txnBase, // This base doesn't have hash yet
     contractId,
-    auth: createTransferAuth(publicKeys, null, nonces), // Only add fields that have values
+    auth: createTransferAuth(publicKeys, null, nonces, allowanceAddresses, allowanceNonces), // Only add fields that have values
     inputTransfers,
     outputTransfers
   };
@@ -344,9 +399,9 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     coinTxn.auth.signature = [];
   }
   
-  for (let i = 0; i < inputs.length; i++) {
+  for (let i = 0; i < signersArray.length; i++) {
     try {
-      const signature = signTransactionData(serializedTxnWithoutHash, inputs[i].privateKey, inputs[i].publicKey);
+      const signature = signTransactionData(serializedTxnWithoutHash, signersArray[i].privateKey, signersArray[i].publicKey);
       coinTxn.auth.signature.push(signature); // Add signature directly to existing auth
     } catch (error) {
       throw new Error(`Failed to sign transaction with input ${i}: ${error.message}`);

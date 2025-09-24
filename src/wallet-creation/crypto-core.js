@@ -549,14 +549,30 @@ export class Ed25519KeyPair {
 
 /**
  * Ed448 key pair implementation using @noble/curves
- * Full production-ready implementation
+ * Implementation with support for both 32-byte and 57-byte private keys
  */
 export class Ed448KeyPair {
   constructor(privateKey) {
     this.privateKey = privateKey;
-    // Ed448 expects 57-byte private keys, but SLIP-0010 generates 32-byte keys
-    // We need to expand the 32-byte key to 57 bytes for Ed448
-    this.expandedPrivateKey = this.expandPrivateKey(privateKey);
+    
+    // Handle both 32-byte (SLIP-0010) and 57-byte (raw Ed448) private keys
+    if (privateKey.length === 32) {
+      // SLIP-0010 32-byte key - expand to 57 bytes
+      this.expandedPrivateKey = this.expandPrivateKey(privateKey);
+      this.isExpanded = true;
+    } else if (privateKey.length === 57) {
+      // Raw 57-byte Ed448 key - use directly
+      this.expandedPrivateKey = new Uint8Array(privateKey);
+      this.isExpanded = false;
+      
+      // Validate the raw 57-byte key
+      if (!Ed448KeyPair.isValidEd448PrivateKey(this.expandedPrivateKey)) {
+        throw new Error('Invalid 57-byte Ed448 private key');
+      }
+    } else {
+      throw new Error(`Unsupported private key length: ${privateKey.length} bytes. Expected 32 (SLIP-0010) or 57 (raw Ed448) bytes.`);
+    }
+    
     this.publicKey = ed448.getPublicKey(this.expandedPrivateKey);
   }
 
@@ -601,18 +617,25 @@ export class Ed448KeyPair {
 
   /**
    * Create key pair from private key
-   * @param {Uint8Array} privateKey - Private key bytes (32 bytes from SLIP-0010)
+   * @param {Uint8Array} privateKey - Private key bytes (32 bytes from SLIP-0010 or 57 bytes raw Ed448)
    * @returns {Ed448KeyPair} Key pair
    */
   static fromPrivateKey(privateKey) {
-    if (!privateKey || privateKey.length !== 32) {
-      throw new Error('Private key must be exactly 32 bytes');
+    if (!privateKey) {
+      throw new Error('Private key is required');
     }
     
-    // Validate that the private key has sufficient entropy
-    const entropy = this.calculateEntropy(privateKey);
-    if (entropy < 50) { // Minimum entropy threshold for Ed448 (realistic for 32 bytes)
-      throw new Error(`Private key entropy too low for Ed448 security: ${entropy.toFixed(2)} bits (minimum: 50)`);
+    if (privateKey.length === 32) {
+      // Validate that the 32-byte private key has sufficient entropy
+      const entropy = this.calculateEntropy(privateKey);
+      if (entropy < 50) { // Minimum entropy threshold for Ed448 (realistic for 32 bytes)
+        throw new Error(`Private key entropy too low for Ed448 security: ${entropy.toFixed(2)} bits (minimum: 50)`);
+      }
+    } else if (privateKey.length === 57) {
+      // For 57-byte keys, validation is done in the constructor
+      // No additional entropy check needed as the key is already in Ed448 format
+    } else {
+      throw new Error(`Unsupported private key length: ${privateKey.length} bytes. Expected 32 (SLIP-0010) or 57 (raw Ed448) bytes.`);
     }
     
     return new Ed448KeyPair(privateKey);
@@ -707,11 +730,23 @@ export class Ed448KeyPair {
   }
 
   /**
-   * Get private key in base58 format (original 32-byte SLIP-0010 key)
+   * Get private key in base58 format (original key format)
    * @returns {string} Base58 private key
    */
   getPrivateKeyBase58() {
     return bs58.encode(this.privateKey);
+  }
+
+  /**
+   * Get the original private key format information
+   * @returns {Object} Key format information
+   */
+  getKeyFormat() {
+    return {
+      originalLength: this.privateKey.length,
+      isExpanded: this.isExpanded,
+      format: this.privateKey.length === 32 ? 'SLIP-0010' : 'raw-ed448'
+    };
   }
 
   /**

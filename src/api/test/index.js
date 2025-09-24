@@ -1,7 +1,7 @@
 /**
  * API Test Suite
  * 
- * This provides comprehensive testing for all API services.
+ * This provides testing for all API services.
  */
 
 import { runNonceTests } from '../validator/nonce/test/index.js';

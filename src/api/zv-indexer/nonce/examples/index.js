@@ -1,7 +1,7 @@
 /**
  * ZV-Indexer Nonce Service Examples
  * 
- * This provides comprehensive examples for the ZV-Indexer nonce service.
+ * This provides examples for the ZV-Indexer nonce service.
  */
 
 import { createZVIndexerNonceService } from '../service.js';
@@ -15,7 +15,7 @@ export async function runZVIndexerNonceExamples() {
   
   const examples = [
     { name: 'Basic Usage', runner: basicUsageExample },
-    { name: 'Advanced Features', runner: advancedFeaturesExample },
+    { name: 'Additional Features', runner: advancedFeaturesExample },
     { name: 'Error Handling', runner: errorHandlingExample },
     { name: 'Performance', runner: performanceExample },
     { name: 'Integration', runner: integrationExample }
@@ -67,10 +67,10 @@ async function basicUsageExample() {
 }
 
 /**
- * Example 2: Advanced Features
+ * Example 2: Additional Features
  */
 async function advancedFeaturesExample() {
-  console.log('Testing advanced features with test addresses...');
+  console.log('Testing additional features with test addresses...');
   
   const service = createZVIndexerNonceService({
     baseUrl: 'https://api.zerascan.io/v1',

@@ -1,7 +1,7 @@
 /**
  * API Examples Showcase
  * 
- * This provides comprehensive examples for all API services.
+ * This provides examples for all API services.
  */
 
 import { runNonceExamples } from '../validator/nonce/examples/index.js';

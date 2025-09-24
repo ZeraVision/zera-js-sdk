@@ -1,7 +1,7 @@
 /**
  * ACE Exchange Rate Service Tests
  * 
- * This provides comprehensive tests for the ACE exchange rate service.
+ * This provides tests for the ACE exchange rate service.
  */
 
 import { getExchangeRate, convertUSDToCurrency } from '../service.js';

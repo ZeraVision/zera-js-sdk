@@ -13,7 +13,7 @@ import { Ed448KeyPair } from '../crypto-core.js';
  * Comprehensive ED448 test to verify key expansion and functionality
  */
 async function testEd448Comprehensive() {
-  console.log('🔍 Testing ED448 implementation comprehensively...\n');
+  console.log('🔍 Testing ED448 implementation...\n');
   
   try {
     // Test 1: Create ED448 wallet and verify key lengths
@@ -149,7 +149,7 @@ async function testEd448Comprehensive() {
     console.log(`   Created ${iterations} ED448 wallets in ${endTime - startTime}ms`);
     console.log(`   Average time per wallet: ${avgTime.toFixed(2)}ms`);
     
-    console.log('\n🎉 All ED448 comprehensive tests completed successfully!');
+    console.log('\n🎉 All ED448 tests completed successfully!');
     console.log('\n📊 Summary:');
     console.log('   ✅ ED448 wallet creation works correctly');
     console.log('   ✅ SLIP-0010 private keys are 32 bytes (correct)');
@@ -161,7 +161,7 @@ async function testEd448Comprehensive() {
     console.log('   ✅ Performance is reasonable');
     
   } catch (error) {
-    console.error('❌ ED448 comprehensive test failed:', error.message);
+    console.error('❌ ED448 test failed:', error.message);
     console.error('Stack trace:', error.stack);
     throw error;
   }

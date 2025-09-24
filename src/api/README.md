@@ -7,16 +7,16 @@ src/api/
 ├── validator/
 │   └── nonce/
 │       ├── service.js          # Nonce service implementation
-│       ├── examples.js         # 5 comprehensive examples
+│       ├── examples.js         # 5 examples
 │       └── index.js            # Clean exports
 ├── zv-indexer/
 │   ├── nonce/
 │   │   ├── service.js          # ZV-Indexer nonce service
-│   │   ├── examples.js         # 5 comprehensive examples
+│   │   ├── examples.js         # 5 examples
 │   │   └── index.js            # Clean exports
 │   ├── rate/
 │   │   ├── service.js          # ACE exchange rate service
-│   │   ├── examples.js         # 5 comprehensive examples
+│   │   ├── examples.js         # 5 examples
 │   │   └── index.js            # Clean exports
 │   └── README.md               # ZV-Indexer documentation
 ├── test/
@@ -118,7 +118,7 @@ const currencyAmount = await convertUSDToCurrency(10.50, '$ZRA+0000');
 ## 🧪 **Testing**
 
 ### **Individual Service Tests**
-Each service has 5 comprehensive tests using **real test wallet data**:
+Each service has 5 tests using **real test wallet data**:
 1. **Basic Functionality** - Simple service calls with Alice's address
 2. **Input Validation** - Invalid inputs and edge cases
 3. **Error Handling** - Network errors and timeouts
@@ -129,7 +129,7 @@ Each service has 5 comprehensive tests using **real test wallet data**:
 ```bash
 node src/api/test/index.js
 ```
-Runs all service tests and provides comprehensive results.
+Runs all service tests and provides results.
 
 ## 📚 **Examples**
 
@@ -137,12 +137,12 @@ Runs all service tests and provides comprehensive results.
 ```bash
 node src/api/examples/index.js
 ```
-Runs all service examples and provides comprehensive results.
+Runs all service examples and provides results.
 
 ### **Individual Service Examples**
 Each service has detailed examples showing:
 - Basic usage patterns with **Alice, Bob, and Charlie's test addresses**
-- Advanced configuration with **test wallet data**
+- Additional configuration with **test wallet data**
 - Error handling strategies
 - Performance optimization
 - Real-world integration with **test transaction creation**
@@ -154,8 +154,8 @@ Each service has detailed examples showing:
 - **Easy navigation**: Know exactly where to find anything
 - **Scalable**: Easy to add new services/functions
 
-### **✅ Comprehensive Testing**
-- **5 examples per service**: Basic, advanced, error handling, etc.
+### **✅ Testing**
+- **5 examples per service**: Basic, additional, error handling, etc.
 - **Complete test suite**: All services tested together
 - **Real-world patterns**: Actual implementation examples
 
