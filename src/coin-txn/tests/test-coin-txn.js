@@ -21,7 +21,6 @@ export async function testCoinTXNWithExplicitFees() {
   assert.ok(coinTxn.contractFeeAmount === '500000', 'Contract fee should be converted to smallest units');
 }
 
-testCoinTxnWithOnlyBaseFee();
 export async function testCoinTxnWithOnlyBaseFee() {
   // Real-world usage: Transaction with only base fee explicitly specified
   const inputs = [createTestInput('ED25519', 'alice', '1.0', '100')];
@@ -38,13 +37,6 @@ export async function testCoinTxnWithOnlyBaseFee() {
   assert.ok(coinTxn.base !== undefined, 'Should have base transaction');
   assert.ok(coinTxn.base.feeAmount === '1002000000', 'Base fee should be converted to smallest units');
   assert.ok(coinTxn.contractFeeAmount === undefined, 'Should not have contract fee amount when no contract fee specified');
-
-  var hash = await sendCoinTXN(coinTxn, {
-    host: '146.190.114.124',
-  });
-
-  console.log(hash);
-
 }
 
 export async function testCoinTxnMultiParty() {

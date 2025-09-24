@@ -354,11 +354,11 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
       
       if (shouldUseAutoBaseFee) {
         finalBaseFee = feeResult.networkFee;
-      } else { // check if their fee is valid...
-        if (baseFee < feeResult.networkFee) {
-          console.warn(`WARNING: Base fee ${baseFee} is less than the calculated base fee ${feeResult.BaseFee}. Transaction expected to be rejected by network.`);
+        } else { // check if their fee is valid...
+          if (baseFee < feeResult.networkFee) {
+            console.warn(`WARNING: Base fee ${baseFee} is less than the calculated base fee ${feeResult.networkFee}. Transaction expected to be rejected by network.`);
+          }
         }
-      }
 
       if (shouldUseAutoContractFee) {
         finalContractFee = feeResult.contractFee;
@@ -414,6 +414,9 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
   if (!coinTxn.auth.signature) {
     coinTxn.auth.signature = [];
   }
+
+  // Sanitize the protobuf object here to eliminate any empty strings
+  coinTxn = sanitizeProtobufObject(coinTxn, { removeEmptyFields: true });
   
   for (let i = 0; i < signersArray.length; i++) {
     try {
@@ -432,9 +435,6 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 
   // Step 12: Add the hash to the existing transaction
   coinTxn.base.hash = hash;
-
-  // Sanitize the final result to convert empty strings to undefined
-  coinTxn = sanitizeProtobufObject(coinTxn, { removeEmptyFields: true });
 
   return coinTxn;
 }
