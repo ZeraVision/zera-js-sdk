@@ -5,7 +5,7 @@
  * 
  * This demo showcases the 100% complete implementation of:
  * ✅ Ed25519 using @noble/curves library
- * ✅ Ed448 (placeholder implementation with proper interface)
+ * ✅ Ed448 using @noble/curves library
  * ✅ Full SLIP-0010 HD Wallet implementation
  * ✅ Full BIP39 mnemonic support
  * ✅ Full SLIP-0010 compliance with hardened derivation
@@ -191,17 +191,17 @@ async function demonstrateEd448Wallet() {
   const ed448Slip0010Node = ed448HdNode.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
   const keyPair = Ed448KeyPair.fromHDNode(ed448Slip0010Node);
   
-  console.log('✅ Created Ed448 key pair (placeholder implementation)');
+  console.log('✅ Created Ed448 key pair using @noble/curves');
   console.log('   Private key length:', keyPair.privateKey.length, 'bytes');
   console.log('   Public key length:', keyPair.publicKey.length, 'bytes');
-  console.log('   Note: This is a placeholder until @noble/ed448 is available');
+  console.log('   Note: Full Ed448 implementation with @noble/curves');
   
-  // Sign and verify message (placeholder)
+  // Sign and verify message
   const message = new TextEncoder().encode('Hello, ZERA Network with Ed448!');
   const signature = keyPair.sign(message);
   const isValid = keyPair.verify(message, signature);
   
-  console.log('✅ Ed448 signing and verification (placeholder)');
+  console.log('✅ Ed448 signing and verification working');
   console.log('   Signature length:', signature.length, 'bytes');
   console.log('   Verification result:', isValid);
   

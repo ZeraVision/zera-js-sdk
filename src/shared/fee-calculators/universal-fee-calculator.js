@@ -19,6 +19,7 @@ import {
 import { aceExchangeService } from '../../api/zv-indexer/rate/service.js';
 import { contractFeeService } from './contract-fee-service.js';
 import { toBinary } from '@bufbuild/protobuf';
+import { sanitizeForSerialization } from '../utils/protobuf-utils.js';
 import {
   CoinTXNSchema as CoinTXN,
   MintTXNSchema as MintTXN,
@@ -403,40 +404,6 @@ function getSchemaForTransactionType(transactionType) {
 }
 
 /**
- * Sanitize protobuf object by converting BigInt values to strings for serialization
- * @param {Object} obj - Object to sanitize
- * @returns {Object} Sanitized object
- */
-function sanitizeForSerialization(obj) {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-  
-  if (typeof obj === 'bigint') {
-    return obj.toString();
-  }
-  
-  // Preserve Uint8Array objects (they're needed for key extraction)
-  if (obj instanceof Uint8Array) {
-    return obj;
-  }
-  
-  if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeForSerialization(item));
-  }
-  
-  if (typeof obj === 'object') {
-    const sanitized = {};
-    for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeForSerialization(value);
-    }
-    return sanitized;
-  }
-  
-  return obj;
-}
-
-/**
  * Calculate protobuf size using proper @bufbuild/protobuf toBinary function
  * @param {Object} protoObject - The protobuf transaction object
  * @param {string} transactionType - Transaction type constant
@@ -444,9 +411,17 @@ function sanitizeForSerialization(obj) {
  */
 function calculateProtobufSize(protoObject, transactionType) {
   const schema = getSchemaForTransactionType(transactionType);
+  
   // Sanitize the proto object to convert BigInt values to strings
   const sanitizedProtoObject = sanitizeForSerialization(protoObject);
+  
   const binary = toBinary(schema, sanitizedProtoObject);
+  
+  // Check if binary is valid
+  if (!binary) {
+    throw new Error('toBinary returned null or undefined');
+  }
+  
   return binary.length;
 }
 export class UniversalFeeCalculator {
@@ -569,6 +544,11 @@ export class UniversalFeeCalculator {
   static calculateTotalTransactionSize(protoObject) {
     // Auto-detect transaction type from protobuf object
     const detectedTransactionType = extractTransactionTypeFromProtoObject(protoObject);
+    
+    // Check if transaction type is valid (0 is a valid transaction type, so check for null/undefined)
+    if (detectedTransactionType === null || detectedTransactionType === undefined) {
+      throw new Error('detectedTransactionType is null or undefined');
+    }
     
     // Get the serialized size of the protobuf object using proper @bufbuild/protobuf
     const protoSize = calculateProtobufSize(protoObject, detectedTransactionType);

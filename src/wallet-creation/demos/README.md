@@ -1,62 +1,51 @@
 # Demos
 
-This folder contains demonstrations of the ZERA wallet creation system.
+Complete showcase implementations demonstrating the full capabilities of the ZERA wallet creation system.
 
 ## 📁 Contents
 
-- **`complete-showcase.js`** - Complete implementation demo
-  - SLIP-0010 HD Wallet implementation
-  - Ed25519 implementation
-  - Ed448 implementation
-  - SLIP-0010 compliance demonstration
-  - Hash algorithms showcase
-  - Complete wallet creation workflow
-  - Additional features demonstration
+- **`complete-showcase.js`** - Full implementation demo
+  - Complete SLIP-0010 HD Wallet implementation
+  - Ed25519 and Ed448 implementations
+  - All hash algorithms showcase
+  - Extended keys and cryptographic features
 
-- **`unified-curves.js`** - Unified curves demonstration
-  - Shows how Ed25519 and Ed448 work together
-  - Demonstrates curve selection and switching
-  - Performance comparisons
+- **`unified-curves.js`** - Ed25519/Ed448 comparison demo
+  - Side-by-side curve comparison
+  - Performance analysis
   - Key generation workflows
 
-- **`enums-showcase.js`** - Enumeration system showcase
-  - Key type enums (ED25519, ED448)
-  - Hash type enums (SHA3-256, SHA3-512, BLAKE3)
-  - Mnemonic length validation
-  - Validation function demonstrations
+- **`enums-showcase.js`** - Type safety demonstration
+  - Enum system benefits
+  - Validation functions
+  - Type safety advantages
 
 ## 🚀 Usage
-
-Run any demo directly:
 
 ```bash
 # Run complete showcase
 node demos/complete-showcase.js
 
-# Run unified curves demo
+# Run curve comparison
 node demos/unified-curves.js
 
-# Run enums showcase
+# Run enum demonstration
 node demos/enums-showcase.js
-
-# Or from the project root
-node src/wallet-creation/demos/complete-showcase.js
 ```
 
 ## 🎯 Purpose
 
 These demos are designed to:
-- **Show capabilities** to stakeholders or users
-- **Demonstrate real-world usage** scenarios
-- **Provide overview** of the system
-- **Serve as educational tools** for learning the API
-- **Highlight additional features** and use cases
+- **Showcase capabilities** to stakeholders or users
+- **Demonstrate complete workflows** and features
+- **Provide comprehensive overview** of the system
+- **Serve as educational tools** for understanding the full API
+- **Highlight advanced features** and use cases
 
 ## 📚 When to Use
 
 - Presenting to stakeholders or clients
 - Teaching new team members
 - Documenting system capabilities
-- Creating marketing materials
-- Understanding additional features
-- Learning complete workflows
+- Understanding complete workflows
+- Learning advanced features

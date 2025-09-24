@@ -21,6 +21,7 @@ export async function testCoinTXNWithExplicitFees() {
   assert.ok(coinTxn.contractFeeAmount === '500000', 'Contract fee should be converted to smallest units');
 }
 
+testCoinTxnWithOnlyBaseFee();
 export async function testCoinTxnWithOnlyBaseFee() {
   // Real-world usage: Transaction with only base fee explicitly specified
   const inputs = [createTestInput('ED25519', 'alice', '1.0', '100')];
@@ -28,7 +29,6 @@ export async function testCoinTxnWithOnlyBaseFee() {
   const feeConfig = { 
     baseFeeId: '$ZRA+0000',
     baseFee: '0.002',  // User-friendly amount - explicitly specified
-    contractFee: null   // Explicitly disable contract fees
   };
   const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig);
   

@@ -194,7 +194,7 @@ export async function testEd25519() {
 }
 
 /**
- * Test Ed448 implementation (placeholder)
+ * Test Ed448 implementation (fully implemented with @noble/curves)
  */
 export async function testEd448() {
   console.log('\n🧪 Testing Ed448 Implementation...');
@@ -204,16 +204,16 @@ export async function testEd448() {
     const privateKey = CryptoUtils.randomBytes(32); // Ed448KeyPair expects 32-byte SLIP-0010 keys
     const keyPair = Ed448KeyPair.fromPrivateKey(privateKey);
     
-    console.log('✅ Ed448 key pair created (placeholder)');
+    console.log('✅ Ed448 key pair created using @noble/curves');
     console.log('   Private key length:', keyPair.privateKey.length);
     console.log('   Public key length:', keyPair.publicKey.length);
     
-    // Test 2: Sign and verify message (placeholder implementation)
+    // Test 2: Sign and verify message
     const message = new TextEncoder().encode('Hello, ZERA Network with Ed448!');
     const signature = keyPair.sign(message);
     const isValid = keyPair.verify(message, signature);
     
-    console.log('✅ Ed448 signing and verification (placeholder)');
+    console.log('✅ Ed448 signing and verification working');
     console.log('   Signature length:', signature.length);
     console.log('   Verification result:', isValid);
     
@@ -230,10 +230,10 @@ export async function testEd448() {
      const hdNode = SLIP0010HDWallet.fromSeed(seed);
      const hdKeyPair = Ed448KeyPair.fromHDNode(hdNode);
     
-    console.log('✅ Ed448 key pair from HD node (placeholder)');
+    console.log('✅ Ed448 key pair from HD node working');
     console.log('   HD public key length:', hdKeyPair.publicKey.length);
     
-    console.log('🎉 Ed448 tests passed! (Note: This is a placeholder implementation)');
+    console.log('🎉 Ed448 tests passed! (Full implementation with @noble/curves)');
     return true;
     
   } catch (error) {
@@ -369,7 +369,7 @@ export async function testWalletCreation() {
     const slip0010Node2 = hdNode2.derivePath('m/44\'/1110\'/0\'/0\'/0\'');
     const ed448KeyPair = Ed448KeyPair.fromHDNode(slip0010Node2);
     
-    console.log('✅ Ed448 wallet created (placeholder)');
+    console.log('✅ Ed448 wallet created using @noble/curves');
     console.log('   Address node depth:', slip0010Node2.depth);
     console.log('   Public key length:', ed448KeyPair.publicKey.length);
     

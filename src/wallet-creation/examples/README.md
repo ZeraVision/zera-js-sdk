@@ -1,40 +1,35 @@
 # Examples
 
-This folder contains simple, focused examples of how to use the ZERA wallet creation system.
+Simple, focused examples showing core wallet creation functionality.
 
 ## 📁 Contents
 
-- **`basic-usage.js`** - Clean, simple example of the unified wallet creation system
-  - Shows basic Ed25519 wallet creation
-  - Demonstrates different hash types
-  - Shows multiple hash chaining
-  - Examples of importing existing mnemonics
-  - HD wallet derivation examples
+- **`basic-usage.js`** - Core wallet creation examples
+  - Basic Ed25519 wallet creation
+  - Different hash algorithms
+  - Hash chaining
+  - Mnemonic import
+  - HD wallet derivation
+
+- **`wallet-storage-manager.js`** - Secure wallet storage examples
+  - OS native keychain storage
+  - Address book management
+  - CRUD operations
 
 ## 🚀 Usage
 
-Run any example directly:
-
 ```bash
-# Run basic usage example
+# Run basic examples
 node examples/basic-usage.js
 
-# Or from the project root
-node src/wallet-creation/examples/basic-usage.js
+# Run storage examples  
+node examples/wallet-storage-manager.js
 ```
 
 ## 🎯 Purpose
 
 These examples are designed to be:
 - **Simple and focused** - one concept per example
-- **Copy-paste ready** - minimal dependencies and setup
-- **Quick to understand** - shows the essence without complexity
-- **Ready to use** - can be used as starting point for real code
-
-## 📚 When to Use
-
-- Getting started with the library
-- Learning specific features
-- Creating documentation
-- Providing code snippets for tutorials
-- Quick reference for common use cases
+- **Copy-paste ready** - minimal dependencies
+- **Quick to understand** - shows core functionality
+- **Ready to use** - starting point for real applications

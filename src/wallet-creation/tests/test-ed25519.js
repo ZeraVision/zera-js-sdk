@@ -9,9 +9,9 @@ import {
 } from '../index.js';
 
 /**
- * Comprehensive test of ED25519 implementation
+ * Test of ED25519 implementation
  */
-async function testEd25519Comprehensive() {
+async function testEd25519() {
   try {
     // Test 1: Basic ED25519 wallet creation
     const words = generateWords(12);
@@ -110,9 +110,9 @@ async function testEd25519Comprehensive() {
 }
 
 // Export for test runner
-export { testEd25519Comprehensive };
+export { testEd25519 };
 
 // Run the test if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  testEd25519Comprehensive();
+  testEd25519();
 }

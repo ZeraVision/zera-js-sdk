@@ -23,14 +23,10 @@
     "proto:install": "cd proto && npm install",
     "proto:clean": "cd proto && npm run clean",
     "proto:example": "cd proto && node example.js",
-    "example:coin:grpc": "node src/coin-txn/examples/example-coin.js",
     "test:api": "node test-runner.js --module=api",
-    "test:blockchain": "node test-runner.js --module=blockchain",
-    "test:payments": "node test-runner.js --module=payments",
-    "test:proto": "node test-runner.js --module=proto",
-    "test:smart-contracts": "node test-runner.js --module=smart-contracts",
-    "test:test-utils": "node test-runner.js --module=test-utils",
-    "test:transfer": "node test-runner.js --module=transfer",
+    "test:coin-txn": "node test-runner.js --module=coin-txn",
+    "test:grpc": "node test-runner.js --module=grpc",
+    "test:shared": "node test-runner.js --module=shared",
     "test:wallet-creation": "node test-runner.js --module=wallet-creation"
   },
   "keywords": [
@@ -41,8 +37,23 @@
     "wallet",
     "cryptography"
   ],
-  "author": "",
-  "license": "MIT",
+  "author": "ZERA Vision",
+  "license": "Custom",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zera-network/zera-js-sdk.git"
+  },
+  "homepage": "https://github.com/zera-network/zera-js-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/zera-network/zera-js-sdk/issues"
+  },
+  "files": [
+    "index.js",
+    "src/",
+    "proto/generated/",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@bufbuild/protobuf": "^2.8.0",
     "@connectrpc/connect": "^2.1.0",

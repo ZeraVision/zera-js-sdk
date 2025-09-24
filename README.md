@@ -67,15 +67,15 @@ The build process automatically:
 ### Basic Wallet Creation
 
 ```javascript
-import { createWallet, generateMnemonicPhrase } from 'zera-js-sdk';
+import { createWallet, generateMnemonicPhrase, KEY_TYPE, HASH_TYPE } from 'zera-js-sdk';
 
 // Generate a new mnemonic
 const mnemonic = generateMnemonicPhrase(24);
 
 // Create a wallet
 const wallet = await createWallet({
-  keyType: 'ed25519',
-  hashTypes: ['sha256'],
+  keyType: KEY_TYPE.ED25519,
+  hashTypes: [HASH_TYPE.SHA3_256],
   mnemonic: mnemonic
 });
 
@@ -85,15 +85,14 @@ console.log('Wallet address:', wallet.address);
 ### Advanced HD Wallet
 
 ```javascript
-import { WalletFactory } from 'zera-js-sdk';
+import { createWallet, deriveMultipleWallets, KEY_TYPE, HASH_TYPE } from 'zera-js-sdk';
 
-const factory = new WalletFactory();
-
-const wallet = await factory.createWallet({
-  keyType: 'ed25519',
-  hashTypes: ['sha3-256', 'blake3'],
+// Create multiple wallets from same mnemonic
+const wallets = await deriveMultipleWallets({
   mnemonic: 'your twelve word mnemonic phrase here',
-  passphrase: 'optional-passphrase',
+  keyType: KEY_TYPE.ED25519,
+  hashTypes: [HASH_TYPE.SHA3_256, HASH_TYPE.BLAKE3],
+  count: 3,
   hdOptions: {
     accountIndex: 0,
     changeIndex: 0,
@@ -111,7 +110,9 @@ npm test
 # Run specific test modules
 npm run test:wallet-creation
 npm run test:api
-npm run test:transfer
+npm run test:coin-txn
+npm run test:grpc
+npm run test:shared
 
 # Run with coverage
 npm run test:coverage
@@ -149,18 +150,18 @@ zera-js-sdk/
 
 - `createWallet(options)` - Create a new wallet
 - `generateMnemonicPhrase(length)` - Generate BIP39 mnemonic
-- `WalletFactory` - Advanced wallet creation with options
+- `deriveMultipleWallets(options)` - Create multiple HD wallets from one mnemonic
 
-### Key Types
+### Key Types (use KEY_TYPE enum)
 
-- `ed25519` - Ed25519 elliptic curve (32-byte keys)
-- `ed448` - Ed448 elliptic curve (57-byte keys)
+- `KEY_TYPE.ED25519` - Ed25519 elliptic curve (32-byte keys)
+- `KEY_TYPE.ED448` - Ed448 elliptic curve (57-byte keys)
 
-### Hash Types
+### Hash Types (use HASH_TYPE enum)
 
-- `sha3-256` - SHA3-256 hash function
-- `sha3-512` - SHA3-512 hash function  
-- `blake3` - BLAKE3 hash function
+- `HASH_TYPE.SHA3_256` - SHA3-256 hash function
+- `HASH_TYPE.SHA3_512` - SHA3-512 hash function  
+- `HASH_TYPE.BLAKE3` - BLAKE3 hash function
 
 ## 🤝 Contributing
 

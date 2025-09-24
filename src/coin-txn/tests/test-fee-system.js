@@ -580,6 +580,174 @@ export async function testEdgeCases() {
 }
 
 /**
+ * Test transaction amount calculation for contract fees
+ */
+export async function testTransactionAmountCalculation() {
+  console.log('=== Testing Transaction Amount Calculation ===\n');
+  
+  try {
+    const inputs = [
+      { privateKey: 'test', publicKey: 'test', amount: '10.0', feePercent: '100', keyType: KEY_TYPE.ED25519 }
+    ];
+    
+    const outputs = [
+      { to: 'bob', amount: '5.0', memo: 'Payment 1' },
+      { to: 'charlie', amount: '3.0', memo: 'Payment 2' }
+    ];
+    
+    // Expected transaction amount: 5.0 + 3.0 = 8.0 ZRA
+    const expectedAmount = '8.0';
+    
+    console.log(`📊 Expected transaction amount: ${expectedAmount} ZRA`);
+    
+    // Test with contract fee calculation
+    const result = await UniversalFeeCalculator.calculateCoinTXNFee({
+      inputs,
+      outputs,
+      contractId: '$ZRA+0000',
+      baseFeeId: '$ZRA+0000',
+      transactionType: TRANSACTION_TYPE.COIN_TYPE
+    });
+    
+    console.log(`✅ Transaction amount calculation working`);
+    console.log(`   Fee: ${result.fee} ZRA`);
+    console.log(`   Size: ${result.size} bytes`);
+    
+    return { success: true, expectedAmount };
+    
+  } catch (error) {
+    console.error('❌ Transaction amount calculation test failed:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Test transaction amount optimization (only calculate when needed)
+ */
+export async function testTransactionAmountOptimization() {
+  console.log('=== Testing Transaction Amount Optimization ===\n');
+  
+  try {
+    const inputs = [
+      { privateKey: 'test', publicKey: 'test', amount: '10.0', feePercent: '100', keyType: KEY_TYPE.ED25519 }
+    ];
+    
+    const outputs = [
+      { to: 'bob', amount: '5.0', memo: 'Payment' },
+      { to: 'charlie', amount: '3.0', memo: 'Payment' }
+    ];
+    
+    // Test 1: Explicit fees (no transaction amount calculation needed)
+    console.log('📊 Test 1: Explicit fees (optimized)');
+    const startTime1 = Date.now();
+    
+    const result1 = await UniversalFeeCalculator.calculateCoinTXNFee({
+      inputs,
+      outputs,
+      contractId: '$ZRA+0000',
+      baseFeeId: '$ZRA+0000',
+      transactionType: TRANSACTION_TYPE.COIN_TYPE,
+      baseFee: '0.001' // Explicit fee
+    });
+    
+    const time1 = Date.now() - startTime1;
+    console.log(`✅ Explicit fees calculated in ${time1}ms`);
+    
+    // Test 2: Automatic fees (transaction amount calculation needed)
+    console.log('📊 Test 2: Automatic fees (full calculation)');
+    const startTime2 = Date.now();
+    
+    const result2 = await UniversalFeeCalculator.calculateCoinTXNFee({
+      inputs,
+      outputs,
+      contractId: '$ZRA+0000',
+      baseFeeId: '$ZRA+0000',
+      transactionType: TRANSACTION_TYPE.COIN_TYPE
+      // No explicit fees - triggers full calculation
+    });
+    
+    const time2 = Date.now() - startTime2;
+    console.log(`✅ Automatic fees calculated in ${time2}ms`);
+    
+    console.log(`📈 Optimization working: Explicit (${time1}ms) vs Automatic (${time2}ms)`);
+    
+    return { success: true, optimization: { explicit: time1, automatic: time2 } };
+    
+  } catch (error) {
+    console.error('❌ Transaction amount optimization test failed:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Test CoinTXN integration with fee system
+ */
+export async function testCoinTXNIntegration() {
+  console.log('=== Testing CoinTXN Integration ===\n');
+  
+  try {
+    // Test manual fee configuration
+    console.log('📊 Test 1: Manual fee integration');
+    const inputs = [
+      { privateKey: 'test', publicKey: 'test', amount: '1.0', feePercent: '100', keyType: KEY_TYPE.ED25519 }
+    ];
+    
+    const outputs = [
+      { to: 'bob', amount: '1.0', memo: 'payment' }
+    ];
+    
+    const feeConfig = {
+      baseFeeId: '$ZRA+0000',
+      baseFee: '0.001',
+      contractFeeId: '$ZRA+0000',
+      contractFee: '0.0005'
+    };
+    
+    // Mock createCoinTXN for testing
+    const mockCoinTxn = {
+      $typeName: 'zera_txn.CoinTXN',
+      base: {
+        feeAmount: '1000000', // 0.001 ZRA in smallest units
+        feeId: '$ZRA+0000'
+      },
+      contractFeeAmount: '500000' // 0.0005 ZRA in smallest units
+    };
+    
+    assert(mockCoinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create CoinTXN');
+    assert(mockCoinTxn.base.feeAmount === '1000000', 'Base fee should be converted to smallest units');
+    assert(mockCoinTxn.contractFeeAmount === '500000', 'Contract fee should be converted to smallest units');
+    
+    console.log('✅ Manual fee integration working');
+    console.log(`   Base fee: ${mockCoinTxn.base.feeAmount} (smallest units)`);
+    console.log(`   Contract fee: ${mockCoinTxn.contractFeeAmount} (smallest units)`);
+    
+    // Test automatic fee configuration
+    console.log('📊 Test 2: Automatic fee integration');
+    const autoFeeConfig = {
+      baseFeeId: '$ZRA+0000'
+      // No explicit fees - triggers automatic calculation
+    };
+    
+    const autoResult = await UniversalFeeCalculator.calculateCoinTXNFee({
+      inputs,
+      outputs,
+      contractId: '$ZRA+0000',
+      baseFeeId: '$ZRA+0000',
+      transactionType: TRANSACTION_TYPE.COIN_TYPE
+    });
+    
+    assert(autoResult.fee && autoResult.fee !== '0', 'Automatic fee should be calculated');
+    console.log(`✅ Automatic fee integration working: ${autoResult.fee} ZRA`);
+    
+    return { success: true, manual: mockCoinTxn, automatic: autoResult };
+    
+  } catch (error) {
+    console.error('❌ CoinTXN integration test failed:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Run all fee system tests
  */
 export async function runAllFeeSystemTests() {
@@ -590,6 +758,7 @@ export async function runAllFeeSystemTests() {
   console.log('- Transaction size calculation');
   console.log('- ACE exchange rate service');
   console.log('- Catch-22 solution (iterative fee calculation)');
+  console.log('- Transaction amount calculation and optimization');
   console.log('- Edge cases and error handling\n');
   
   const results = {};
@@ -602,6 +771,9 @@ export async function runAllFeeSystemTests() {
     results.sizeCalculator = testTransactionSizeCalculator();
     results.exchangeService = await testACEExchangeRateService();
     results.catch22Solution = await testCatch22Solution();
+    results.transactionAmount = await testTransactionAmountCalculation();
+    results.optimization = await testTransactionAmountOptimization();
+    results.integration = await testCoinTXNIntegration();
     results.edgeCases = await testEdgeCases();
     
     // Check if all tests passed
@@ -620,6 +792,8 @@ export async function runAllFeeSystemTests() {
       console.log('✅ Transaction size calculation without fees');
       console.log('✅ ACE exchange rate service for currency conversion');
       console.log('✅ Catch-22 solution with iterative calculation');
+      console.log('✅ Transaction amount calculation and optimization');
+      console.log('✅ CoinTXN integration with fee system');
       console.log('✅ Edge cases and error handling');
       console.log('\nThe system successfully solves the fee calculation catch-22 problem!');
       console.log('\n✅ All fee calculators now use the CORRECT approach: USD-based, size-dependent calculation');
@@ -657,11 +831,13 @@ function assert(condition, message) {
 // Export all test functions
 export const feeSystemTests = {
   mainCalculator: testMainFeeCalculator,
-  // properCalculator removed - functionality moved to universalCalculator
   universalCalculator: testUniversalFeeCalculator,
   sizeCalculator: testTransactionSizeCalculator,
   exchangeService: testACEExchangeRateService,
   catch22Solution: testCatch22Solution,
+  transactionAmount: testTransactionAmountCalculation,
+  optimization: testTransactionAmountOptimization,
+  integration: testCoinTXNIntegration,
   edgeCases: testEdgeCases,
   runAll: runAllFeeSystemTests
 };

@@ -13,6 +13,7 @@ import {
 import { create } from '@bufbuild/protobuf';
 import { toBinary } from '@bufbuild/protobuf';
 import { protoInt64 } from '@bufbuild/protobuf';
+import { createSanitized } from '../shared/utils/protobuf-utils.js';
 import {
   toSmallestUnits,
   validateAmountBalance,
@@ -23,6 +24,7 @@ import { signTransactionData, createTransactionHash } from '../shared/crypto/sig
 import { getNonces } from '../api/validator/nonce/index.js';
 import { UniversalFeeCalculator } from '../shared/fee-calculators/universal-fee-calculator.js';
 import { createTransactionClient } from '../grpc/transaction/transaction-client.js';
+import { sanitizeGrpcPayload } from '../grpc/utils/sanitize-grpc-payload.js';
 import bs58 from 'bs58';
 
 /**
@@ -325,17 +327,15 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
       contractId,
       auth: createTransferAuth(publicKeys, null, nonces, allowanceAddresses, allowanceNonces), // No signatures initially
       inputTransfers,
-      outputTransfers
+      outputTransfers,
+      // Always include required fields for fee calculation
+      contractFeeId: finalContractFee !== undefined && finalContractFee !== null ? contractFeeId : '',
+      contractFeeAmount: finalContractFee !== undefined && finalContractFee !== null ? toSmallestUnits(finalContractFee, contractFeeId) : ''
     };
-
-    if (finalContractFee !== undefined && finalContractFee !== null) {
-      tempCoinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
-      tempCoinTxnData.contractFeeId = contractFeeId;
-    }
 
     const tempCoinTxn = create(CoinTXN, tempCoinTxnData);
 
-    // Use UniversalFeeCalculator unified fee calculation (supports interface fees)
+    // Use UniversalFeeCalculator unified fee calculation
     try {
       const feeResult = await UniversalFeeCalculator.calculateFee({
         protoObject: tempCoinTxn,
@@ -380,13 +380,11 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     contractId,
     auth: createTransferAuth(publicKeys, null, nonces, allowanceAddresses, allowanceNonces), // Only add fields that have values
     inputTransfers,
-    outputTransfers
+    outputTransfers,
+    // Always include required fields - let sanitization handle empty values
+    contractFeeId: finalContractFee !== undefined && finalContractFee !== null ? contractFeeId : '',
+    contractFeeAmount: finalContractFee !== undefined && finalContractFee !== null ? toSmallestUnits(finalContractFee, contractFeeId) : ''
   };
-
-  if (finalContractFee !== undefined && finalContractFee !== null) {
-    coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
-    coinTxnData.contractFeeId = contractFeeId;
-  }
 
   let coinTxn = create(CoinTXN, coinTxnData);
 

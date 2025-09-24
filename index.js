@@ -1,107 +1,126 @@
-// Zera JavaScript SDK - Main Entry Point
-// This file demonstrates how to use the generated Protocol Buffer classes
+/**
+ * ZERA JavaScript SDK - Main Entry Point
+ * 
+ * A modern, ESM-compatible JavaScript SDK for the ZERA Network with support for:
+ * - HD wallet creation with BIP32/BIP39/SLIP-0010 compliance
+ * - Multiple key types (Ed25519, Ed448) and hash algorithms
+ * - CoinTXN creation and submission
+ * - API services for nonce and exchange rate management
+ * 
+ * @version 1.0.0
+ * @author ZERA Vision
+ * @license Custom
+ */
 
 // Import wallet creation functionality
 import { 
-  ZeraWallet, 
   createWallet, 
   generateMnemonicPhrase, 
-  generateZeraAddress 
+  deriveMultipleWallets,
+  KEY_TYPE,
+  HASH_TYPE
 } from './src/wallet-creation/index.js';
 
 // Import CoinTXN functionality
 import { createCoinTXN, sendCoinTXN } from './src/coin-txn/index.js';
 
-// Import shared transaction utilities
-import {
-  TransactionValidator,
-  TransactionFormatter,
-  FeeCalculator,
-  TransactionBuilder,
-  TransactionSerializer,
-  TXN_STATUS,
-  TRANSACTION_TYPE,
-  CONTRACT_FEE_TYPE
-} from './src/shared/utils/transaction-utils.js';
+// Import API services
+import { getExchangeRate } from './src/api/zv-indexer/rate/index.js';
 
-// Import universal fee calculator
-import { UniversalFeeCalculator } from './src/shared/fee-calculators/universal-fee-calculator.js';
+/**
+ * Create a new HD wallet with specified parameters
+ * @param {Object} options - Wallet creation options
+ * @param {string} options.keyType - Key type from KEY_TYPE enum
+ * @param {Array<string>} options.hashTypes - Array of hash types from HASH_TYPE enum
+ * @param {string} options.mnemonic - BIP39 mnemonic phrase
+ * @param {string} [options.passphrase] - Optional passphrase for additional security
+ * @param {Object} [options.hdOptions] - HD wallet derivation options
+ * @returns {Promise<Object>} Created wallet object with address, keys, and metadata
+ * @example
+ * const wallet = await createWallet({
+ *   keyType: KEY_TYPE.ED25519,
+ *   hashTypes: [HASH_TYPE.SHA3_256],
+ *   mnemonic: 'word1 word2...'
+ * });
+ */
+export { createWallet };
 
-// Export all wallet creation classes and functions
-export {
-  ZeraWallet,
-  createWallet,
-  generateMnemonicPhrase,
-  generateZeraAddress
-};
+/**
+ * Generate a new BIP39 mnemonic phrase
+ * @param {number} [length=24] - Length of mnemonic (12, 15, 18, 21, or 24)
+ * @returns {string} Generated mnemonic phrase
+ * @example
+ * const mnemonic = generateMnemonicPhrase(12);
+ */
+export { generateMnemonicPhrase };
 
-// Export CoinTXN helpers
-export { createCoinTXN, sendCoinTXN };
+/**
+ * Derive multiple HD wallets from the same mnemonic
+ * @param {Object} options - Derivation options
+ * @param {string} options.mnemonic - BIP39 mnemonic phrase
+ * @param {string} options.keyType - Key type from KEY_TYPE enum
+ * @param {Array<string>} options.hashTypes - Array of hash types from HASH_TYPE enum
+ * @param {number} [options.count=1] - Number of wallets to derive
+ * @param {Object} [options.hdOptions] - HD wallet derivation options
+ * @returns {Promise<Array>} Array of wallet objects
+ * @example
+ * const wallets = await deriveMultipleWallets({
+ *   mnemonic: 'word1 word2...',
+ *   keyType: KEY_TYPE.ED25519,
+ *   hashTypes: [HASH_TYPE.SHA3_256],
+ *   count: 3
+ * });
+ */
+export { deriveMultipleWallets };
 
-// Export shared transaction utilities
-export {
-  TransactionValidator,
-  TransactionFormatter,
-  FeeCalculator,
-  TransactionBuilder,
-  TransactionSerializer,
-  TXN_STATUS,
-  TRANSACTION_TYPE,
-  CONTRACT_FEE_TYPE
-};
+/**
+ * Enum for supported key types
+ * @readonly
+ * @enum {string}
+ */
+export { KEY_TYPE };
 
-// Export universal fee calculator
-export { UniversalFeeCalculator };
+/**
+ * Enum for supported hash algorithms
+ * @readonly
+ * @enum {string}
+ */
+export { HASH_TYPE };
 
-// Export version info as constants
+/**
+ * Create a CoinTXN transaction
+ * @param {Array} inputs - Transaction inputs
+ * @param {Array} outputs - Transaction outputs
+ * @param {string} contractId - Contract identifier
+ * @param {Object} [feeConfig] - Fee configuration options
+ * @param {string} [memo] - Optional transaction memo
+ * @returns {Object} CoinTXN protobuf object
+ */
+export { createCoinTXN };
+
+/**
+ * Send a CoinTXN transaction to the network
+ * @param {Object} coinTxn - CoinTXN object from createCoinTXN
+ * @param {Object} [options] - Send options
+ * @returns {Promise<Object>} Transaction result
+ */
+export { sendCoinTXN };
+
+/**
+ * Get current exchange rate for a currency
+ * @param {string} currencyId - Currency identifier (e.g., '$ZRA+0000')
+ * @returns {Promise<number>} Exchange rate in USD
+ */
+export { getExchangeRate };
+
+/**
+ * SDK version
+ * @constant {string}
+ */
 export const VERSION = '1.0.0';
-export const DESCRIPTION = 'Zera JavaScript SDK with Modern ESM and Wallet Creation';
 
-// Utility function for creating transactions (placeholder for now)
-export function createTransaction(feeAmount, feeId, contractId) {
-  // This will be implemented once protobufs are properly generated
-  console.log('Creating transaction with:', { feeAmount, feeId, contractId });
-  
-  // Return a simple transaction object for now
-  return {
-    feeAmount,
-    feeId,
-    contractId,
-    nonce: Date.now(),
-    timestamp: new Date().toISOString()
-  };
-}
-
-// Example usage (when run directly)
-if (import.meta.url === `file://${process.argv[1]}`) {
-  console.log('=== Zera JavaScript SDK ===');
-  console.log('Version:', VERSION);
-  console.log('Description:', DESCRIPTION);
-  
-  try {
-    // Create a sample transaction
-    const txn = createTransaction("1000000", "ZERA", "SAMPLE_CONTRACT");
-    console.log('\n✅ Sample transaction created successfully!');
-    console.log('Transaction:', txn);
-    
-    // Generate a sample mnemonic
-    const mnemonic = generateMnemonicPhrase();
-    console.log('\n✅ Sample mnemonic generated:', mnemonic);
-    
-    // Create a sample CoinTXN instead of legacy transfer
-    const coinTxn = createCoinTXN(
-      [{ privateKey: 'alice_private_key', publicKey: 'alice_public_key', amount: '1.0', feePercent: '100' }],
-      [{ to: 'bob_address', amount: '1.0', memo: 'sample payment' }],
-      '$ZRA+0000',  // contractId required
-      { baseFeeId: '$ZRA+0000' },
-      'base memo'
-    );
-    console.log('\n✅ Sample CoinTXN created successfully!');
-    console.log('CoinTXN Type:', coinTxn.$typeName);
-    
-  } catch (error) {
-    console.error('\n❌ Error:', error.message);
-    console.log('\nMake sure you have built the protobufs first:');
-    console.log('npm run build:proto');
-  }
-}
+/**
+ * SDK description
+ * @constant {string}
+ */
+export const DESCRIPTION = 'ZERA JavaScript SDK';

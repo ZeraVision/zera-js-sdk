@@ -56,7 +56,6 @@ export async function testBasicFunctionality() {
   console.log('🎉 All basic functionality tests passed!');
 }
 
-testWalletTypes();
 export async function testWalletTypes() {
   console.log('🧪 Testing different wallet types...');
   
@@ -69,7 +68,7 @@ export async function testWalletTypes() {
   });
   console.log('✅ Ed25519 wallet created:', ed25519Wallet.keyType);
   
-  // Test Ed448 wallet (placeholder for now)
+  // Test Ed448 wallet
   try {
     const mnemonic2 = generateMnemonicPhrase(21);
     const ed448Wallet = await createWallet({ 
