@@ -671,17 +671,7 @@ export class UniversalFeeCalculator {
       exchangeRate = await this.getExchangeRate(baseFeeId);
     }
     const finalFeeInCurrency = new Decimal(totalFeeUSD).div(exchangeRate);
-    
-    // Calculate actual hash size based on detected hash types
-    let actualHashSize = 0;
-    for (const hashType of hashTypes) {
-      actualHashSize += HASH_SIZES[hashType] || HASH_SIZE; // fallback to default hash size
-    }
-    // If no hash types detected, use default hash size
-    if (actualHashSize === 0) {
-      actualHashSize = HASH_SIZE;
-    }
-    
+
     return {
       fee: finalFeeInCurrency.toString(),
       feeId: baseFeeId,
@@ -689,7 +679,7 @@ export class UniversalFeeCalculator {
       totalSize: totalSize,
       protoSize: calculateProtobufSize(protoObject, detectedTransactionType),
       signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType.toUpperCase()] || SIGNATURE_SIZES.ED25519), 0),
-      hashSize: actualHashSize,
+      hashSize: 32, // SHA3-256 transaction hash type
       transactionType: detectedTransactionType,
       breakdown: {
         feeTypes: feeTypesToUse,
@@ -700,7 +690,7 @@ export class UniversalFeeCalculator {
         totalSize: totalSize,
         protoSize: calculateProtobufSize(protoObject, detectedTransactionType),
         signatureSize: keyTypes.reduce((sum, keyType) => sum + (SIGNATURE_SIZES[keyType.toUpperCase()] || SIGNATURE_SIZES.ED25519), 0),
-        hashSize: actualHashSize,
+        hashSize: 32, // SHA3-256 transaction hash type
         transactionType: detectedTransactionType,
         keyCount: keyTypes.length,
         hashTypes: hashTypes,

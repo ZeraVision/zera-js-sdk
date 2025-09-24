@@ -13,7 +13,7 @@ import {
 import { create } from '@bufbuild/protobuf';
 import { toBinary } from '@bufbuild/protobuf';
 import { protoInt64 } from '@bufbuild/protobuf';
-import { createSanitized } from '../shared/utils/protobuf-utils.js';
+import { createSanitized, sanitizeProtobufObject } from '../shared/utils/protobuf-utils.js';
 import {
   toSmallestUnits,
   validateAmountBalance,
@@ -24,7 +24,6 @@ import { signTransactionData, createTransactionHash } from '../shared/crypto/sig
 import { getNonces } from '../api/validator/nonce/index.js';
 import { UniversalFeeCalculator } from '../shared/fee-calculators/universal-fee-calculator.js';
 import { createTransactionClient } from '../grpc/transaction/transaction-client.js';
-import { sanitizeGrpcPayload } from '../grpc/utils/sanitize-grpc-payload.js';
 import bs58 from 'bs58';
 
 /**
@@ -327,11 +326,18 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
       contractId,
       auth: createTransferAuth(publicKeys, null, nonces, allowanceAddresses, allowanceNonces), // No signatures initially
       inputTransfers,
-      outputTransfers,
-      // Always include required fields for fee calculation
-      contractFeeId: finalContractFee !== undefined && finalContractFee !== null ? contractFeeId : '',
-      contractFeeAmount: finalContractFee !== undefined && finalContractFee !== null ? toSmallestUnits(finalContractFee, contractFeeId) : ''
+      outputTransfers
     };
+
+    // Only include contract fee fields if there's actually a contract fee
+    if (finalContractFee !== undefined && finalContractFee !== null) {
+      tempCoinTxnData.contractFeeId = contractFeeId;
+      tempCoinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
+    } else {
+      // Explicitly set to undefined instead of letting protobuf assign empty strings
+      tempCoinTxnData.contractFeeId = undefined;
+      tempCoinTxnData.contractFeeAmount = undefined;
+    }
 
     const tempCoinTxn = create(CoinTXN, tempCoinTxnData);
 
@@ -348,7 +354,12 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
       
       if (shouldUseAutoBaseFee) {
         finalBaseFee = feeResult.networkFee;
+      } else { // check if their fee is valid...
+        if (baseFee < feeResult.networkFee) {
+          console.warn(`WARNING: Base fee ${baseFee} is less than the calculated base fee ${feeResult.BaseFee}. Transaction expected to be rejected by network.`);
+        }
       }
+
       if (shouldUseAutoContractFee) {
         finalContractFee = feeResult.contractFee;
       }
@@ -380,11 +391,18 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
     contractId,
     auth: createTransferAuth(publicKeys, null, nonces, allowanceAddresses, allowanceNonces), // Only add fields that have values
     inputTransfers,
-    outputTransfers,
-    // Always include required fields - let sanitization handle empty values
-    contractFeeId: finalContractFee !== undefined && finalContractFee !== null ? contractFeeId : '',
-    contractFeeAmount: finalContractFee !== undefined && finalContractFee !== null ? toSmallestUnits(finalContractFee, contractFeeId) : ''
+    outputTransfers
   };
+
+  // Only include contract fee fields if there's actually a contract fee
+  if (finalContractFee !== undefined && finalContractFee !== null) {
+    coinTxnData.contractFeeId = contractFeeId;
+    coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
+  } else {
+    // Explicitly set to undefined instead of letting protobuf assign empty strings
+    coinTxnData.contractFeeId = undefined;
+    coinTxnData.contractFeeAmount = undefined;
+  }
 
   let coinTxn = create(CoinTXN, coinTxnData);
 
@@ -414,6 +432,9 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
 
   // Step 12: Add the hash to the existing transaction
   coinTxn.base.hash = hash;
+
+  // Sanitize the final result to convert empty strings to undefined
+  coinTxn = sanitizeProtobufObject(coinTxn, { removeEmptyFields: true });
 
   return coinTxn;
 }

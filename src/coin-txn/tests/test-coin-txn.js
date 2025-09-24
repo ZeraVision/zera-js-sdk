@@ -1,5 +1,5 @@
 import { assert, createTestInput, createTestInputs, getTestOutput, DEFAULT_TEST_FEE_CONFIG } from '../../test-utils/index.js';
-import { createCoinTXN } from '../index.js';
+import { createCoinTXN, sendCoinTXN } from '../index.js';
 
 export async function testCoinTxnBasic() {
   // Real-world usage: Create inputs with keys and amounts
@@ -28,14 +28,23 @@ export async function testCoinTxnWithOnlyBaseFee() {
   const outputs = [getTestOutput('bob', '1.0', 'payment')];
   const feeConfig = { 
     baseFeeId: '$ZRA+0000',
-    baseFee: '0.002',  // User-friendly amount - explicitly specified
+    baseFee: '1.002',  // User-friendly amount - explicitly specified
   };
-  const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig);
+  const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, '', {
+    host: '146.190.114.124',
+  });
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create CoinTXN with base fee only');
   assert.ok(coinTxn.base !== undefined, 'Should have base transaction');
-  assert.ok(coinTxn.base.feeAmount === '2000000', 'Base fee should be converted to smallest units');
-  assert.ok(coinTxn.contractFeeAmount === undefined, 'Should not have contract fee');
+  assert.ok(coinTxn.base.feeAmount === '1002000000', 'Base fee should be converted to smallest units');
+  assert.ok(coinTxn.contractFeeAmount === undefined, 'Should not have contract fee amount when no contract fee specified');
+
+  var hash = await sendCoinTXN(coinTxn, {
+    host: '146.190.114.124',
+  });
+
+  console.log(hash);
+
 }
 
 export async function testCoinTxnMultiParty() {

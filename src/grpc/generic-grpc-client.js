@@ -7,7 +7,7 @@
 
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import sanitizeGrpcPayload from './utils/sanitize-grpc-payload.js';
+import { sanitizeProtobufObject } from '../shared/utils/protobuf-utils.js';
 
 /**
  * Create a generic gRPC client for any protobuf service
@@ -63,7 +63,7 @@ export function createGenericGRPCClient(options) {
  */
 export function makeGRPCCall(client, method, request) {
   return new Promise((resolve, reject) => {
-    const sanitizedRequest = sanitizeGrpcPayload(request);
+    const sanitizedRequest = sanitizeProtobufObject(request, { removeEmptyFields: true });
 
     if (process.env.DEBUG_GRPC_REQUESTS === 'true') {
       try {

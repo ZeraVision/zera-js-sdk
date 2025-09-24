@@ -12,7 +12,6 @@ export { UniversalGRPCService } from './base/universal-grpc-service.js';
 export { createValidatorAPIClient } from './api/validator-api-client.js';
 export { createTransactionClient } from './transaction/transaction-client.js';
 
-export { sanitizeGrpcPayload } from './utils/sanitize-grpc-payload.js';
 export const SERVICE_PORTS = {
   VALIDATOR_API: 50053,
   TRANSACTION: 50052
