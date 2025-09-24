@@ -482,8 +482,7 @@ export async function exampleAllowancePayment() {
   console.log('💸 Example 7: Simple Allowance');
   
   // In a real application, you would pull this data from your storage
-  //const aliceWallet = ED25519_TEST_KEYS.alice;
-  const aliceWallet = ED448_TEST_KEYS.alice;
+  const aliceWallet = ED25519_TEST_KEYS.alice;
   const bobAddress = TEST_WALLET_ADDRESSES.bob;
   
   console.log('📋 Wallet data pulled from data source:');
