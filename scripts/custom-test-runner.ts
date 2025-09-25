@@ -21,6 +21,8 @@ interface FailedTest {
   module: string;
   testName: string;
   error: string;
+  filePath: string;
+  lineNumber?: number;
 }
 
 function showModuleInstructions(): void {
@@ -29,6 +31,7 @@ function showModuleInstructions(): void {
   console.log(chalk.cyan('📋 Module-Specific Test Commands:'));
   console.log('');
   
+  // Show modules that have /test or /tests folders
   const modules = [
     {
       name: 'wallet-creation',
@@ -49,30 +52,12 @@ function showModuleInstructions(): void {
       ]
     },
     {
-      name: 'grpc',
-      description: 'gRPC clients, API services, network communication',
-      commands: [
-        'npm run test:grpc',
-        'npm run test:grpc:watch',
-        'npm run test:grpc:coverage'
-      ]
-    },
-    {
       name: 'shared',
       description: 'Shared utilities, crypto functions, fee calculators',
       commands: [
         'npm run test:shared',
         'npm run test:shared:watch',
         'npm run test:shared:coverage'
-      ]
-    },
-    {
-      name: 'api',
-      description: 'API services, nonce management, exchange rates',
-      commands: [
-        'npm run test:api',
-        'npm run test:api:watch',
-        'npm run test:api:coverage'
       ]
     }
   ];
@@ -120,11 +105,20 @@ function parseTestResults(): { results: TestResult[], failedTests: FailedTest[] 
           stats.passed++;
         } else if (test.status === 'failed') {
           stats.failed++;
-          // Capture failed test details
+          // Capture failed test details with file path and line number
+          const errorMessage = test.failureMessages?.[0] || 'Unknown error';
+          const filePath = file.name.replace(/\\/g, '/'); // Normalize path separators
+          
+          // Extract line number from error message if available
+          const lineMatch = errorMessage.match(/at.*\((.+):(\d+):\d+\)/);
+          const lineNumber = lineMatch ? parseInt(lineMatch[2]) : undefined;
+          
           failedTests.push({
             module: moduleName,
             testName: test.title,
-            error: test.failureMessages?.[0] || 'Unknown error'
+            error: errorMessage,
+            filePath: filePath,
+            lineNumber: lineNumber
           });
         } else if (test.status === 'skipped') {
           stats.skipped++;
@@ -153,6 +147,21 @@ function getModuleFromPath(filePath: string): string {
   const pathParts = filePath.split('/');
   const srcIndex = pathParts.indexOf('src');
   if (srcIndex !== -1 && srcIndex + 1 < pathParts.length) {
+    // Check if this is a test file in a /test or /tests folder
+    const isTestFile = filePath.includes('/test/') || filePath.includes('/tests/');
+    if (isTestFile) {
+      // Find the module name (the folder that contains the test folder)
+      for (let i = srcIndex + 1; i < pathParts.length; i++) {
+        if (pathParts[i] === 'test' || pathParts[i] === 'tests') {
+          // The module is the folder before the test folder
+          if (i > srcIndex + 1) {
+            return pathParts[i - 1];
+          }
+        }
+      }
+    }
+    
+    // Fallback to first level module
     return pathParts[srcIndex + 1];
   }
   return 'unknown';
@@ -168,7 +177,17 @@ function showFailedTests(failedTests: FailedTest[]): void {
   
   failedTests.forEach((test, index) => {
     console.log(chalk.red(`${index + 1}. ${test.module.toUpperCase()}: ${test.testName}`));
-    console.log(chalk.gray(`   Error: ${test.error.split('\n')[0]}`)); // Show first line of error
+    
+    // Show file path and line number for easy navigation
+    if (test.lineNumber) {
+      console.log(chalk.yellow(`   📍 File: ${test.filePath}:${test.lineNumber}`));
+    } else {
+      console.log(chalk.yellow(`   📍 File: ${test.filePath}`));
+    }
+    
+    // Show first line of error message
+    const firstErrorLine = test.error.split('\n')[0];
+    console.log(chalk.gray(`   Error: ${firstErrorLine}`));
     console.log('');
   });
   
@@ -176,7 +195,7 @@ function showFailedTests(failedTests: FailedTest[]): void {
   console.log('');
 }
 
-function showModuleBreakdown(results: TestResult[]): void {
+function showModuleBreakdown(results: TestResult[], failedTests: FailedTest[]): void {
   console.log(chalk.gray('='.repeat(80)));
   console.log(chalk.blue('📊 Module Breakdown'));
   console.log(chalk.gray('='.repeat(80)));
@@ -198,6 +217,27 @@ function showModuleBreakdown(results: TestResult[]): void {
     console.log(chalk.yellow(`🔧 ${result.module.toUpperCase()}`));
     console.log(`   ${chalk.green('✅ Passed:')} ${result.passed} ${chalk.gray('|')} ${chalk.red('❌ Failed:')} ${result.failed} ${chalk.gray('|')} ${chalk.yellow('⏭️  Skipped:')} ${result.skipped}`);
     console.log(`   ${chalk.blue('⏱️  Duration:')} ${formatDuration(result.duration)} ${chalk.gray('|')} ${chalk.cyan('📈 Success Rate:')} ${successRate}%`);
+    
+    // Show failures for this module if any
+    const moduleFailures = failedTests.filter(test => test.module === result.module);
+    if (moduleFailures.length > 0) {
+      console.log(chalk.red(`   ❌ Failed Tests:`));
+      moduleFailures.forEach((test, index) => {
+        console.log(chalk.red(`      ${index + 1}. ${test.testName}`));
+        
+        // Show file path and line number for easy navigation
+        if (test.lineNumber) {
+          console.log(chalk.yellow(`         📍 File: ${test.filePath}:${test.lineNumber}`));
+        } else {
+          console.log(chalk.yellow(`         📍 File: ${test.filePath}`));
+        }
+        
+        // Show first line of error message
+        const firstErrorLine = test.error.split('\n')[0];
+        console.log(chalk.gray(`         Error: ${firstErrorLine}`));
+      });
+    }
+    
     console.log('');
   });
   
@@ -269,11 +309,8 @@ function main(): void {
     
     const { results, failedTests } = parseTestResults();
     
-    // Show failed tests first
-    showFailedTests(failedTests);
-    
-    // Then show module breakdown
-    showModuleBreakdown(results);
+    // Show module breakdown with failures integrated
+    showModuleBreakdown(results, failedTests);
     
   } catch (error: any) {
     console.log(chalk.blue('📊 Analyzing results...'));
@@ -282,8 +319,7 @@ function main(): void {
     // Try to show results even if tests failed
     const { results, failedTests } = parseTestResults();
     if (results.length > 0) {
-      showFailedTests(failedTests);
-      showModuleBreakdown(results);
+      showModuleBreakdown(results, failedTests);
     } else {
       console.log(chalk.red('❌ Test execution failed and no results available'));
       console.log(chalk.gray('='.repeat(80)));
