@@ -2,32 +2,56 @@
   "name": "zera-js-sdk",
   "version": "1.0.0",
   "description": "ZERA Network JavaScript SDK",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "type": "module",
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
-    "test": "node test-runner.js",
-    "test:watch": "node test-runner.js --watch",
-    "test:coverage": "node test-runner.js --coverage",
-    "test:verbose": "node test-runner.js --verbose",
-    "test:unit": "node test-runner.js --type=unit",
-    "test:integration": "node test-runner.js --type=integration",
-    "test:clean": "node test-runner.js --clean",
-    "update:test-scripts": "node scripts/update-test-scripts.js",
+    "build": "node scripts/build.ts",
+    "build:esm": "node scripts/build.ts esm",
+    "build:watch": "tsc --watch",
+    "build:clean": "node scripts/build.ts clean",
+    "type-check": "node scripts/build.ts type-check",
+    "build:compile": "node scripts/build.ts compile",
+    "build:validate": "node scripts/build.ts validate",
+    "test": "npx tsx scripts/custom-test-runner.ts",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:ui": "vitest --coverage --ui",
+    "test:unit": "vitest run --reporter=verbose",
+    "test:integration": "vitest run --reporter=verbose",
+    "test:verbose": "vitest run --reporter=verbose",
+    "test:clean": "vitest run --reporter=verbose",
+    "test:ts": "vitest run",
+    "test:ts:all": "vitest run",
+    "test:ts:js": "vitest run",
+    "test:wallet-creation": "vitest run src/wallet-creation/**/*.test.ts",
+    "test:wallet-creation:watch": "vitest src/wallet-creation/**/*.test.ts",
+    "test:wallet-creation:coverage": "vitest run --coverage src/wallet-creation/**/*.test.ts",
+    "test:coin-txn": "vitest run src/coin-txn/**/*.test.ts",
+    "test:coin-txn:watch": "vitest src/coin-txn/**/*.test.ts",
+    "test:coin-txn:coverage": "vitest run --coverage src/coin-txn/**/*.test.ts",
+    "test:grpc": "vitest run src/grpc/**/*.test.ts",
+    "test:grpc:watch": "vitest src/grpc/**/*.test.ts",
+    "test:grpc:coverage": "vitest run --coverage src/grpc/**/*.test.ts",
+    "test:shared": "vitest run src/shared/**/*.test.ts",
+    "test:shared:watch": "vitest src/shared/**/*.test.ts",
+    "test:shared:coverage": "vitest run --coverage src/shared/**/*.test.ts",
+    "test:api": "vitest run src/api/**/*.test.ts",
+    "test:api:watch": "vitest src/api/**/*.test.ts",
+    "test:api:coverage": "vitest run --coverage src/api/**/*.test.ts",
+    "update:test-scripts": "npx tsx scripts/update-test-scripts.ts",
     "build:proto": "cd proto && npm run build",
     "build:proto:js": "cd proto && npm run build:js",
     "build:proto:ts": "cd proto && npm run build:ts",
     "build:proto:grpc": "cd proto && npm run build:grpc",
     "proto:install": "cd proto && npm install",
     "proto:clean": "cd proto && npm run clean",
-    "proto:example": "cd proto && node example.js",
-    "test:api": "node test-runner.js --module=api",
-    "test:coin-txn": "node test-runner.js --module=coin-txn",
-    "test:grpc": "node test-runner.js --module=grpc",
-    "test:shared": "node test-runner.js --module=shared",
-    "test:wallet-creation": "node test-runner.js --module=wallet-creation"
+    "proto:example": "cd proto && node example.js"
   },
   "keywords": [
     "protobuf",
@@ -48,12 +72,18 @@
     "url": "https://github.com/zera-network/zera-js-sdk/issues"
   },
   "files": [
-    "index.js",
-    "src/",
+    "dist/",
     "proto/generated/",
     "README.md",
     "LICENSE"
   ],
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.js"
+      }
+    },
   "dependencies": {
     "@bufbuild/protobuf": "^2.8.0",
     "@connectrpc/connect": "^2.1.0",
@@ -72,10 +102,15 @@
   "devDependencies": {
     "@bufbuild/protoc-gen-connect-es": "^0.13.0",
     "@bufbuild/protoc-gen-es": "^1.10.1",
+    "@types/node": "^20.0.0",
+    "@vitest/ui": "^3.2.4",
     "chai": "^6.0.1",
     "chalk": "^5.3.0",
     "glob": "^10.3.10",
     "minimist": "^1.2.8",
-    "mocha": "^11.7.2"
+    "mocha": "^11.7.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.0.0",
+    "vitest": "^3.2.4"
   }
 }

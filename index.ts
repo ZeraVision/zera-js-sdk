@@ -1,0 +1,90 @@
+/**
+ * ZERA JavaScript SDK - Main Entry Point
+ * 
+ * A modern, ESM-compatible TypeScript SDK for the ZERA Network with support for:
+ * - HD wallet creation with BIP32/BIP39/SLIP-0010 compliance
+ * - Multiple key types (Ed25519, Ed448) and hash algorithms
+ * - CoinTXN creation and submission
+ * - API services for nonce and exchange rate management
+ * 
+ * @version 1.0.0
+ * @author ZERA Vision
+ * @license Custom
+ */
+
+// Import wallet creation functionality
+export { 
+  createWallet, 
+  generateMnemonicPhrase, 
+  deriveMultipleWallets,
+  KEY_TYPE,
+  HASH_TYPE,
+  type WalletOptions,
+  type Wallet,
+  type HDOptions,
+  type WalletFactory
+} from './src/wallet-creation/index.js';
+
+// Import CoinTXN functionality
+export { 
+  createCoinTXN, 
+  sendCoinTXN,
+  type CoinTXNInput,
+  type CoinTXNOutput,
+  type FeeConfig,
+  type GRPCConfig
+} from './src/coin-txn/index.js';
+
+// Import API services
+export {
+  getExchangeRate,
+  type ExchangeRateServiceOptions
+} from './src/api/zv-indexer/rate/index.js';
+
+// Import gRPC infrastructure
+export {
+  createGenericGRPCClient,
+  makeGRPCCall,
+  createValidatorAPIClient,
+  createTransactionClient,
+  SERVICE_PORTS,
+  SERVICE_TYPES,
+  type GRPCClientOptions,
+  type GRPCClient
+} from './src/grpc/index.js';
+
+// Import shared utilities
+export {
+  TRANSACTION_TYPE,
+  CONTRACT_FEE_TYPE,
+  TXN_STATUS,
+  GOVERNANCE_TYPE,
+  CONTRACT_TYPE,
+  LANGUAGE,
+  PROPOSAL_PERIOD,
+  VARIABLE_TYPE,
+  PROTOBUF_ENUMS
+} from './src/shared/protobuf-enums.js';
+
+// Import error classes
+export {
+  WalletCreationError,
+  InvalidKeyTypeError,
+  InvalidHashTypeError,
+  InvalidMnemonicLengthError,
+  InvalidMnemonicError,
+  InvalidDerivationPathError,
+  InvalidHDParameterError,
+  MissingParameterError,
+  CryptographicError
+} from './src/wallet-creation/errors.js';
+
+/**
+ * SDK version
+ */
+export const VERSION = '1.0.0' as const;
+
+/**
+ * SDK description
+ */
+export const DESCRIPTION = 'ZERA JavaScript SDK' as const;

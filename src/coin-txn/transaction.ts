@@ -1,0 +1,458 @@
+/**
+ * Transaction Module - CoinTXN
+ */
+
+import {
+  CoinTXNSchema as CoinTXN,
+  InputTransfersSchema as InputTransfers,
+  OutputTransfersSchema as OutputTransfers,
+  BaseTXNSchema as BaseTXN,
+  TransferAuthenticationSchema as TransferAuthentication,
+  PublicKeySchema as PublicKey
+} from '../../proto/generated/txn_pb.js';
+import { create } from '@bufbuild/protobuf';
+import { toBinary } from '@bufbuild/protobuf';
+import { protoInt64 } from '@bufbuild/protobuf';
+import { createSanitized, sanitizeProtobufObject } from '../shared/utils/protobuf-utils.js';
+import { getPublicKeyBytes, generateAddressFromPublicKey } from '../shared/crypto/address-utils.js';
+import { signTransactionData, createTransactionHash } from '../shared/crypto/signature-utils.js';
+import { getNonces } from '../api/validator/nonce/service.js';
+import { UniversalFeeCalculator } from '../shared/fee-calculators/universal-fee-calculator.js';
+import { createTransactionClient } from '../grpc/transaction/transaction-client.js';
+import bs58 from 'bs58';
+import { toSmallestUnits, validateAmountBalance, Decimal } from '../shared/utils/amount-utils.js';
+import type { 
+  CoinTXNInput, 
+  CoinTXNOutput, 
+  FeeConfig, 
+  GRPCConfig, 
+  ContractId,
+  AmountInput 
+} from '../types/index.js';
+
+/**
+ * Validate contractID format
+ * ContractID should follow the format: $[letters]+[4 digits]
+ * Examples: $ZRA+0000, $BTC+1234, $ETH+9999
+ */
+export function validateContractId(contractId: any): contractId is ContractId {
+  if (!contractId || typeof contractId !== 'string') {
+    return false;
+  }
+  
+  // Regex: $ followed by one or more letters, then + followed by exactly 4 digits
+  const contractIdRegex = /^\$[A-Za-z]+\+\d{4}$/;
+  return contractIdRegex.test(contractId);
+}
+
+/**
+ * Process inputs and create authentication data
+ */
+async function processInputs(
+  inputs: CoinTXNInput[], 
+  contractID: ContractId, 
+  nonceOptions: Record<string, any> = {}
+): Promise<{
+  publicKeys: any[];
+  inputTransfers: any[];
+  nonces: any[];
+  allowanceAddresses: Uint8Array[] | null;
+  allowanceNonces: any[] | null;
+}> {
+  const publicKeys: any[] = [];
+  const inputTransfers: any[] = [];
+  const addresses: string[] = [];
+
+  let isAllowance = false;
+  
+  try {
+    // Extract addresses for nonce requests
+    for (const input of inputs) {
+
+      if (!input.publicKey && !input.allowanceAddress) {
+        throw new Error(`Input ${inputs.indexOf(input)} is missing publicKey`);
+      } else if (input.allowanceAddress) {
+        isAllowance = true;
+      }
+
+      let address = "";
+
+      if (input.publicKey) {
+        address = generateAddressFromPublicKey(input.publicKey);
+      } else if (input.allowanceAddress) {
+        address = input.allowanceAddress;
+      } else {
+        throw new Error(`Input ${inputs.indexOf(input)} is missing or using unsupported publicKey type`);
+      }
+
+      addresses.push(address);
+    }
+    
+    // Get nonces for all inputs
+    const nonceDecimals = await getNonces(addresses, nonceOptions);
+
+    // For allowance transactions, split the results more efficiently
+    let allowanceNonceDecimals: any[] = [];
+    let allowanceAddresses: string[] = [];
+    let finalNonceDecimals = nonceDecimals;
+    let finalAddresses = addresses;
+
+    if (isAllowance) {
+      // Extract allowance data: everything from index 1 onwards (maintaining order)
+      allowanceNonceDecimals = nonceDecimals.slice(1);
+      allowanceAddresses = addresses.slice(1);
+      
+      // Keep only index 0 for the main transaction (non-allowance)
+      finalNonceDecimals = nonceDecimals.slice(0, 1);
+      finalAddresses = addresses.slice(0, 1);
+    }
+    
+    // Process each input
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+      
+      if (!input) {
+        throw new Error(`Input at index ${i} is undefined`);
+      }
+
+      // Add public key for auth
+      if (input.publicKey) {
+        const publicKeyObj = create(PublicKey, { single: getPublicKeyBytes(input.publicKey) });
+        publicKeys.push(publicKeyObj);
+      } else if (!input.publicKey && !isAllowance) {
+        throw new Error(`Input ${i} is missing publicKey`);
+      } 
+
+      // Allowance authorizor does not have an input
+      if (isAllowance && input.publicKey) {
+        continue;
+      }
+      
+      // Create input transfer
+      const finalAmount = toSmallestUnits(input.amount, contractID);
+      const feePercent = input.feePercent !== undefined ? input.feePercent : '100';
+      const scaledFeePercent = new Decimal(feePercent).mul(1000000).toNumber();
+      
+      const inputTransferData = {
+        index: i,
+        amount: finalAmount,
+        feePercent: scaledFeePercent
+      };
+      
+      inputTransfers.push(create(InputTransfers, inputTransferData));
+    }
+    
+    // Convert Decimal nonces to uint64 using protobuf utilities
+    const nonces = finalNonceDecimals.map(nonce => protoInt64.uParse(nonce.toString()));
+    
+    // Parse allowance nonces to uint64 and handle empty arrays
+    const allowanceNonces = allowanceNonceDecimals.length > 0 
+      ? allowanceNonceDecimals.map(nonce => protoInt64.uParse(nonce.toString()))
+      : null;
+    
+    const finalAllowanceAddresses = allowanceAddresses.length > 0 
+      ? allowanceAddresses.map(addr => bs58.decode(addr)) 
+      : null;
+    
+    return { publicKeys, inputTransfers, nonces, allowanceAddresses: finalAllowanceAddresses, allowanceNonces };
+  } catch (error) {
+    console.error('Error in processInputs:', error);
+    throw error;
+  }
+}
+
+/**
+ * Process outputs
+ */
+function processOutputs(outputs: CoinTXNOutput[], contractId: ContractId): any[] {
+  return outputs.map(output => {
+    const finalAmount = toSmallestUnits(output.amount, contractId);
+    const data: any = {
+      walletAddress: bs58.decode(output.to)
+    };
+    
+    // Only include amount if it's not '0' or empty
+    if (finalAmount && finalAmount !== '0') {
+      data.amount = finalAmount;
+    }
+    
+    if (output.memo && output.memo.trim() !== '') {
+      data.memo = output.memo;
+    }
+    return create(OutputTransfers, data);
+  });
+}
+
+/**
+ * Create transfer authentication
+ */
+function createTransferAuth(
+  publicKeys: any[],
+  signatures: any[],
+  nonces: any[],
+  allowanceAddresses: Uint8Array[] | null = null,
+  allowanceNonces: any[] | null = null
+): any {
+  const authData: any = {};
+  if (publicKeys && publicKeys.length > 0) authData.publicKey = publicKeys;
+  if (nonces && nonces.length > 0) authData.nonce = nonces;
+  if (signatures && signatures.length > 0) authData.signature = signatures;
+  if (allowanceAddresses && allowanceAddresses.length > 0) authData.allowanceAddress = allowanceAddresses;
+  if (allowanceNonces && allowanceNonces.length > 0) authData.allowanceNonce = allowanceNonces;
+  return create(TransferAuthentication, authData);
+}
+
+/**
+ * Create timestamp for protobuf
+ */
+function createTimestamp(): { seconds: number; nanos: number } {
+  const now = Date.now();
+  const seconds = Math.floor(now / 1000);
+  
+  return {
+    seconds: seconds, // Use number instead of BigInt for serialization compatibility
+    nanos: 0
+  };
+}
+
+/**
+ * Create base transaction for CoinTXN
+ * Note: CoinTXN base only has timestamp, feeAmount, and feeId (no public key or nonce)
+ */
+function createBaseTransaction(baseFeeId: string, baseFee: string, baseMemo: string): any {
+  // Validate base fee is not 0
+  if (!baseFee || baseFee === '0') {
+    throw new Error('Base fee must be provided and cannot be 0');
+  }
+
+  const baseData: any = {
+    timestamp: createTimestamp(),
+    feeAmount: toSmallestUnits(baseFee, baseFeeId),
+    feeId: baseFeeId
+  };
+  
+  if (baseMemo && baseMemo.trim() !== '') {
+    baseData.memo = baseMemo;
+  }
+  
+  return create(BaseTXN, baseData);
+}
+
+/**
+ * Create a CoinTXN with inputs and outputs using exact decimal arithmetic
+ * Uses automatic fee calculation by default unless fee amounts are explicitly provided
+ */
+export async function createCoinTXN(
+  inputs: CoinTXNInput[], 
+  outputs: CoinTXNOutput[], 
+  contractId: ContractId, 
+  feeConfig: FeeConfig = {}, 
+  baseMemo: string = '', 
+  nonceOptions: Record<string, any> = {}
+): Promise<any> {
+  // Validate inputs
+  if (!Array.isArray(inputs) || !Array.isArray(outputs)) {
+    throw new Error('Inputs and outputs must be arrays');
+  }
+  if (inputs.length === 0 || outputs.length === 0) {
+    throw new Error('Must have at least one input and one output');
+  }
+  if (!contractId || !validateContractId(contractId)) {
+    throw new Error('ContractId must be provided and follow the format $[letters]+[4 digits] (e.g., $ZRA+0000)');
+  }
+
+  const {
+    baseFeeId = '$ZRA+0000',
+    baseFee,
+    contractFeeId,
+    contractFee,
+    interfaceFeeId,
+    interfaceFeeAmount,
+    interfaceAddress
+  } = feeConfig;
+
+  // Step 1: Process inputs (includes nonce generation)
+  const { publicKeys, inputTransfers, nonces, allowanceAddresses, allowanceNonces } = await processInputs(inputs, contractId, nonceOptions);
+
+  // Used for signatures at bottom, accounts for allowance inputs (filtered to exclude allowance-based inputs)
+  const signersArray = JSON.parse(JSON.stringify(inputs)).filter((input: CoinTXNInput) => !input.allowanceAddress);
+
+  // If allowance, remove them from input
+  if (allowanceAddresses && allowanceAddresses.length > 0) {    
+    // Remove index 0 from inputs (allowance authorizer)
+    inputs.splice(0, 1);
+  }
+
+  // Step 2: Process outputs
+  const outputTransfers = processOutputs(outputs, contractId);
+
+  // Step 3: Validate balance
+  const inputAmounts = inputs.map(i => toSmallestUnits(i.amount, contractId));
+  const outputAmounts = outputs.map(o => toSmallestUnits(o.amount, contractId));
+  validateAmountBalance(inputAmounts, outputAmounts);
+
+  // Step 4: Validate fee percentages
+  const totalFeePercent = inputTransfers.reduce((sum, t) => new Decimal(sum).add(t.feePercent).toNumber(), 0);
+  if (totalFeePercent !== 100000000) {
+    throw new Error(`Fee percentages must sum to exactly 100% (100,000,000). Current sum: ${totalFeePercent}`);
+  }
+
+  // Step 5: Determine fee calculation strategy
+  const shouldUseAutoBaseFee = baseFee === undefined;
+  const shouldUseAutoContractFee = contractFee === undefined;
+  const shouldUseInterfaceFee = interfaceFeeId !== undefined;
+  
+  // Step 6: Create initial transaction without fees (for fee calculation)
+  let finalBaseFee = baseFee;
+  let finalContractFee = contractFee;
+  
+  if (shouldUseAutoBaseFee || shouldUseAutoContractFee || shouldUseInterfaceFee) {
+
+    // Create a temporary transaction without fees for size calculation
+    const tempTxnBase = createBaseTransaction(baseFeeId, '1', baseMemo); // Use 1 fee temporarily
+    const tempCoinTxnData = {
+      base: tempTxnBase,
+      contractId,
+      auth: createTransferAuth(publicKeys, [], nonces, allowanceAddresses, allowanceNonces), // No signatures initially
+      inputTransfers,
+      outputTransfers,
+      contractFeeId: undefined as string | undefined,
+      contractFeeAmount: undefined as string | undefined
+    };
+
+    // Only include contract fee fields if there's actually a contract fee
+    if (finalContractFee !== undefined && finalContractFee !== null) {
+      tempCoinTxnData.contractFeeId = contractFeeId;
+      tempCoinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
+    } else {
+      // Explicitly set to undefined instead of letting protobuf assign empty strings
+      tempCoinTxnData.contractFeeId = undefined;
+      tempCoinTxnData.contractFeeAmount = undefined;
+    }
+
+    const tempCoinTxn = create(CoinTXN, tempCoinTxnData);
+
+    // Use UniversalFeeCalculator unified fee calculation
+    try {
+      const feeOptions: any = {
+        protoObject: tempCoinTxn,
+        baseFeeId
+      };
+      
+      if (shouldUseAutoContractFee && contractFeeId) {
+        feeOptions.contractFeeId = contractFeeId;
+      }
+      
+      if (shouldUseInterfaceFee) {
+        if (interfaceFeeAmount) feeOptions.interfaceFeeAmount = interfaceFeeAmount;
+        if (interfaceFeeId) feeOptions.interfaceFeeId = interfaceFeeId;
+        if (interfaceAddress) feeOptions.interfaceAddress = interfaceAddress;
+      }
+      
+      const feeResult = await UniversalFeeCalculator.calculateFee(feeOptions);
+      
+      if (shouldUseAutoBaseFee) {
+        finalBaseFee = feeResult.networkFee;
+        } else { // check if their fee is valid...
+          if (baseFee && parseFloat(String(baseFee)) < parseFloat(feeResult.networkFee)) {
+            console.warn(`WARNING: Base fee ${baseFee} is less than the calculated base fee ${feeResult.networkFee}. Transaction expected to be rejected by network.`);
+          }
+        }
+
+      if (shouldUseAutoContractFee) {
+        finalContractFee = feeResult.contractFee;
+      }
+    } catch (error) {
+      throw new Error(`Failed to calculate automatic fee: ${(error as Error).message}`);
+    }
+  }
+  
+  // Validate base fee is not 0
+  if (!finalBaseFee || finalBaseFee === '0' || finalBaseFee === 0) {
+    throw new Error('Base fee must be provided and cannot be 0');
+  }
+
+  // Step 7: Create final base transaction with correct fees
+  const txnBase = createBaseTransaction(baseFeeId, String(finalBaseFee), baseMemo);
+
+  // Add interface fees to base transaction if specified
+  if (shouldUseInterfaceFee && interfaceFeeAmount && interfaceFeeId) {
+    txnBase.interfaceFee = toSmallestUnits(interfaceFeeAmount, interfaceFeeId);
+    txnBase.interfaceFeeId = interfaceFeeId;
+    if (interfaceAddress) {
+      txnBase.interfaceAddress = bs58.decode(interfaceAddress);
+    }
+  }
+
+  // Step 8: Create initial transaction (without signatures and without hash) - Match Go SDK
+  const coinTxnData: any = {
+    base: txnBase, // This base doesn't have hash yet
+    contractId,
+    auth: createTransferAuth(publicKeys, [], nonces, allowanceAddresses, allowanceNonces), // Only add fields that have values
+    inputTransfers,
+    outputTransfers
+  };
+
+  // Only include contract fee fields if there's actually a contract fee
+  if (finalContractFee !== undefined && finalContractFee !== null) {
+    coinTxnData.contractFeeId = contractFeeId;
+    coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
+  } else {
+    // Explicitly set to undefined instead of letting protobuf assign empty strings
+    coinTxnData.contractFeeId = undefined;
+    coinTxnData.contractFeeAmount = undefined;
+  }
+
+  let coinTxn = create(CoinTXN, coinTxnData);
+
+  // Step 9: Sign transaction (without hash) - Match Go SDK process exactly
+  const serializedTxnWithoutHash = toBinary(CoinTXN, coinTxn);
+  
+  // Sign and add signatures directly to the existing transaction (like Go SDK)
+  // Initialize signature array if it doesn't exist (field was not present initially)
+  const authData = (coinTxn as any).auth || {};
+  if (!authData.signature) {
+    authData.signature = [];
+  }
+
+  // Sanitize the protobuf object here to eliminate any empty strings
+  //coinTxn = sanitizeProtobufObject(coinTxn, { removeEmptyFields: true });
+  
+  for (let i = 0; i < signersArray.length; i++) {
+    try {
+      const signature = signTransactionData(serializedTxnWithoutHash, signersArray[i].privateKey, signersArray[i].publicKey);
+      authData.signature.push(signature); // Add signature directly to existing auth
+    } catch (error) {
+      throw new Error(`Failed to sign transaction with input ${i}: ${(error as Error).message}`);
+    }
+  }
+
+  // Step 10: Marshal the transaction with signatures
+  const serializedTxnWithSignatures = toBinary(CoinTXN, coinTxn);
+
+  // Step 11: Hash the serialized data with signatures
+  const hash = createTransactionHash(serializedTxnWithSignatures);
+
+  // Step 12: Add the hash to the existing transaction
+  const baseData = (coinTxn as any).base || {};
+  baseData.hash = hash;
+
+  return coinTxn;
+}
+
+/**
+ * Send a CoinTXN via gRPC using Connect client
+ */
+export async function sendCoinTXN(coinTxn: any, grpcConfig: GRPCConfig = {}): Promise<string> {
+  try {
+    const client = createTransactionClient(grpcConfig);
+    const response = await client.submitCoinTransaction(coinTxn);
+    
+    // Return transaction hash on success
+    return coinTxn.base?.hash ? 
+      Buffer.from(coinTxn.base.hash).toString('hex') : 
+      'Transaction sent successfully (no hash available)';
+  } catch (error) {
+    throw new Error(`Failed to submit coin transaction: ${(error as Error).message}`);
+  }
+}

@@ -1,0 +1,468 @@
+/**
+ * Real-World SDK Usage Examples
+ * 
+ * This file demonstrates how to use the ZERA SDK in real scenarios,
+ * showing how users would construct transactions by pulling wallet data
+ * from their own data sources and building inputs/outputs manually.
+ * 
+ * Memo's optional. Base memo more typically used. Transfer memo for multi-output if required.
+ */
+
+import { createCoinTXN, sendCoinTXN } from '../index.js';
+import { 
+  ED25519_TEST_KEYS,
+  ED448_TEST_KEYS,
+  TEST_WALLET_ADDRESSES,
+  type TestInput,
+  type TestOutput
+} from '../../test-utils/index.js';
+import type { AmountInput } from '../../types/index.js';
+
+/**
+ * Example 1: Simple Payment
+ * Alice sends 1.5 ZRA to Bob
+ * 
+ * This shows how users would construct a transaction by pulling wallet data
+ * from their own data sources (database, config files, etc.)
+ */
+export async function exampleSimplePayment(): Promise<void> {
+  console.log('💸 Example 1: Simple Payment');
+  
+  // In a real application, you would pull this data from your storage
+  const aliceWallet = ED25519_TEST_KEYS.alice;
+  //const aliceWallet = ED448_TEST_KEYS.alice;
+  const bobAddress = TEST_WALLET_ADDRESSES.bob;
+  
+  console.log('📋 Wallet data pulled from data source:');
+  console.log('  Alice private key:', aliceWallet.privateKey.substring(0, 20) + '...');
+  console.log('  Alice public key:', aliceWallet.publicKey);
+  console.log('  Bob address:', bobAddress);
+  
+  // Construct input manually (as users would do)
+  const input: TestInput[] = [
+    {
+      privateKey: aliceWallet.privateKey,
+      publicKey: aliceWallet.publicKey,
+      amount: '1.5',
+      feePercent: '100'
+    }
+  ];
+  
+  // Construct output manually (as users would do)
+  const output: TestOutput[] = [
+    {
+      to: bobAddress,
+      amount: '1.5',
+      memo: 'Payment to Bob'
+    }
+  ];
+  
+  // Fee configuration (users would typically store this in config)
+  const feeConfig = {
+    baseFeeId: '$ZRA+0000',
+    baseFee: '0.001',
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.0005'
+  };
+  
+  try {
+    console.log('🔨 Creating transaction...');
+    const coinTxn = await createCoinTXN(input as any, output, '$ZRA+0000', feeConfig);
+    
+    console.log('✅ Transaction created successfully!');
+    console.log('  Transaction ID:', coinTxn.base?.hash ? 'Generated' : 'Not generated');
+    console.log('  Input count:', input.length);
+    console.log('  Output count:', output.length);
+    
+    // In a real application, you would send this to the network
+    console.log('📡 Sending transaction to network...');
+    const result = await sendCoinTXN(coinTxn);
+    
+    console.log('🎉 Transaction sent successfully!');
+    console.log('  Result:', result);
+    
+  } catch (error) {
+    console.error('❌ Transaction failed:', (error as Error).message);
+    throw error;
+  }
+}
+
+/**
+ * Example 2: Multi-Input Payment
+ * Alice and Bob both send money to Charlie
+ * 
+ * This demonstrates how to handle multiple inputs from different wallets
+ */
+export async function exampleMultiInputPayment(): Promise<void> {
+  console.log('💸 Example 2: Multi-Input Payment');
+  
+  // Pull wallet data from different sources
+  const aliceWallet = ED25519_TEST_KEYS.alice;
+  const bobWallet = ED448_TEST_KEYS.bob;
+  const charlieAddress = TEST_WALLET_ADDRESSES.charlie;
+  
+  console.log('📋 Multi-wallet data:');
+  console.log('  Alice (ED25519):', aliceWallet.address);
+  console.log('  Bob (ED448):', bobWallet.address);
+  console.log('  Charlie (recipient):', charlieAddress);
+  
+  // Multiple inputs from different wallets
+  const inputs: TestInput[] = [
+    {
+      privateKey: aliceWallet.privateKey,
+      publicKey: aliceWallet.publicKey,
+      amount: '2.0',
+      feePercent: '60' // Alice pays 60% of fees
+    },
+    {
+      privateKey: bobWallet.privateKey,
+      publicKey: bobWallet.publicKey,
+      amount: '1.5',
+      feePercent: '40' // Bob pays 40% of fees
+    }
+  ];
+  
+  // Single output to Charlie
+  const outputs: TestOutput[] = [
+    {
+      to: charlieAddress,
+      amount: '3.5', // Total amount
+      memo: 'Joint payment from Alice and Bob'
+    }
+  ];
+  
+  const feeConfig = {
+    baseFeeId: '$ZRA+0000',
+    baseFee: '0.002', // Higher fee for multi-input
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.001'
+  };
+  
+  try {
+    console.log('🔨 Creating multi-input transaction...');
+    const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig);
+    
+    console.log('✅ Multi-input transaction created!');
+    console.log('  Inputs:', inputs.length);
+    console.log('  Outputs:', outputs.length);
+    console.log('  Total amount:', '3.5 ZRA');
+    
+    const result = await sendCoinTXN(coinTxn);
+    console.log('🎉 Multi-input transaction sent!');
+    console.log('  Result:', result);
+    
+  } catch (error) {
+    console.error('❌ Multi-input transaction failed:', (error as Error).message);
+    throw error;
+  }
+}
+
+/**
+ * Example 3: Multi-Output Payment
+ * Alice sends money to multiple recipients
+ * 
+ * This shows how to handle multiple outputs (splitting payments)
+ */
+export async function exampleMultiOutputPayment(): Promise<void> {
+  console.log('💸 Example 3: Multi-Output Payment');
+  
+  const aliceWallet = ED25519_TEST_KEYS.alice;
+  const bobAddress = TEST_WALLET_ADDRESSES.bob;
+  const charlieAddress = TEST_WALLET_ADDRESSES.charlie;
+  const jesseAddress = TEST_WALLET_ADDRESSES.jesse;
+  
+  console.log('📋 Payment splitting:');
+  console.log('  From Alice to Bob, Charlie, and Jesse');
+  
+  // Single input from Alice
+  const inputs: TestInput[] = [
+    {
+      privateKey: aliceWallet.privateKey,
+      publicKey: aliceWallet.publicKey,
+      amount: '5.0', // Alice sends 5 ZRA total
+      feePercent: '100'
+    }
+  ];
+  
+  // Multiple outputs to different recipients
+  const outputs: TestOutput[] = [
+    {
+      to: bobAddress,
+      amount: '2.0',
+      memo: 'Payment to Bob'
+    },
+    {
+      to: charlieAddress,
+      amount: '1.5',
+      memo: 'Payment to Charlie'
+    },
+    {
+      to: jesseAddress,
+      amount: '1.5',
+      memo: 'Payment to Jesse'
+    }
+  ];
+  
+  const feeConfig = {
+    baseFeeId: '$ZRA+0000',
+    baseFee: '0.003', // Higher fee for multi-output
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.0015'
+  };
+  
+  try {
+    console.log('🔨 Creating multi-output transaction...');
+    const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig);
+    
+    console.log('✅ Multi-output transaction created!');
+    console.log('  Recipients:', outputs.length);
+    console.log('  Total distributed:', '5.0 ZRA');
+    
+    const result = await sendCoinTXN(coinTxn);
+    console.log('🎉 Multi-output transaction sent!');
+    console.log('  Result:', result);
+    
+  } catch (error) {
+    console.error('❌ Multi-output transaction failed:', (error as Error).message);
+    throw error;
+  }
+}
+
+/**
+ * Example 4: Complex Multi-Input/Multi-Output Payment
+ * Alice and Bob send money to Charlie and Jesse
+ * 
+ * This demonstrates the most complex scenario with multiple inputs and outputs
+ */
+export async function exampleComplexPayment(): Promise<void> {
+  console.log('💸 Example 4: Complex Multi-Input/Multi-Output Payment');
+  
+  const aliceWallet = ED25519_TEST_KEYS.alice;
+  const bobWallet = ED448_TEST_KEYS.bob;
+  const charlieAddress = TEST_WALLET_ADDRESSES.charlie;
+  const jesseAddress = TEST_WALLET_ADDRESSES.jesse;
+  
+  console.log('📋 Complex payment scenario:');
+  console.log('  Alice + Bob → Charlie + Jesse');
+  
+  // Multiple inputs
+  const inputs: TestInput[] = [
+    {
+      privateKey: aliceWallet.privateKey,
+      publicKey: aliceWallet.publicKey,
+      amount: '3.0',
+      feePercent: '70' // Alice pays 70% of fees
+    },
+    {
+      privateKey: bobWallet.privateKey,
+      publicKey: bobWallet.publicKey,
+      amount: '2.0',
+      feePercent: '30' // Bob pays 30% of fees
+    }
+  ];
+  
+  // Multiple outputs
+  const outputs: TestOutput[] = [
+    {
+      to: charlieAddress,
+      amount: '3.5',
+      memo: 'Payment to Charlie'
+    },
+    {
+      to: jesseAddress,
+      amount: '1.5',
+      memo: 'Payment to Jesse'
+    }
+  ];
+  
+  const feeConfig = {
+    baseFeeId: '$ZRA+0000',
+    baseFee: '0.005', // Higher fee for complex transaction
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.002'
+  };
+  
+  try {
+    console.log('🔨 Creating complex transaction...');
+    const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig);
+    
+    console.log('✅ Complex transaction created!');
+    console.log('  Inputs:', inputs.length);
+    console.log('  Outputs:', outputs.length);
+    console.log('  Total sent:', '5.0 ZRA');
+    console.log('  Total received:', '5.0 ZRA');
+    
+    const result = await sendCoinTXN(coinTxn);
+    console.log('🎉 Complex transaction sent!');
+    console.log('  Result:', result);
+    
+  } catch (error) {
+    console.error('❌ Complex transaction failed:', (error as Error).message);
+    throw error;
+  }
+}
+
+/**
+ * Example 5: Custom Fee Configuration
+ * Using different fee settings for specific use cases
+ */
+export async function exampleCustomFees(): Promise<void> {
+  console.log('💸 Example 5: Custom Fee Configuration');
+  
+  const aliceWallet = ED25519_TEST_KEYS.alice;
+  const bobAddress = TEST_WALLET_ADDRESSES.bob;
+  
+  const input: TestInput[] = [
+    {
+      privateKey: aliceWallet.privateKey,
+      publicKey: aliceWallet.publicKey,
+      amount: '1.0',
+      feePercent: '100'
+    }
+  ];
+  
+  const output: TestOutput[] = [
+    {
+      to: bobAddress,
+      amount: '1.0',
+      memo: 'Custom fee payment'
+    }
+  ];
+  
+  // Custom fee configuration for high-priority transaction
+  const customFeeConfig = {
+    baseFeeId: '$ZRA+0000',
+    baseFee: '0.01', // Higher base fee for priority
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.005' // Higher contract fee
+  };
+  
+  try {
+    console.log('🔨 Creating transaction with custom fees...');
+    console.log('  Base fee:', customFeeConfig.baseFee);
+    console.log('  Contract fee:', customFeeConfig.contractFee);
+    
+    const coinTxn = await createCoinTXN(input as any, output, '$ZRA+0000', customFeeConfig);
+    
+    console.log('✅ Custom fee transaction created!');
+    
+    const result = await sendCoinTXN(coinTxn);
+    console.log('🎉 Custom fee transaction sent!');
+    console.log('  Result:', result);
+    
+  } catch (error) {
+    console.error('❌ Custom fee transaction failed:', (error as Error).message);
+    throw error;
+  }
+}
+
+/**
+ * Example 6: Error Handling
+ * Demonstrating proper error handling in real applications
+ */
+export async function exampleErrorHandling(): Promise<void> {
+  console.log('💸 Example 6: Error Handling');
+  
+  try {
+    // This will fail because we're using invalid data
+    const invalidInput: TestInput[] = [
+      {
+        privateKey: 'invalid-key',
+        publicKey: 'invalid-public-key',
+        amount: '0', // Invalid amount
+        feePercent: '100'
+      }
+    ];
+    
+    const invalidOutput: TestOutput[] = [
+      {
+        to: 'invalid-address',
+        amount: '0',
+        memo: 'This will fail'
+      }
+    ];
+    
+    const feeConfig = {
+      baseFeeId: '$ZRA+0000',
+      baseFee: '0.001',
+      contractFeeId: '$ZRA+0000',
+      contractFee: '0.0005'
+    };
+    
+    console.log('🔨 Attempting transaction with invalid data...');
+    await createCoinTXN(invalidInput as any, invalidOutput, '$ZRA+0000', feeConfig);
+    
+    console.log('❌ This should not have succeeded!');
+    
+  } catch (error) {
+    console.log('✅ Error caught successfully!');
+    console.log('  Error type:', (error as Error).constructor.name);
+    console.log('  Error message:', (error as Error).message);
+    
+    // In a real application, you would handle this error appropriately
+    // - Log it for debugging
+    // - Show user-friendly message
+    // - Retry with corrected data
+    // - etc.
+  }
+}
+
+/**
+ * Run all real-world examples
+ */
+export async function runAllRealWorldExamples(): Promise<void> {
+  console.log('🚀 Running All Real-World SDK Usage Examples\n');
+  
+  const examples = [
+    { name: 'Simple Payment', runner: exampleSimplePayment },
+    { name: 'Multi-Input Payment', runner: exampleMultiInputPayment },
+    { name: 'Multi-Output Payment', runner: exampleMultiOutputPayment },
+    { name: 'Complex Payment', runner: exampleComplexPayment },
+    { name: 'Custom Fees', runner: exampleCustomFees },
+    { name: 'Error Handling', runner: exampleErrorHandling }
+  ];
+  
+  let passed = 0;
+  let failed = 0;
+  
+  for (const example of examples) {
+    console.log(`\n${'='.repeat(50)}`);
+    console.log(`📚 ${example.name}`);
+    console.log(`${'='.repeat(50)}`);
+    
+    try {
+      await example.runner();
+      console.log(`✅ ${example.name} completed successfully`);
+      passed++;
+    } catch (error) {
+      console.error(`❌ ${example.name} failed:`, (error as Error).message);
+      failed++;
+    }
+  }
+  
+  console.log(`\n${'='.repeat(50)}`);
+  console.log('📊 Real-World Examples Summary');
+  console.log(`${'='.repeat(50)}`);
+  console.log(`✅ Passed: ${passed}`);
+  console.log(`❌ Failed: ${failed}`);
+  console.log(`📈 Success Rate: ${((passed / (passed + failed)) * 100).toFixed(1)}%`);
+  
+  if (failed > 0) {
+    console.log('\n⚠️  Some examples failed. Check the error messages above.');
+  } else {
+    console.log('\n🎉 All examples completed successfully!');
+  }
+}
+
+// Run examples if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runAllRealWorldExamples()
+    .then(() => {
+      console.log('\n🏁 Real-world examples completed');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('💥 Examples crashed:', error);
+      process.exit(1);
+    });
+}
