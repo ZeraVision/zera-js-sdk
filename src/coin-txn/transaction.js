@@ -416,7 +416,7 @@ export async function createCoinTXN(inputs, outputs, contractId, feeConfig = {},
   }
 
   // Sanitize the protobuf object here to eliminate any empty strings
-  coinTxn = sanitizeProtobufObject(coinTxn, { removeEmptyFields: true });
+  //coinTxn = sanitizeProtobufObject(coinTxn, { removeEmptyFields: true });
   
   for (let i = 0; i < signersArray.length; i++) {
     try {

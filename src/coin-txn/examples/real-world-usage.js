@@ -22,7 +22,7 @@ import {
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
-//exampleSimplePayment()
+exampleSimplePayment()
 export async function exampleSimplePayment() {
   console.log('💸 Example 1: Simple Payment');
   

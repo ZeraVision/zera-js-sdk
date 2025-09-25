@@ -16,7 +16,7 @@ export async function testCoinTXNWithExplicitFees() {
   const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'memo with fees');
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create CoinTXN with fees');
-  assert.ok(coinTxn.base !== undefined, 'Should have base transaction');
+  assert.ok(coinTxn.base, 'Should have base transaction');
   assert.ok(coinTxn.base.feeAmount === '1000000', 'Base fee should be converted to smallest units');
   assert.ok(coinTxn.contractFeeAmount === '500000', 'Contract fee should be converted to smallest units');
 }
@@ -34,9 +34,9 @@ export async function testCoinTxnWithOnlyBaseFee() {
   });
   
   assert.ok(coinTxn.$typeName === 'zera_txn.CoinTXN', 'Should create CoinTXN with base fee only');
-  assert.ok(coinTxn.base !== undefined, 'Should have base transaction');
   assert.ok(coinTxn.base.feeAmount === '1002000000', 'Base fee should be converted to smallest units');
-  assert.ok(coinTxn.contractFeeAmount === undefined, 'Should not have contract fee amount when no contract fee specified');
+  assert.ok(!coinTxn.contractFeeAmount, 'Should not have contract fee amount when no contract fee specified');
+  assert.ok(!coinTxn.contractFeeId, 'Should not have contract fee ID when no contract fee specified');
 }
 
 export async function testCoinTxnMultiParty() {
