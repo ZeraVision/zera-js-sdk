@@ -14,7 +14,7 @@ import {
   ED448_TEST_KEYS,
   TEST_WALLET_ADDRESSES
 } from '../../test-utils/index.js';
-import type { CoinTXNInput, CoinTXNOutput} from '../../types/index.js';
+import type { CoinTXNInput, CoinTXNOutput, FeeConfig} from '../../types/index.js';
 import { TESTING_GRPC_OVERRIDE_CONFIG } from '../../shared/utils/testing-defaults/index.js';
 
 /**
@@ -56,9 +56,10 @@ export async function exampleSimplePayment(): Promise<void> {
     }
   ];
   
-  // Fee configuration (users would typically store this in config)
-  const feeConfig = {
+  // This can be left empty to default to ZERA, shown for example
+  const feeConfig: FeeConfig = {
     baseFeeId: '$ZRA+0000',
+    
   };
   
   try {
@@ -127,8 +128,10 @@ export async function exampleMultiInputPayment(): Promise<void> {
     }
   ];
   
-  const feeConfig = {
+  // This can be left empty to default to ZERA, shown for example
+  const feeConfig: FeeConfig = {
     baseFeeId: '$ZRA+0000',
+    
   };
   
   try {
@@ -198,8 +201,10 @@ export async function exampleMultiOutputPayment(): Promise<void> {
     }
   ];
   
-  const feeConfig = {
+  // This can be left empty to default to ZERA, shown for example
+  const feeConfig: FeeConfig = {
     baseFeeId: '$ZRA+0000',
+    
   };
   
   try {
@@ -267,7 +272,8 @@ export async function exampleComplexPayment(): Promise<void> {
     }
   ];
   
-  const feeConfig = {
+  // This can be left empty to default to ZERA, shown for example
+  const feeConfig: FeeConfig = {
     baseFeeId: '$ZRA+0000',
     baseFee: '0.005', // Higher fee for complex transaction
     contractFeeId: '$ZRA+0000',
@@ -322,7 +328,7 @@ export async function exampleCustomFees(): Promise<void> {
   ];
   
   // Custom fee configuration for high-priority transaction
-  const customFeeConfig = {
+  const customFeeConfig: FeeConfig = {
     baseFeeId: '$ZRA+0000',
     baseFee: '0.01', // Higher base fee for priority
     contractFeeId: '$ZRA+0000',
@@ -374,7 +380,8 @@ export async function exampleErrorHandling(): Promise<void> {
       }
     ];
     
-    const feeConfig = {
+    // This can be left empty to default to ZERA, shown for example
+  const feeConfig: FeeConfig = {
       baseFeeId: '$ZRA+0000',
       baseFee: '0.001',
       contractFeeId: '$ZRA+0000',

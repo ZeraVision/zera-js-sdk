@@ -15,7 +15,7 @@ describe('ZERA Coin Transactions', () => {
   const moduleName = 'coin-txn';
   
   // Test fee configuration
-  const DEFAULT_TEST_FEE_CONFIG: FeeConfig = {
+  const testFeeConfig: FeeConfig = {
     baseFeeId: '$ZRA+0000',
     baseFee: '0.001',
     contractFeeId: '$ZRA+0000',
