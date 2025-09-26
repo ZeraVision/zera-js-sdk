@@ -2,60 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Current File (tsx)",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/tsx/dist/cli.mjs",
-      "args": ["${file}"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"],
-      "sourceMaps": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**",
-        "!**/node_modules/**"
-      ],
-      "env": {
-        "DEBUG_GRPC_REQUESTS": "true"
-      },
-      "outputCapture": "std"
-    },
-    {
-      "name": "Debug Fee Info Examples",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/tsx/dist/cli.mjs",
-      "args": ["${workspaceFolder}/src/api/validator/fee-info/examples/fee-info-examples.ts"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"],
-      "sourceMaps": true,
-      "env": {
-        "DEBUG_GRPC_REQUESTS": "true"
-      },
-      "outputCapture": "std"
-    },
-    {
-      "name": "Debug Current File (Windows)",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/tsx/dist/cli.mjs",
-      "args": ["${file}"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"],
-      "sourceMaps": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**",
-        "!**/node_modules/**"
-      ],
-      "env": {
-        "DEBUG_GRPC_REQUESTS": "true"
-      },
-      "outputCapture": "std"
-    },
-    {
-      "name": "Debug Current File (legacy)",
+      "name": "Debug Current File (tsx import)",
       "type": "node",
       "request": "launch",
       "program": "${file}",
@@ -68,8 +15,47 @@
         "!**/node_modules/**"
       ],
       "env": {
+        "DEBUG_GRPC_REQUESTS": "true"
+      },
+      "outputCapture": "std",
+      "stopOnEntry": false,
+      "restart": false,
+      "autoAttachChildProcesses": false,
+      "trace": false,
+      "smartStep": true,
+      "runtimeArgs": ["--import", "tsx/esm"],
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug Current File (NODE_OPTIONS)",
+      "type": "node",
+      "request": "launch",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "env": {
+        "DEBUG_GRPC_REQUESTS": "true",
         "NODE_OPTIONS": "--import tsx/esm"
-      }
+      },
+      "outputCapture": "std",
+      "stopOnEntry": false,
+      "restart": false,
+      "autoAttachChildProcesses": false,
+      "trace": false,
+      "smartStep": true,
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ]
     }
   ]
 }

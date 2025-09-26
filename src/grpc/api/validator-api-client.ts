@@ -8,6 +8,7 @@
 import { createGenericGRPCClient, makeGRPCCall } from '../generic-grpc-client.js';
 import bs58 from 'bs58';
 import type { GRPCConfig, GRPCClient } from '../../types/index.js';
+import type { TokenFeeInfoResponse } from '../../../../proto/generated/api_pb.js';
 
 /**
  * Validator API client interface
@@ -26,7 +27,7 @@ export interface ValidatorAPIClient extends GRPCClient {
   /**
    * Get comprehensive token fee information
    */
-  getTokenFeeInfo(request: { contractIds: string[] }): Promise<{ tokens: Array<{ contractId: string; rate: string; authorized: boolean; denomination: string; contractFees?: any }> }>;
+  getTokenFeeInfo(request: { contractIds: string[] }): Promise<TokenFeeInfoResponse>;
 }
 
 /**
@@ -70,7 +71,7 @@ export function createValidatorAPIClient(options: GRPCConfig = {}): ValidatorAPI
     /**
      * Get comprehensive token fee information
      */
-    async getTokenFeeInfo(request: { contractIds: string[] }): Promise<{ tokens: Array<{ contractId: string; rate: string; authorized: boolean; denomination: string; contractFees?: any }> }> {
+    async getTokenFeeInfo(request: { contractIds: string[] }): Promise<TokenFeeInfoResponse> {
       return await makeGRPCCall(this.client, 'GetTokenFeeInfo', request);
     }
   };
