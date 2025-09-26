@@ -24,7 +24,6 @@ import { TESTING_GRPC_OVERRIDE_CONFIG } from '../../shared/utils/testing-default
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
-//exampleSimplePayment();
 export async function exampleSimplePayment(): Promise<void> {
   console.log('💸 Example 1: Simple Payment');
   
@@ -90,7 +89,6 @@ export async function exampleSimplePayment(): Promise<void> {
  * 
  * This demonstrates how to handle multiple inputs from different wallets
  */
-exampleMultiInputPayment();
 export async function exampleMultiInputPayment(): Promise<void> {
   console.log('💸 Example 2: Multi-Input Payment');
   
@@ -202,9 +200,6 @@ export async function exampleMultiOutputPayment(): Promise<void> {
   
   const feeConfig = {
     baseFeeId: '$ZRA+0000',
-    baseFee: '0.003', // Higher fee for multi-output
-    contractFeeId: '$ZRA+0000',
-    contractFee: '0.0015'
   };
   
   try {
