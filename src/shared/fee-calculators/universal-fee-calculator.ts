@@ -5,7 +5,12 @@
  */
 
 import { KEY_TYPE, HASH_TYPE } from '../../wallet-creation/constants.js';
-import { TRANSACTION_TYPE, CONTRACT_FEE_TYPE } from '../protobuf-enums.js';
+import { 
+  TRANSACTION_TYPE, 
+  CONTRACT_FEE_TYPE,
+  toBinary,
+  CoinTXN
+} from '../protobuf/index.js';
 import { 
   toDecimal, 
   toAmountString, 
@@ -18,32 +23,7 @@ import {
 } from '../utils/amount-utils.js';
 import { aceExchangeService } from '../../api/zv-indexer/rate/service.js';
 import { contractFeeService } from './contract-fee-service.js';
-import { toBinary } from '@bufbuild/protobuf';
 import { sanitizeForSerialization } from '../utils/protobuf-utils.js';
-import {
-  CoinTXNSchema as CoinTXN,
-  MintTXNSchema as MintTXN,
-  ItemizedMintTXNSchema as ItemizedMintTXN,
-  InstrumentContractSchema as InstrumentContract,
-  GovernanceVoteSchema as GovernanceVote,
-  GovernanceProposalSchema as GovernanceProposal,
-  SmartContractTXNSchema as SmartContractTXN,
-  SmartContractExecuteTXNSchema as SmartContractExecuteTXN,
-  SmartContractInstantiateTXNSchema as SmartContractInstantiateTXN,
-  SelfCurrencyEquivSchema as SelfCurrencyEquiv,
-  AuthorizedCurrencyEquivSchema as AuthorizedCurrencyEquiv,
-  ExpenseRatioTXNSchema as ExpenseRatioTXN,
-  NFTTXNSchema as NFTTXN,
-  ContractUpdateTXNSchema as ContractUpdateTXN,
-  FoundationTXNSchema as FoundationTXN,
-  DelegatedTXNSchema as DelegatedTXN,
-  QuashTXNSchema as QuashTXN,
-  FastQuorumTXNSchema as FastQuorumTXN,
-  RevokeTXNSchema as RevokeTXN,
-  ComplianceTXNSchema as ComplianceTXN,
-  BurnSBTTXNSchema as BurnSBTTXN,
-  AllowanceTXNSchema as AllowanceTXN
-} from '../../../proto/generated/txn_pb.js';
 import { getKeyTypeFromPublicKey, getHashTypesFromPublicKey } from '../crypto/address-utils.js';
 import { 
   SIGNATURE_SIZES, 
@@ -55,18 +35,38 @@ import {
   getSignatureSize
 } from './base-fee-constants.js';
 import bs58 from 'bs58';
-import type { KeyType, HashType, AmountInput } from '../../types/index.js';
+import type { 
+  KeyType, 
+  HashType, 
+  AmountInput
+} from '../../types/index.js';
+
+/**
+ * Generic protobuf object type
+ */
+export type ProtobufObject = Record<string, unknown>;
 
 /**
  * Fee calculation options
  */
-export interface FeeCalculationOptions {
-  protoObject: any;
+export interface FeeCalculationOptions<T extends ProtobufObject = ProtobufObject> {
+  protoObject: T;
   baseFeeId?: string;
   contractFeeId?: string;
   interfaceFeeAmount?: AmountInput;
   interfaceFeeId?: string;
   interfaceAddress?: string;
+}
+
+/**
+ * Fee breakdown details
+ */
+export interface FeeBreakdown {
+  baseFee: string;
+  sizeFee: string;
+  signatureFee: string;
+  contractFee: string;
+  interfaceFee?: string;
 }
 
 /**
@@ -77,91 +77,85 @@ export interface FeeCalculationResult {
   contractFee: string;
   interfaceFee?: string;
   totalFee: string;
-  breakdown: {
-    baseFee: string;
-    sizeFee: string;
-    signatureFee: string;
-    contractFee: string;
-    interfaceFee?: string;
-  };
+  breakdown: FeeBreakdown;
 }
 
 /**
  * Extract transaction type from a protobuf object
  */
-function extractTransactionTypeFromProtoObject(protoObject: any): number {
+function extractTransactionTypeFromProtoObject<T extends ProtobufObject>(protoObject: T): number {
   try {
     // First check if this is a direct transaction object (not wrapped)
     if (protoObject.$typeName) {
       const typeName = protoObject.$typeName;
       if (typeName === 'zera_txn.CoinTXN') {
-        return TRANSACTION_TYPE.COIN_TXN;
+        return TRANSACTION_TYPE.COIN_TYPE;
       } else if (typeName === 'zera_txn.MintTXN') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.MINT_TYPE;
       } else if (typeName === 'zera_txn.ItemizedMintTXN') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.ITEM_MINT_TYPE;
       } else if (typeName === 'zera_txn.InstrumentContract') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.CONTRACT_TXN_TYPE;
       } else if (typeName === 'zera_txn.GovernanceVote') {
-        return TRANSACTION_TYPE.GOVERNANCE_TXN;
+        return TRANSACTION_TYPE.VOTE_TYPE;
       } else if (typeName === 'zera_txn.GovernanceProposal') {
-        return TRANSACTION_TYPE.GOVERNANCE_TXN;
+        return TRANSACTION_TYPE.PROPOSAL_TYPE;
       } else if (typeName === 'zera_txn.SmartContractTXN') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.SMART_CONTRACT_TYPE;
       } else if (typeName === 'zera_txn.SmartContractExecuteTXN') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.SMART_CONTRACT_EXECUTE_TYPE;
       } else if (typeName === 'zera_txn.SelfCurrencyEquiv') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.SELF_CURRENCY_EQUIV_TYPE;
       } else if (typeName === 'zera_txn.AuthorizedCurrencyEquiv') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.AUTHORIZED_CURRENCY_EQUIV_TYPE;
       } else if (typeName === 'zera_txn.ExpenseRatioTXN') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.EXPENSE_RATIO_TYPE;
       } else if (typeName === 'zera_txn.NFTTXN') {
-        return TRANSACTION_TYPE.NFT_TXN;
+        return TRANSACTION_TYPE.NFT_TYPE;
       } else if (typeName === 'zera_txn.ContractUpdateTXN') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.UPDATE_CONTRACT_TYPE;
       } else if (typeName === 'zera_txn.FoundationTXN') {
-        return TRANSACTION_TYPE.GOVERNANCE_TXN;
+        return TRANSACTION_TYPE.FOUNDATION_TYPE;
       } else if (typeName === 'zera_txn.DelegatedTXN') {
-        return TRANSACTION_TYPE.DELEGATION_TXN;
+        return TRANSACTION_TYPE.DELEGATED_VOTING_TYPE;
       } else if (typeName === 'zera_txn.QuashTXN') {
-        return TRANSACTION_TYPE.GOVERNANCE_TXN;
+        return TRANSACTION_TYPE.PROPOSAL_TYPE;
       } else if (typeName === 'zera_txn.FastQuorumTXN') {
-        return TRANSACTION_TYPE.GOVERNANCE_TXN;
+        return TRANSACTION_TYPE.PROPOSAL_TYPE;
       } else if (typeName === 'zera_txn.RevokeTXN') {
-        return TRANSACTION_TYPE.GOVERNANCE_TXN;
+        return TRANSACTION_TYPE.PROPOSAL_TYPE;
       } else if (typeName === 'zera_txn.ComplianceTXN') {
-        return TRANSACTION_TYPE.GOVERNANCE_TXN;
+        return TRANSACTION_TYPE.PROPOSAL_TYPE;
       } else if (typeName === 'zera_txn.BurnSBTTXN') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.SBT_BURN_TYPE;
       } else if (typeName === 'zera_txn.AllowanceTXN') {
-        return TRANSACTION_TYPE.CONTRACT_TXN;
+        return TRANSACTION_TYPE.ALLOWANCE_TYPE;
       }
     }
     
     // If no direct type name, try to infer from structure
     if (protoObject.base && protoObject.contractId) {
-      return TRANSACTION_TYPE.COIN_TXN;
+      return TRANSACTION_TYPE.COIN_TYPE;
     } else if (protoObject.base && protoObject.instrumentContract) {
-      return TRANSACTION_TYPE.CONTRACT_TXN;
+      return TRANSACTION_TYPE.CONTRACT_TXN_TYPE;
     } else if (protoObject.base && protoObject.governanceVote) {
-      return TRANSACTION_TYPE.GOVERNANCE_TXN;
+      return TRANSACTION_TYPE.PROPOSAL_TYPE;
     } else if (protoObject.base && protoObject.governanceProposal) {
-      return TRANSACTION_TYPE.GOVERNANCE_TXN;
+      return TRANSACTION_TYPE.PROPOSAL_TYPE;
     }
     
     // Default to contract transaction for unknown types
-    return TRANSACTION_TYPE.CONTRACT_TXN;
+    return TRANSACTION_TYPE.CONTRACT_TXN_TYPE;
   } catch (error) {
     console.warn('Could not extract transaction type, defaulting to contract transaction:', error);
-    return TRANSACTION_TYPE.CONTRACT_TXN;
+    return TRANSACTION_TYPE.CONTRACT_TXN_TYPE;
   }
 }
 
 /**
  * Calculate transaction size in bytes
  */
-function calculateTransactionSize(protoObject: any): number {
+function calculateTransactionSize<T extends ProtobufObject>(protoObject: T): number {
   try {
     const serialized = toBinary(protoObject.constructor, protoObject);
     return serialized.length;
@@ -260,7 +254,9 @@ export class UniversalFeeCalculator {
   /**
    * Calculate comprehensive fee for a transaction
    */
-  static async calculateFee(options: FeeCalculationOptions): Promise<FeeCalculationResult> {
+  static async calculateFee<T extends ProtobufObject>(
+    options: FeeCalculationOptions<T>
+  ): Promise<FeeCalculationResult> {
     const {
       protoObject,
       baseFeeId = '$ZRA+0000',

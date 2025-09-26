@@ -12,6 +12,10 @@ import {
  * Simple, focused examples showing core wallet creation functionality.
  * Each example demonstrates a specific concept with minimal setup.
  */
+
+// Call the function when this file is run
+demonstrateBasicUsage();
+
 async function demonstrateBasicUsage() {
   console.log('🎯 ZERA Wallet Creation - Basic Examples\n');
 
@@ -82,7 +86,8 @@ async function demonstrateBasicUsage() {
     console.log('   • Same mnemonic + same settings = same address');
 
   } catch (error) {
-    console.error('❌ Example failed:', error.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Example failed:', errorMessage);
   }
 }
 

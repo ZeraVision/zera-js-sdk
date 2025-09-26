@@ -4,7 +4,7 @@
  * API calls are currently placeholders - will be implemented later
  */
 
-import { CONTRACT_FEE_TYPE } from '../protobuf-enums.js';
+import { CONTRACT_FEE_TYPE } from '../protobuf/index.js';
 import { UniversalFeeCalculator } from './universal-fee-calculator.js';
 import { 
   getContractFeeConfig, 

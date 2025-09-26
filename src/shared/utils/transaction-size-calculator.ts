@@ -14,7 +14,7 @@ import {
   PublicKeySchema as PublicKey
 } from '../../../proto/generated/txn_pb.js';
 import { KEY_TYPE } from '../../wallet-creation/constants.js';
-import { TRANSACTION_TYPE } from '../protobuf-enums.js';
+import { TRANSACTION_TYPE } from '../../../proto/generated/txn_pb.js';
 import { toSmallestUnits } from './amount-utils.js';
 import { getPublicKeyBytes } from '../crypto/address-utils.js';
 import bs58 from 'bs58';

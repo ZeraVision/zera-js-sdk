@@ -9,14 +9,14 @@
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**"],
-      "env": {
-        "NODE_OPTIONS": "--experimental-specifier-resolution=node"
-      },
+      "sourceMaps": true,
       "resolveSourceMapLocations": [
         "${workspaceFolder}/**",
         "!**/node_modules/**"
       ],
-      "sourceMaps": true
+      "env": {
+        "NODE_OPTIONS": "--import tsx/esm"
+      }
     }
   ]
 }

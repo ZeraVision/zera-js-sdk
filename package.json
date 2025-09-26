@@ -48,6 +48,7 @@
     "build:proto": "cd proto && npm run build",
     "build:proto:js": "cd proto && npm run build:js",
     "build:proto:ts": "cd proto && npm run build:ts",
+    "build:proto:typescript": "cd proto && npm run build:typescript",
     "build:proto:grpc": "cd proto && npm run build:grpc",
     "proto:install": "cd proto && npm install",
     "proto:clean": "cd proto && npm run clean",

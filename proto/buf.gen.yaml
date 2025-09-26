@@ -6,11 +6,15 @@ managed:
     override:
       buf.build/googleapis/googleapis: google.golang.org/genproto/googleapis
 plugins:
+  # Generate JavaScript files for runtime
   - plugin: es
     out: generated
     opt: target=js
+  # Generate TypeScript files for type definitions
   - plugin: es
     out: generated
     opt: target=ts
+  # Generate Connect client for gRPC
   - plugin: connect-es
     out: generated
+    opt: target=ts

@@ -13,7 +13,7 @@ import {
   getPublicKeySize,
   getSignatureSize 
 } from '../../shared/utils/transaction-size-calculator.js';
-import { TRANSACTION_TYPE, CONTRACT_FEE_TYPE } from '../../shared/protobuf-enums.js';
+import { TRANSACTION_TYPE, CONTRACT_FEE_TYPE } from '../../../proto/generated/txn_pb.js';
 import { KEY_TYPE } from '../../wallet-creation/constants.js';
 import { Decimal } from '../../shared/utils/amount-utils.js';
 

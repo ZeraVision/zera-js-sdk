@@ -13,7 +13,7 @@ import {
   LANGUAGE,
   PROPOSAL_PERIOD,
   VARIABLE_TYPE
-} from '../protobuf-enums.js';
+} from '../../../proto/generated/txn_pb.js';
 
 // Re-export for external use
 export { 
@@ -277,78 +277,6 @@ export class TransactionFormatter {
   }
 }
 
-/**
- * Transaction fee calculation utilities
- */
-export class FeeCalculator {
-  /**
-   * Calculate transaction fee
-   * @param params - Fee calculation parameters
-   * @param options - Additional options
-   * @returns Fee calculation result
-   */
-  static calculateFee(params: {
-    amount: number;
-    feeType: string;
-    feeValue: number;
-  }, options: {
-    minFee?: number;
-    maxFee?: number;
-  } = {}): {
-    fee: number;
-    feeType: string;
-    feeValue: number;
-    totalAmount: number;
-  } {
-    const { amount, feeType, feeValue } = params;
-    const { minFee = 0, maxFee = Number.MAX_SAFE_INTEGER } = options;
-    
-    let calculatedFee = 0;
-    
-    switch (feeType) {
-      case 'FIXED':
-        calculatedFee = feeValue;
-        break;
-      case 'PERCENTAGE':
-        calculatedFee = (amount * feeValue) / 100;
-        break;
-      case 'DYNAMIC':
-        // Dynamic fee calculation based on network conditions
-        calculatedFee = this.calculateDynamicFee(params, { networkCongestion: 1.0, baseFee: 0.001 });
-        break;
-      default:
-        throw new Error(`Unsupported fee type: ${feeType}`);
-    }
-    
-    // Apply min/max constraints
-    calculatedFee = Math.max(minFee, Math.min(maxFee, calculatedFee));
-    
-    return {
-      fee: calculatedFee,
-      feeType,
-      feeValue,
-      totalAmount: amount + calculatedFee
-    };
-  }
-
-  /**
-   * Calculate dynamic fee based on network conditions
-   * @param params - Fee calculation parameters
-   * @param options - Additional options
-   * @returns Calculated dynamic fee
-   */
-  static calculateDynamicFee(params: { amount: number }, options: {
-    networkCongestion?: number;
-    baseFee?: number;
-  } = {}): number {
-    const { amount } = params;
-    const { networkCongestion = 1.0, baseFee = 0.001 } = options;
-    
-    // Simple dynamic fee calculation
-    // In a real implementation, this would consider network congestion, gas prices, etc.
-    return baseFee * networkCongestion * Math.log(amount + 1);
-  }
-}
 
 /**
  * Transaction builder utilities
@@ -373,7 +301,7 @@ export class TransactionBuilder {
       amount,
       memo = '',
       fee = 0,
-      type = TRANSACTION_TYPE.COIN_TXN
+      type = TRANSACTION_TYPE.COIN_TYPE
     } = params;
     
     return {
@@ -384,7 +312,7 @@ export class TransactionBuilder {
       amount,
       memo,
       fee,
-      status: TXN_STATUS.PENDING,
+      status: TXN_STATUS.OK,
       timestamp: Date.now(),
       createdAt: new Date().toISOString()
     };

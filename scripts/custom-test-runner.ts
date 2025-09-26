@@ -185,9 +185,19 @@ function showFailedTests(failedTests: FailedTest[]): void {
       console.log(chalk.yellow(`   📍 File: ${test.filePath}`));
     }
     
-    // Show first line of error message
-    const firstErrorLine = test.error.split('\n')[0];
+    // Show more detailed error information
+    const errorLines = test.error.split('\n');
+    const firstErrorLine = errorLines[0];
     console.log(chalk.gray(`   Error: ${firstErrorLine}`));
+    
+    // Show additional context if available
+    if (errorLines.length > 1) {
+      const secondLine = errorLines[1]?.trim();
+      if (secondLine && secondLine.length > 0) {
+        console.log(chalk.gray(`   Context: ${secondLine}`));
+      }
+    }
+    
     console.log('');
   });
   
@@ -235,6 +245,7 @@ function showModuleBreakdown(results: TestResult[], failedTests: FailedTest[]): 
         // Show first line of error message
         const firstErrorLine = test.error.split('\n')[0];
         console.log(chalk.gray(`         Error: ${firstErrorLine}`));
+        
       });
     }
     

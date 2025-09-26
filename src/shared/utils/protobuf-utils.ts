@@ -20,7 +20,10 @@ export interface SanitizeOptions {
  * Universal sanitization function for protobuf objects
  * Handles both empty field removal and BigInt conversion
  */
-export function sanitizeProtobufObject(obj: any, options: SanitizeOptions = {}): any {
+export function sanitizeProtobufObject<T = unknown>(
+  obj: T, 
+  options: SanitizeOptions = {}
+): T {
   const { removeEmptyFields = false, convertBigInt = false } = options;
   
   if (obj === null || obj === undefined) {
@@ -102,7 +105,7 @@ export function createSanitized(schema: any, data: any): any {
 /**
  * Sanitize object for serialization (BigInt conversion)
  */
-export function sanitizeForSerialization(obj: any): any {
+export function sanitizeForSerialization<T = unknown>(obj: T): T {
   return sanitizeProtobufObject(obj, { convertBigInt: true });
 }
 

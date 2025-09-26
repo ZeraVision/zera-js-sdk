@@ -31,14 +31,17 @@
   },
   "include": [
     "src/**/*",
-    "index.ts"
+    "index.ts",
+    "proto/generated/**/*.ts",
+    "proto/generated/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "proto/**/*"
+    "proto/**/*.js",
+    "proto/**/*.proto"
   ],
   "ts-node": {
     "esm": true,

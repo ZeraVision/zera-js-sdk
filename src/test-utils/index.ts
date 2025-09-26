@@ -6,7 +6,7 @@
 import chalk from 'chalk';
 
 // Export test keys for universal use
-export * from './test-keys.js';
+export * from './keys.test.js';
 
 interface TestResults {
   total: number;

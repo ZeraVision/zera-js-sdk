@@ -8,7 +8,7 @@
  * - allowedFeeIds: Array of contract IDs that can be used to pay the fee
  */
 
-import { CONTRACT_FEE_TYPE } from '../protobuf-enums.js';
+import { CONTRACT_FEE_TYPE } from '../protobuf/index.js';
 
 export interface ContractFeeConfig {
   feeType: number;

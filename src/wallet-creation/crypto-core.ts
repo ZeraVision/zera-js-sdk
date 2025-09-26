@@ -1,7 +1,5 @@
 import { sha256, sha512 } from '@noble/hashes/sha2';
-import { sha3_256, sha3_512, shake256 } from '@noble/hashes/sha3';
-import { blake3 } from '@noble/hashes/blake3';
-import { ripemd160 } from '@noble/hashes/ripemd160';
+import { sha3_256 } from '@noble/hashes/sha3';
 import { hmac } from '@noble/hashes/hmac';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { ed448 } from '@noble/curves/ed448.js';
@@ -392,12 +390,47 @@ export class Ed448KeyPair {
 
   constructor(privateKey?: Uint8Array) {
     if (privateKey) {
-      this.privateKey = privateKey;
-      this.publicKey = ed448.getPublicKey(privateKey);
+      // Handle both 32-byte SLIP0010 seeds and 57-byte ED448 private keys
+      if (privateKey.length === 32) {
+        // Expand 32-byte SLIP0010 seed to 57-byte ED448 private key using SHA3-256
+        this.privateKey = this.expandSeedToPrivateKey(privateKey);
+      } else if (privateKey.length === 57) {
+        // Direct 57-byte ED448 private key
+        this.privateKey = privateKey;
+      } else {
+        throw new Error(`Invalid private key length: ${privateKey.length}. Expected 32 (SLIP0010 seed) or 57 (ED448 private key) bytes.`);
+      }
+      this.publicKey = ed448.getPublicKey(this.privateKey);
     } else {
       this.privateKey = ed448.utils.randomSecretKey();
       this.publicKey = ed448.getPublicKey(this.privateKey);
     }
+  }
+
+  /**
+   * Expand 32-byte SLIP0010 seed to 57-byte ED448 private key
+   * This follows the original JavaScript implementation using SHA3-256 + HMAC-SHA512
+   */
+  private expandSeedToPrivateKey(privateKey: Uint8Array): Uint8Array {
+    // Validate input
+    if (privateKey.length !== 32) {
+      throw new Error('SLIP-0010 private key must be 32 bytes');
+    }
+    
+    // Step 1: Create deterministic seed using SHA3-256
+    const seed = sha3_256(privateKey);
+    
+    // Step 2: Secure key expansion using HMAC-SHA512
+    const expanded = hmac(sha512, seed, 'ed448-expansion');
+    const expanded57 = expanded.slice(0, 57);
+    
+    // Step 3: Apply Ed448 clamping (clear bits 0 and 1 of the last byte)
+    const clamped = new Uint8Array(expanded57);
+    if (clamped.length >= 57) {
+      clamped[56] &= 0xFC; // Clear bits 0 and 1
+    }
+    
+    return clamped;
   }
 
   /**

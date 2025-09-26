@@ -89,6 +89,26 @@ function generateESM(): void {
   }
 }
 
+function buildProtobuf(): void {
+  log('📋 Building protobuf files with TypeScript...', colors.blue);
+  
+  try {
+    // Build protobuf files using the TypeScript build script
+    exec('cd proto && npm run build:typescript');
+    log('✅ Protobuf files built with TypeScript support', colors.green);
+  } catch (error) {
+    log('⚠️  Protobuf build failed, trying fallback...', colors.yellow);
+    try {
+      // Fallback to regular build
+      exec('cd proto && npm run build');
+      log('✅ Protobuf files built with fallback method', colors.green);
+    } catch (fallbackError) {
+      log('❌ Protobuf build failed completely', colors.red);
+      throw fallbackError;
+    }
+  }
+}
+
 function copyProtoFiles(): void {
   log('📋 Copying protobuf files...', colors.blue);
   const protoSource = join(projectRoot, 'proto', 'generated');
@@ -162,6 +182,7 @@ async function build(): Promise<void> {
   
   try {
     cleanDist();
+    buildProtobuf();
     typeCheck();
     compileTypeScript();
     generateESM();

@@ -1,11 +1,77 @@
 /**
  * Core Type Definitions for ZERA JS SDK
  * 
- * This file contains all the core TypeScript interfaces and types
- * used throughout the SDK for type safety and better developer experience.
+ * Simple, practical TypeScript types focused on real benefits:
+ * - Better error handling with Result types
+ * - Proper generics instead of 'any'
+ * - Basic utility types for common patterns
  */
 
 import { Decimal } from 'decimal.js';
+
+// Simple error types
+export class ZeraError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly details?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = 'ZeraError';
+  }
+}
+
+export class ValidationError extends ZeraError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'VALIDATION_ERROR', details);
+    this.name = 'ValidationError';
+  }
+}
+
+export class NetworkError extends ZeraError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'NETWORK_ERROR', details);
+    this.name = 'NetworkError';
+  }
+}
+
+export class CryptoError extends ZeraError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'CRYPTO_ERROR', details);
+    this.name = 'CryptoError';
+  }
+}
+
+export class TransactionError extends ZeraError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'TRANSACTION_ERROR', details);
+    this.name = 'TransactionError';
+  }
+}
+
+// Simple Result type for better error handling
+export type Result<T, E = Error> = 
+  | { success: true; data: T; error?: never }
+  | { success: false; data?: never; error: E };
+
+export type AsyncResult<T, E = Error> = Promise<Result<T, E>>;
+
+// Simple utility functions
+export function createSuccess<T>(data: T): Result<T, never> {
+  return { success: true, data };
+}
+
+export function createError<E>(error: E): Result<never, E> {
+  return { success: false, error };
+}
+
+export function isSuccess<T, E>(result: Result<T, E>): result is { success: true; data: T } {
+  return result.success;
+}
+
+export function isError<T, E>(result: Result<T, E>): result is { success: false; error: E } {
+  return !result.success;
+}
 
 // ============================================================================
 // ENUMS AND CONSTANTS

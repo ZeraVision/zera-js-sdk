@@ -29,93 +29,6 @@ import type {
   MnemonicLength
 } from '../types/index.js';
 
-/**
- * Main ZeraWallet class - provides a clean interface to the wallet creation system
- */
-export class ZeraWallet {
-  private readonly factory: WalletFactory;
-
-  constructor() {
-    this.factory = new WalletFactory();
-  }
-
-  /**
-   * Create a new wallet with specified parameters
-   */
-  async createWallet(options: WalletOptions): Promise<Wallet> {
-    return await this.factory.createWallet(options);
-  }
-
-  /**
-   * Derive multiple addresses from the same mnemonic
-   */
-  async deriveMultipleWallets(options: MultipleWalletOptions): Promise<Wallet[]> {
-    return await this.factory.deriveMultipleWallets(options);
-  }
-
-  /**
-   * Generate a new BIP39 mnemonic phrase
-   */
-  generateMnemonic(length: MnemonicLength = 24): string {
-    return generateMnemonicPhrase(length);
-  }
-
-  /**
-   * Generate words for wallet creation
-   */
-  generateWords(length: MnemonicLength = 24): string {
-    return generateMnemonicPhrase(length);
-  }
-
-  /**
-   * Build SLIP-0010 hardened derivation path for ZERA
-   */
-  buildDerivationPath(options: HDOptions = {}): string {
-    return buildDerivationPath(options);
-  }
-
-  /**
-   * Get wallet factory information
-   */
-  getFactoryInfo(): ReturnType<WalletFactory['getInfo']> {
-    return this.factory.getInfo();
-  }
-
-  /**
-   * Get HD wallet information
-   */
-  getHDWalletInfo(): ReturnType<typeof getHDWalletInfo> {
-    return getHDWalletInfo();
-  }
-
-  /**
-   * Get hash algorithm information
-   */
-  getHashInfo(): ReturnType<typeof getAllHashInfo> {
-    return getAllHashInfo();
-  }
-
-  /**
-   * Get supported key types
-   */
-  getSupportedKeyTypes(): readonly KeyType[] {
-    return VALID_KEY_TYPES;
-  }
-
-  /**
-   * Get supported hash types
-   */
-  getSupportedHashTypes(): readonly HashType[] {
-    return VALID_HASH_TYPES;
-  }
-
-  /**
-   * Get supported mnemonic lengths
-   */
-  getSupportedMnemonicLengths(): readonly number[] {
-    return MNEMONIC_LENGTHS;
-  }
-}
 
 // Re-export the new unified factory functions and utilities
 export {
@@ -164,4 +77,4 @@ export type {
   MnemonicLength
 } from '../types/index.js';
 
-export default ZeraWallet;
+export default WalletFactory;

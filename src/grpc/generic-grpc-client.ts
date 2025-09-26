@@ -8,7 +8,10 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import { sanitizeProtobufObject } from '../shared/utils/protobuf-utils.js';
-import type { GRPCClientOptions, GRPCClient } from '../types/index.js';
+import type { 
+  GRPCClientOptions, 
+  GRPCClient
+} from '../types/index.js';
 
 /**
  * Create a generic gRPC client for any protobuf service
@@ -30,8 +33,8 @@ export function createGenericGRPCClient(options: GRPCClientOptions): GRPCClient 
   });
 
   // Get the package and service
-  const proto = grpc.loadPackageDefinition(packageDefinition)[packageName];
-  const ServiceClass = (proto as any)[serviceName];
+  const proto = grpc.loadPackageDefinition(packageDefinition)[packageName] as Record<string, unknown>;
+  const ServiceClass = proto[serviceName] as new (...args: unknown[]) => unknown;
 
   // Create the gRPC client
   const client = new ServiceClass(
@@ -51,11 +54,11 @@ export function createGenericGRPCClient(options: GRPCClientOptions): GRPCClient 
 /**
  * Generic gRPC call wrapper
  */
-export function makeGRPCCall(
-  client: any, 
+export function makeGRPCCall<TRequest = unknown, TResponse = unknown>(
+  client: Record<string, unknown>, 
   method: string, 
-  request: any
-): Promise<any> {
+  request: TRequest
+): Promise<TResponse> {
   return new Promise((resolve, reject) => {
     const sanitizedRequest = sanitizeProtobufObject(request, { removeEmptyFields: true });
 

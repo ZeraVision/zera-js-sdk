@@ -23,7 +23,7 @@ import type {
   HDOptions, 
   MultipleWalletOptions, 
   KeyType, 
-  HashType 
+  HashType
 } from '../types/index.js';
 
 /**

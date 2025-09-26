@@ -13,7 +13,6 @@ import {
 import { create } from '@bufbuild/protobuf';
 import { toBinary } from '@bufbuild/protobuf';
 import { protoInt64 } from '@bufbuild/protobuf';
-import { createSanitized, sanitizeProtobufObject } from '../shared/utils/protobuf-utils.js';
 import { getPublicKeyBytes, generateAddressFromPublicKey } from '../shared/crypto/address-utils.js';
 import { signTransactionData, createTransactionHash } from '../shared/crypto/signature-utils.js';
 import { getNonces } from '../api/validator/nonce/service.js';
