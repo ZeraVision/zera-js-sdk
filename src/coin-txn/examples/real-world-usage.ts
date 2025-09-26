@@ -24,6 +24,7 @@ import { TESTING_GRPC_OVERRIDE_CONFIG } from '../../shared/utils/testing-default
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
+exampleSimplePayment();
 export async function exampleSimplePayment(): Promise<void> {
   console.log('💸 Example 1: Simple Payment');
   

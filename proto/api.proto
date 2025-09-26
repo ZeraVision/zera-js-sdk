@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 import "txn.proto";
 import "validator.proto";
 
@@ -13,14 +14,21 @@ service APIService{
     rpc Nonce(NonceRequest) returns (NonceResponse);
     rpc ContractFee(ContractFeeRequest) returns (ContractFeeResponse);
     rpc BaseFee(BaseFeeRequest) returns (BaseFeeResponse);
-    rpc ACETokens(google.protobuf.Empty) returns (ACETokensResponse);
+    rpc GetTokenFeeInfo(TokenFeeInfoRequest) returns (TokenFeeInfoResponse);
     rpc Items(ItemRequest) returns (ItemResponse);
     rpc Denomination(DenominationRequest) returns (DenominationResponse);
     rpc Database(DatabaseRequest) returns (DatabaseResponse);
     rpc Block(BlockRequest) returns (BlockResponse);
     rpc ProposalLedger(ProposalLedgerRequest) returns (ProposalLedgerResponse);
+    rpc SmartContractActivityRequest (ActivityRequest) returns (google.protobuf.Empty);
+    rpc SmartContractEvents(SmartContractEventsResponse) returns (google.protobuf.Empty);
 }
 
+enum CONFIRMATION_LEVEL{
+    PROCESSED = 0;
+    FINALIZED = 1;
+    CONFIRMED = 2;
+}
 
 enum DATABASE_TYPE{
     UNKNOWN = 0;
@@ -125,12 +133,19 @@ message BaseFeeResponse{
 
 
 //AUTHORIZED TOKEN
-message ACEToken{
+message TokenFeeInfo{
     string contract_id = 1;
     string rate = 2;        //1000000000000000000 = $1.00 (1,000,000,000,000,000,000)
+    bool authorized = 3;
+    string denomination = 4;
+    optional zera_txn.ContractFees contract_fees = 5;
+
 }
-message ACETokensResponse{
-    repeated ACEToken tokens = 1;
+message TokenFeeInfoRequest{
+    repeated string contract_ids = 1;
+}
+message TokenFeeInfoResponse{
+    repeated TokenFeeInfo tokens = 1;
 }
 
 
@@ -165,4 +180,49 @@ message DatabaseRequest{
 
 message DatabaseResponse{
     string value = 1;
+}
+
+message ActivityRequest{
+    string smart_contract_id = 1;
+    uint64 instance = 2;
+    CONFIRMATION_LEVEL level = 3;
+    string host = 4;
+    int32 port = 5;
+    bool subscribe = 6; //true = subscribe, false = unsubscribe
+    zera_txn.PublicKey public_key = 7;
+    bytes signature = 8;
+    uint64 nonce = 9;
+}
+message SmartContractEventsResponse{
+    string smart_contract = 1; //
+    uint64 instance = 2; //
+    uint64 gas_used = 3; //
+    uint64 gas_approved = 4; //
+    string storage_fee = 5; //
+    zera_txn.PublicKey caller = 6; //
+    bytes event_data = 7; //
+    string function = 8; //
+    uint64 block_height = 9; //
+    google.protobuf.Timestamp timestamp = 10; // block timestamp
+    string block_hash = 11; //
+    string txn_hash = 12; //in hex string
+
+}
+
+
+message SmartContractSubscription{
+    map<string, Subscriber> subscibers = 1;
+}
+
+message Subscriber{
+    CONFIRMATION_LEVEL level = 1;
+    string host = 2;
+    int32 port = 3;
+}
+
+message WalletChange{
+    bytes wallet_address = 1;
+    repeated string contract_ids = 2;
+    repeated string old_balances = 3;
+    repeated string new_balances = 4;
 }

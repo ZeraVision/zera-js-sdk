@@ -69,7 +69,7 @@ export class ACEExchangeRateService {
     this.cacheTimeout = options.cacheTimeout || 3000; // 3 seconds default
     this.baseUrl = options.baseUrl || process.env.INDEXER_URL || 'https://api.zerascan.io'; // Default API endpoint
     this.fallbackRates = options.fallbackRates || {
-      '$ZRA+0000': 0.10,  // $0.10 per ZRA (fallback)
+      '$ZRA+0000': 3.18,  // $0.10 per ZRA (fallback) // TODO change back to 0.10
     };
     this.minimumRates = options.minimumRates || {
       '$ZRA+0000': 0.10,  // Minimum $0.10 per ZRA for fee evaluation (network enforced safeguard)
