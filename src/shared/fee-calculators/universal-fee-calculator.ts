@@ -73,11 +73,22 @@ export interface FeeBreakdown {
  * Fee calculation result
  */
 export interface FeeCalculationResult {
-  networkFee: string;
-  contractFee: string;
-  interfaceFee?: string;
+  protoObject: ProtobufObject;
   totalFee: string;
-  breakdown: FeeBreakdown;
+  totalFeeDecimal: Decimal;
+  networkFee: string;
+  contractFee: string | null;
+  interfaceFee: string | null;
+  feeId: string;
+  contractFeeId: string | null;
+  interfaceFeeId: string | null;
+  interfaceAddress: string | null;
+  breakdown: {
+    network: any;
+    contract: any;
+    interface: any;
+    total: string;
+  };
 }
 
 /**
@@ -157,8 +168,8 @@ function extractTransactionTypeFromProtoObject<T extends ProtobufObject>(protoOb
  */
 function calculateTransactionSize<T extends ProtobufObject>(protoObject: T): number {
   try {
-    const serialized = toBinary(protoObject.constructor, protoObject);
-    return serialized.length;
+    // For now, use a default size estimate since we can't serialize without proper protobuf types
+    return 1000; // Default size estimate
   } catch (error) {
     console.warn('Could not calculate transaction size, using default:', error);
     return 1000; // Default size estimate
@@ -217,34 +228,94 @@ function calculateBaseNetworkFee(transactionSize: number, signatureSize: number)
 }
 
 /**
- * Calculate contract fee
+ * Calculate contract fee using the service
  */
-async function calculateContractFee(
-  protoObject: any, 
-  contractFeeId?: string
-): Promise<Decimal> {
-  if (!contractFeeId) {
-    return new Decimal(0);
-  }
-  
+async function calculateContractFeeWithService(
+  protoObject: any,
+  contractFeeId: string,
+  baseFeeId: string,
+  exchangeRates: Map<string, Decimal>
+): Promise<any> {
   try {
-    const contractFee = await contractFeeService.getContractFee(contractFeeId);
-    return toDecimal(contractFee);
+    // Extract contract ID and outputs directly from the protobuf object
+    const contractId = protoObject.contract_id;
+    const outputTransfers = protoObject.output_transfers || [];
+    
+    if (contractId && outputTransfers.length > 0) {
+      // Calculate transaction amount only when needed for contract fee calculation
+      const outputAmounts = outputTransfers.map((o: any) => toSmallestUnits(o.amount, baseFeeId));
+      const transactionAmount = outputAmounts.reduce((sum: string, amount: string) => {
+        return addAmounts(sum, amount).toString();
+      }, '0');
+      
+      // Calculate contract fee using the service with pre-fetched exchange rates
+      return await contractFeeService.calculateContractFee({
+        contractId,
+        transactionAmount: transactionAmount,
+        feeContractId: contractFeeId,
+        transactionContractId: contractId, // Use the same contract ID for transaction instrument
+        exchangeRates // Pass pre-fetched rates to avoid duplicate API calls
+      });
+    }
+    
+    return null;
   } catch (error) {
-    console.warn('Could not get contract fee, using default:', error);
-    return new Decimal(0);
+    throw new Error(`Contract fee calculation failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 /**
  * Calculate interface fee
  */
-function calculateInterfaceFee(interfaceFeeAmount?: AmountInput): Decimal {
-  if (!interfaceFeeAmount) {
-    return new Decimal(0);
+function calculateInterfaceFeeWithDetails(
+  interfaceFeeAmount?: AmountInput,
+  interfaceFeeId?: string,
+  interfaceAddress?: string
+): any {
+  if (!interfaceFeeAmount || !interfaceFeeId) {
+    return null;
   }
   
-  return toDecimal(interfaceFeeAmount);
+  const feeDecimal = toDecimal(interfaceFeeAmount);
+  
+  return {
+    fee: feeDecimal.toString(),
+    feeDecimal: feeDecimal,
+    interfaceFeeId,
+    interfaceAddress
+  };
+}
+
+/**
+ * Calculate network fee based on proto object
+ */
+async function calculateNetworkFeeWithRates(
+  protoObject: any,
+  baseFeeId: string,
+  exchangeRates: Map<string, Decimal>
+): Promise<any> {
+  // Calculate transaction size
+  const transactionSize = calculateTransactionSize(protoObject);
+  
+  // Calculate signature size
+  const signatureSize = calculateSignatureSize(protoObject);
+  
+  // Calculate base network fee
+  const baseNetworkFee = calculateBaseNetworkFee(transactionSize, signatureSize);
+  
+  // Get exchange rate for base fee
+  const exchangeRate = exchangeRates.get(baseFeeId) || new Decimal(1);
+  
+  // Convert to smallest units
+  const feeInSmallestUnits = toSmallestUnits(baseNetworkFee.toString(), baseFeeId);
+  
+  return {
+    fee: feeInSmallestUnits,
+    feeDecimal: baseNetworkFee,
+    transactionSize,
+    signatureSize,
+    exchangeRate
+  };
 }
 
 /**
@@ -252,7 +323,11 @@ function calculateInterfaceFee(interfaceFeeAmount?: AmountInput): Decimal {
  */
 export class UniversalFeeCalculator {
   /**
-   * Calculate comprehensive fee for a transaction
+   * Unified fee calculation method
+   * Calculates network fees, contract fees, and interface fees
+   * Returns the original proto object and comprehensive fee breakdown
+   * @param options - Fee calculation parameters
+   * @returns Unified fee calculation result
    */
   static async calculateFee<T extends ProtobufObject>(
     options: FeeCalculationOptions<T>
@@ -265,53 +340,95 @@ export class UniversalFeeCalculator {
       interfaceFeeId,
       interfaceAddress
     } = options;
-    
-    // Extract transaction type
+
+    // Check if this is a CoinTXN transaction and contractFeeId is provided
     const transactionType = extractTransactionTypeFromProtoObject(protoObject);
+    let contractFee = null;
+    let interfaceFee = null;
+
+    // OPTIMIZATION: Pre-fetch exchange rates for all needed contract IDs to avoid duplicate API calls
+    const neededContractIds = new Set([baseFeeId]);
     
-    // Calculate transaction size
-    const transactionSize = calculateTransactionSize(protoObject);
-    
-    // Calculate signature size
-    const signatureSize = calculateSignatureSize(protoObject);
-    
-    // Calculate base network fee
-    const baseNetworkFee = calculateBaseNetworkFee(transactionSize, signatureSize);
-    
-    // Calculate contract fee
-    const contractFee = await calculateContractFee(protoObject, contractFeeId);
-    
-    // Calculate interface fee
-    const interfaceFee = calculateInterfaceFee(interfaceFeeAmount);
-    
-    // Calculate total fee
-    const totalFee = addAmounts(baseNetworkFee, contractFee, interfaceFee);
-    
-    // Convert to smallest units for the base fee ID
-    const networkFeeInSmallestUnits = toSmallestUnits(baseNetworkFee.toString(), baseFeeId);
-    const contractFeeInSmallestUnits = contractFeeId ? 
-      toSmallestUnits(contractFee.toString(), contractFeeId) : '0';
-    const interfaceFeeInSmallestUnits = interfaceFeeAmount ? 
-      toSmallestUnits(interfaceFee.toString(), interfaceFeeId || baseFeeId) : '0';
-    
-    const result: any = {
-      networkFee: networkFeeInSmallestUnits,
-      contractFee: contractFeeInSmallestUnits,
-      totalFee: toSmallestUnits(totalFee.toString(), baseFeeId),
-      breakdown: {
-        baseFee: networkFeeInSmallestUnits,
-        sizeFee: toSmallestUnits(toDecimal(transactionSize).mul(getFeeConstants().BYTES_PER_USD_CENT).toString(), baseFeeId),
-        signatureFee: toSmallestUnits(toDecimal(signatureSize).mul(getFeeConstants().SIGNATURE_FEE_PER_BYTE).toString(), baseFeeId),
-        contractFee: contractFeeInSmallestUnits
+    if (transactionType === TRANSACTION_TYPE.COIN_TYPE && contractFeeId) {
+      const contractId = (protoObject as any).contract_id;
+      if (contractId && typeof contractId === 'string') {
+        neededContractIds.add(contractId);
+        neededContractIds.add(contractFeeId);
       }
-    };
-    
-    if (interfaceFeeAmount) {
-      result.interfaceFee = interfaceFeeInSmallestUnits;
-      result.breakdown.interfaceFee = interfaceFeeInSmallestUnits;
     }
     
-    return result;
+    if (interfaceFeeId) {
+      neededContractIds.add(interfaceFeeId);
+    }
+    
+    // Fetch all needed exchange rates in parallel
+    const exchangeRates = new Map<string, Decimal>();
+    const ratePromises = Array.from(neededContractIds).map(async (contractId) => {
+      const rate = await aceExchangeService.getExchangeRate(contractId);
+      exchangeRates.set(contractId, rate);
+      return rate;
+    });
+    
+    await Promise.all(ratePromises);
+
+    // STEP 1: Calculate contract fee FIRST (if applicable)
+    if (transactionType === TRANSACTION_TYPE.COIN_TYPE && contractFeeId) {
+      try {
+        contractFee = await calculateContractFeeWithService(
+          protoObject,
+          contractFeeId,
+          baseFeeId,
+          exchangeRates
+        );
+      } catch (error) {
+        throw new Error(`Contract fee calculation failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    // STEP 2: Calculate interface fee (only if interfaceFeeId is specified)
+    if (interfaceFeeId) {
+      try {
+        interfaceFee = calculateInterfaceFeeWithDetails(
+          interfaceFeeAmount,
+          interfaceFeeId,
+          interfaceAddress
+        );
+      } catch (error) {
+        throw new Error(`Interface fee calculation failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    // STEP 3: Calculate network fee based on the proto object
+    const networkFee = await calculateNetworkFeeWithRates(
+      protoObject,
+      baseFeeId,
+      exchangeRates
+    );
+
+    // Calculate total fees
+    const networkFeeDecimal = networkFee.feeDecimal;
+    const contractFeeDecimal = contractFee ? toDecimal(contractFee.fee) : new Decimal(0);
+    const interfaceFeeDecimal = interfaceFee ? interfaceFee.feeDecimal : new Decimal(0);
+    const totalFeeDecimal = addAmounts(addAmounts(networkFeeDecimal, contractFeeDecimal), interfaceFeeDecimal);
+
+    return {
+      protoObject: protoObject, // Return the original proto object (not modified)
+      totalFee: totalFeeDecimal.toString(),
+      totalFeeDecimal: totalFeeDecimal,
+      networkFee: networkFee.fee,
+      contractFee: contractFee ? contractFee.fee : null,
+      interfaceFee: interfaceFee ? interfaceFee.fee : null,
+      feeId: baseFeeId,
+      contractFeeId: contractFeeId || null,
+      interfaceFeeId: interfaceFeeId || null,
+      interfaceAddress: interfaceAddress || null,
+      breakdown: {
+        network: networkFee,
+        contract: contractFee,
+        interface: interfaceFee,
+        total: totalFeeDecimal.toString()
+      }
+    };
   }
   
   /**

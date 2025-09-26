@@ -361,7 +361,7 @@ export async function createCoinTXN(
         }
 
       if (shouldUseAutoContractFee) {
-        finalContractFee = feeResult.contractFee;
+        finalContractFee = feeResult.contractFee !== null ? feeResult.contractFee : undefined;
       }
     } catch (error) {
       throw new Error(`Failed to calculate automatic fee: ${(error as Error).message}`);
