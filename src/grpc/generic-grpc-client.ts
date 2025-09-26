@@ -76,7 +76,7 @@ export function makeGRPCCall<TRequest = unknown, TResponse = unknown>(
       }
     }
 
-    client[method](sanitizedRequest, (error: any, response: any) => {
+    (client as any)[method](sanitizedRequest, (error: any, response: any) => {
       if (error) {
         reject(error);
       } else {

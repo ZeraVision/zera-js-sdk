@@ -77,6 +77,7 @@ import {
   Decimal 
 } from '../utils/amount-utils.js';
 import { aceExchangeService } from '../../api/zv-indexer/rate/service.js';
+import { getTokenFeeInfo } from '../../api/validator/fee-info/index.js';
 import { contractFeeService } from './contract-fee-service.js';
 import { sanitizeForSerialization } from '../utils/protobuf-utils.js';
 import { getKeyTypeFromPublicKey, getHashTypesFromPublicKey } from '../crypto/address-utils.js';
@@ -589,6 +590,10 @@ function calculateProtobufSize(protoObject: TransactionMessage, transactionType:
   // Sanitize the proto object to convert BigInt values to strings
   const sanitizedProtoObject = sanitizeForSerialization(protoObject);
   
+  if (!sanitizedProtoObject) {
+    throw new Error('Failed to sanitize protobuf object');
+  }
+  
   const binary = toBinary(schema, sanitizedProtoObject);
   
   // Check if binary is valid
@@ -763,7 +768,7 @@ function calculateInterfaceFeeWithDetails(
 /**
  * Calculate network fee based on proto object
  */
-async function calculateNetworkFeeWithRates(
+async function calculateNetworkFee(
   protoObject: TransactionMessage,
   baseFeeId: string,
   exchangeRates: Map<string, Decimal>
@@ -875,7 +880,7 @@ export class UniversalFeeCalculator {
     }
 
     // STEP 3: Calculate network fee based on the proto object
-    const networkFee = await calculateNetworkFeeWithRates(
+    const networkFee = await calculateNetworkFee(
       protoObject,
       baseFeeId,
       exchangeRates
@@ -926,5 +931,34 @@ export class UniversalFeeCalculator {
    */
   static async getExchangeRate(contractId: string): Promise<Decimal> {
     return await aceExchangeService.getExchangeRate(contractId);
+  }
+
+  /**
+   * Get comprehensive fee information for contracts
+   * 
+   * @param contractIds - Array of contract IDs to get fee info for
+   * @returns Promise with fee information including rates and contract details
+   */
+  static async getTokenFeeInfo(
+    contractIds: string[]
+  ): Promise<{
+    contractId: string;
+    rate: Decimal;
+    authorized: boolean;
+    denomination: string;
+    contractFees?: {
+      fee: string;
+      feeAddress?: Uint8Array;
+      burn: string;
+      validator: string;
+    } | undefined;
+  }[]> {
+    const feeInfo = await getTokenFeeInfo({
+      contractIds,
+      includeRates: true,
+      includeContractFees: true
+    });
+
+    return feeInfo;
   }
 }

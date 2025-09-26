@@ -59,6 +59,15 @@ function showModuleInstructions(): void {
         'npm run test:shared:watch',
         'npm run test:shared:coverage'
       ]
+    },
+    {
+      name: 'api',
+      description: 'API services, nonce management, exchange rates',
+      commands: [
+        'npm run test:api',
+        'npm run test:api:watch',
+        'npm run test:api:coverage'
+      ]
     }
   ];
   

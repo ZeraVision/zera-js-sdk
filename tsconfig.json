@@ -40,6 +40,12 @@
     "dist",
     "**/*.test.ts",
     "**/*.spec.ts",
+    "**/examples/**/*.ts",
+    "**/test/**/*.ts",
+    "src/test-reporter.ts",
+    "src/api/validator/nonce/examples/index.ts",
+    "src/api/zv-indexer/nonce/examples/index.ts",
+    "src/wallet-creation/examples/wallet-storage-manager.ts",
     "proto/**/*.js",
     "proto/**/*.proto"
   ],

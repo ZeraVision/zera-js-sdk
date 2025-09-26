@@ -19,9 +19,14 @@ export interface ValidatorAPIClient extends GRPCClient {
   getNonce(address: string): Promise<{ nonce: string }>;
   
   /**
-   * Get ACE token rates
+   * Get ACE token rates (legacy)
    */
   getACETokens(): Promise<{ tokens: Array<{ contractId: string; rate: string }> }>;
+  
+  /**
+   * Get comprehensive token fee information
+   */
+  getTokenFeeInfo(request: { contractIds: string[] }): Promise<{ tokens: Array<{ contractId: string; rate: string; authorized: boolean; denomination: string; contractFees?: any }> }>;
 }
 
 /**
@@ -55,11 +60,18 @@ export function createValidatorAPIClient(options: GRPCConfig = {}): ValidatorAPI
     },
 
     /**
-     * Get ACE token rates
+     * Get ACE token rates (legacy)
      */
     async getACETokens(): Promise<{ tokens: Array<{ contractId: string; rate: string }> }> {
       const request = {}; // Empty request for ACETokens
       return await makeGRPCCall(this.client, 'ACETokens', request);
+    },
+
+    /**
+     * Get comprehensive token fee information
+     */
+    async getTokenFeeInfo(request: { contractIds: string[] }): Promise<{ tokens: Array<{ contractId: string; rate: string; authorized: boolean; denomination: string; contractFees?: any }> }> {
+      return await makeGRPCCall(this.client, 'GetTokenFeeInfo', request);
     }
   };
 }

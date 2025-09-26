@@ -429,7 +429,7 @@ export class Ed448KeyPair {
     // Step 3: Apply Ed448 clamping (clear bits 0 and 1 of the last byte)
     const clamped = new Uint8Array(expanded57);
     if (clamped.length >= 57) {
-      clamped[56] &= 0xFC; // Clear bits 0 and 1
+      clamped[56] = (clamped[56] || 0) & 0xFC; // Clear bits 0 and 1
     }
     
     return clamped;

@@ -23,7 +23,7 @@ export interface SanitizeOptions {
 export function sanitizeProtobufObject<T = unknown>(
   obj: T, 
   options: SanitizeOptions = {}
-): T {
+): T | undefined {
   const { removeEmptyFields = false, convertBigInt = false } = options;
   
   if (obj === null || obj === undefined) {
@@ -32,18 +32,18 @@ export function sanitizeProtobufObject<T = unknown>(
   
   // Convert BigInt to string if requested
   if (convertBigInt && typeof obj === 'bigint') {
-    return obj.toString();
+    return obj.toString() as T;
   }
   
   // Preserve Uint8Array objects (they're needed for key extraction)
   if (obj instanceof Uint8Array) {
-    return obj.length === 0 && removeEmptyFields ? undefined : obj;
+    return (obj.length === 0 && removeEmptyFields ? undefined : obj) as T;
   }
   
   if (Array.isArray(obj)) {
     const sanitized = obj.map(item => sanitizeProtobufObject(item, options));
     const filtered = removeEmptyFields ? sanitized.filter(item => item !== undefined) : sanitized;
-    return filtered.length > 0 ? filtered : (removeEmptyFields ? undefined : []);
+    return (filtered.length > 0 ? filtered : (removeEmptyFields ? undefined : [])) as T;
   }
   
   if (typeof obj === 'object') {
@@ -68,13 +68,13 @@ export function sanitizeProtobufObject<T = unknown>(
       result[key] = sanitized;
     }
     
-    return Object.keys(result).length > 0 ? result : (removeEmptyFields ? undefined : {});
+    return (Object.keys(result).length > 0 ? result : (removeEmptyFields ? undefined : {})) as T;
   }
   
   // Handle primitive types
   if (typeof obj === 'string') {
     if (removeEmptyFields && obj.length === 0) {
-      return undefined;
+      return undefined as T;
     }
     return obj;
   }
@@ -105,7 +105,7 @@ export function createSanitized(schema: any, data: any): any {
 /**
  * Sanitize object for serialization (BigInt conversion)
  */
-export function sanitizeForSerialization<T = unknown>(obj: T): T {
+export function sanitizeForSerialization<T = unknown>(obj: T): T | undefined {
   return sanitizeProtobufObject(obj, { convertBigInt: true });
 }
 

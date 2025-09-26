@@ -62,9 +62,8 @@ export {
   CONTRACT_TYPE,
   LANGUAGE,
   PROPOSAL_PERIOD,
-  VARIABLE_TYPE,
-  PROTOBUF_ENUMS
-} from './src/shared/protobuf-enums.js';
+  VARIABLE_TYPE
+} from './src/shared/protobuf/index.js';
 
 // Import error classes
 export {

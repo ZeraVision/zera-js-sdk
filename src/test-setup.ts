@@ -238,7 +238,7 @@ export class TestSuite {
     const pathParts = filePath.split('/');
     const srcIndex = pathParts.indexOf('src');
     if (srcIndex !== -1 && srcIndex + 1 < pathParts.length) {
-      return pathParts[srcIndex + 1];
+      return pathParts[srcIndex + 1] || 'unknown';
     }
     return 'unknown';
   }

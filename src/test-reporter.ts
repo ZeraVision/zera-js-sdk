@@ -1,4 +1,4 @@
-import type { Reporter, File, Task } from 'vitest';
+import type { Reporter, File, Task, TaskResultPack, TaskEventPack } from 'vitest';
 import chalk from 'chalk';
 
 class ZeraTestReporter implements Reporter {
@@ -15,7 +15,7 @@ class ZeraTestReporter implements Reporter {
     this.showModuleBreakdowns(files);
   }
 
-  onTaskUpdate(packs: Task[]) {
+  onTaskUpdate(packs: TaskResultPack[], events: TaskEventPack[]) {
     // Track test results as they happen
     packs.forEach(task => {
       if (task.type === 'test' && task.result) {
@@ -213,7 +213,7 @@ class ZeraTestReporter implements Reporter {
     const pathParts = filePath.split('/');
     const srcIndex = pathParts.indexOf('src');
     if (srcIndex !== -1 && srcIndex + 1 < pathParts.length) {
-      return pathParts[srcIndex + 1];
+      return pathParts[srcIndex + 1] || 'unknown';
     }
     return 'unknown';
   }

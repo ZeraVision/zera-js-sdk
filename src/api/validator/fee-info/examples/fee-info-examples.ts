@@ -1,0 +1,48 @@
+/**
+ * Fee Info Service Examples
+ * 
+ * Demonstrates how to use the fee info service to get comprehensive token fee information.
+ */
+
+import { getTokenFeeInfo, getACETokenRates, getACETokenRate } from '../request.js';
+import Decimal from 'decimal.js';
+
+/**
+ * Example: Get comprehensive fee information for all tokens
+ */
+getAllTokenFeeInfoExample();
+export async function getAllTokenFeeInfoExample() {
+  try {
+    console.log('Fetching comprehensive fee information for all tokens...');
+    
+    const feeInfo = await getTokenFeeInfo({
+      contractIds: ['$ZRA+0000', '$IIT+0000', '$ZMT+0000'],
+      includeRates: true,
+      includeContractFees: true
+    });
+    
+    console.log(`Found ${feeInfo.length} tokens with fee information:`);
+    feeInfo.forEach((info) => {
+      console.log(`  Contract ID: ${info.contractId}`);
+      console.log(`  Rate: ${info.rate.toString()} (as Decimal)`);
+      console.log(`  Rate as USD: $${info.rate.toFixed(2)}`);
+      console.log(`  Authorized: ${info.authorized}`);
+      console.log(`  Denomination: ${info.denomination}`);
+      if (info.contractFees) {
+        console.log(`  Contract Fees:`);
+        console.log(`    Fee: ${info.contractFees.fee}`);
+        console.log(`    Burn: ${info.contractFees.burn}`);
+        console.log(`    Validator: ${info.contractFees.validator}`);
+        if (info.contractFees.feeAddress) {
+          console.log(`    Fee Address: ${info.contractFees.feeAddress}`);
+        }
+      }
+      console.log('---');
+    });
+    
+    return feeInfo;
+  } catch (error) {
+    console.error('Error fetching token fee information:', error);
+    throw error;
+  }
+}

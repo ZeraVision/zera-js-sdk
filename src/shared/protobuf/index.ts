@@ -5,8 +5,8 @@
  * This eliminates the need for long relative import paths throughout the codebase.
  */
 
-// Re-export all enums from generated protobuf files
-export {
+// Import and re-export all enums from generated protobuf files
+import {
   TRANSACTION_TYPE,
   TXN_STATUS,
   CONTRACT_FEE_TYPE,
@@ -16,6 +16,17 @@ export {
   PROPOSAL_PERIOD,
   VARIABLE_TYPE
 } from '../../../proto/generated/txn_pb.js';
+
+export {
+  TRANSACTION_TYPE,
+  TXN_STATUS,
+  CONTRACT_FEE_TYPE,
+  GOVERNANCE_TYPE,
+  CONTRACT_TYPE,
+  LANGUAGE,
+  PROPOSAL_PERIOD,
+  VARIABLE_TYPE
+};
 
 // Re-export commonly used protobuf schemas
 export {

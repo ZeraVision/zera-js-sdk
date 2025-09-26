@@ -2,7 +2,60 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Current File",
+      "name": "Debug Current File (tsx)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/tsx/dist/cli.mjs",
+      "args": ["${file}"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "env": {
+        "DEBUG_GRPC_REQUESTS": "true"
+      },
+      "outputCapture": "std"
+    },
+    {
+      "name": "Debug Fee Info Examples",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/tsx/dist/cli.mjs",
+      "args": ["${workspaceFolder}/src/api/validator/fee-info/examples/fee-info-examples.ts"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "env": {
+        "DEBUG_GRPC_REQUESTS": "true"
+      },
+      "outputCapture": "std"
+    },
+    {
+      "name": "Debug Current File (Windows)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/tsx/dist/cli.mjs",
+      "args": ["${file}"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "env": {
+        "DEBUG_GRPC_REQUESTS": "true"
+      },
+      "outputCapture": "std"
+    },
+    {
+      "name": "Debug Current File (legacy)",
       "type": "node",
       "request": "launch",
       "program": "${file}",

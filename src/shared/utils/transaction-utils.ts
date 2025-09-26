@@ -427,7 +427,6 @@ export default {
   CONTRACT_FEE_TYPE,
   TransactionValidator,
   TransactionFormatter,
-  FeeCalculator,
   TransactionBuilder,
   TransactionSerializer
 };

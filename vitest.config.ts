@@ -9,7 +9,8 @@ export default defineConfig({
     include: [
       'src/**/*.{test,spec}.{js,ts}',
       'src/**/test-*.{js,ts}',
-      'src/**/tests/*.{js,ts}'
+      'src/**/tests/*.{js,ts}',
+      'src/**/test/*.{js,ts}'
     ],
     
     // Exclude patterns
