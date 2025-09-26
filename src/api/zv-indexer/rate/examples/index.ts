@@ -5,8 +5,10 @@
  */
 
 import { getExchangeRate, convertUSDToCurrency } from '../service.js';
-import { DEFAULT_TEST_FEE_CONFIG } from '../../../../test-utils/test-keys.js';
 import type { Decimal } from 'decimal.js';
+
+// Test currency constant
+const TEST_CURRENCY = '$ZRA+0000';
 
 interface ExampleResult {
   passed: number;
@@ -64,7 +66,7 @@ export async function runRateExamples(): Promise<ExampleResult> {
 async function basicUsageExample(): Promise<void> {
   console.log('Getting exchange rate for ZRA...');
   
-  const currency = DEFAULT_TEST_FEE_CONFIG.baseFeeId; // '$ZRA+0000'
+  const currency = TEST_CURRENCY; // '$ZRA+0000'
   const rate = await getExchangeRate(currency);
   
   console.log(`Currency: ${currency}`);
@@ -83,7 +85,7 @@ async function advancedFeaturesExample(): Promise<void> {
   console.log('Testing currency conversion with test currencies...');
   
   const usdAmount = 100.50;
-  const currency = DEFAULT_TEST_FEE_CONFIG.baseFeeId; // '$ZRA+0000'
+  const currency = TEST_CURRENCY; // '$ZRA+0000'
   
   const convertedAmount = await convertUSDToCurrency(usdAmount, currency);
   
@@ -128,7 +130,7 @@ async function errorHandlingExample(): Promise<void> {
   
   try {
     // Test invalid USD amount
-    await convertUSDToCurrency(-100, DEFAULT_TEST_FEE_CONFIG.baseFeeId);
+    await convertUSDToCurrency(-100, TEST_CURRENCY);
     throw new Error('Should have thrown error for negative amount');
   } catch (error) {
     console.log(`✅ Caught expected error: ${(error as Error).message}`);
@@ -142,8 +144,8 @@ async function performanceExample(): Promise<void> {
   console.log('Testing performance with test currencies...');
   
   const currencies = [
-    DEFAULT_TEST_FEE_CONFIG.baseFeeId,     // '$ZRA+0000'
-    DEFAULT_TEST_FEE_CONFIG.contractFeeId   // '$ZRA+0000'
+    TEST_CURRENCY,     // '$ZRA+0000'
+    TEST_CURRENCY   // '$ZRA+0000'
   ];
   
   const startTime = Date.now();
@@ -189,7 +191,7 @@ async function performanceExample(): Promise<void> {
 async function integrationExample(): Promise<void> {
   console.log('Testing integration with transaction creation...');
   
-  const currency = DEFAULT_TEST_FEE_CONFIG.baseFeeId; // '$ZRA+0000'
+  const currency = TEST_CURRENCY; // '$ZRA+0000'
   const usdAmount = 50.25;
   
   // Get exchange rate

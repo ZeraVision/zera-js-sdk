@@ -70,6 +70,7 @@ async function testAddressValidation(): Promise<void> {
   console.log('Valid address validation:', validateAddress(validAddress));
   console.log('Invalid address validation (invalid format):', validateAddress(invalidAddress1));
   console.log('Invalid address validation (empty string):', validateAddress(invalidAddress2));
+  // @ts-expect-error: Intentionally testing invalid input for validation
   console.log('Invalid address validation (null):', validateAddress(invalidAddress3 as any));
   console.log('');
 }
@@ -96,6 +97,7 @@ async function testParameterValidation(): Promise<void> {
   }
   
   try {
+    // @ts-expect-error: Intentionally testing invalid input for validation
     validateHashTypes(['invalid'] as any);
     console.log('Invalid hash type should fail');
   } catch (error) {

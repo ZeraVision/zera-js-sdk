@@ -5,7 +5,9 @@
  */
 
 import { getExchangeRate, convertUSDToCurrency } from '../service.js';
-import { DEFAULT_TEST_FEE_CONFIG } from '../../../../test-utils/test-keys.js';
+
+// Test currency constant
+const TEST_CURRENCY = '$ZRA+0000';
 
 /**
  * Run ACE exchange rate tests
@@ -48,7 +50,7 @@ export async function runRateTests() {
 async function basicFunctionalityTest() {
   console.log('Testing basic exchange rate retrieval for ZRA...');
   
-  const currency = DEFAULT_TEST_FEE_CONFIG.baseFeeId; // '$ZRA+0000'
+  const currency = TEST_CURRENCY; // '$ZRA+0000'
   const rate = await getExchangeRate(currency);
   
   // Verify rate is returned
@@ -77,6 +79,7 @@ async function inputValidationTest() {
   
   // Test null/undefined currency
   try {
+    // @ts-expect-error: Intentionally testing invalid input for validation
     await getExchangeRate(null as any);
     throw new Error('Should throw error for null currency');
   } catch (error) {
@@ -84,6 +87,7 @@ async function inputValidationTest() {
   }
   
   try {
+    // @ts-expect-error: Intentionally testing invalid input for validation
     await getExchangeRate(undefined as any);
     throw new Error('Should throw error for undefined currency');
   } catch (error) {
@@ -108,14 +112,14 @@ async function inputValidationTest() {
   
   // Test invalid USD amount
   try {
-    await convertUSDToCurrency(-100, DEFAULT_TEST_FEE_CONFIG.baseFeeId);
+    await convertUSDToCurrency(-100, TEST_CURRENCY);
     throw new Error('Should throw error for negative amount');
   } catch (error) {
     console.log('✅ Negative amount validation passed');
   }
   
   try {
-    await convertUSDToCurrency(0, DEFAULT_TEST_FEE_CONFIG.baseFeeId);
+    await convertUSDToCurrency(0, TEST_CURRENCY);
     throw new Error('Should throw error for zero amount');
   } catch (error) {
     console.log('✅ Zero amount validation passed');
@@ -152,8 +156,8 @@ async function performanceTest() {
   console.log('Testing performance with test currencies...');
   
   const currencies = [
-    DEFAULT_TEST_FEE_CONFIG.baseFeeId,     // '$ZRA+0000'
-    DEFAULT_TEST_FEE_CONFIG.contractFeeId   // '$ZRA+0000'
+    TEST_CURRENCY,     // '$ZRA+0000'
+    TEST_CURRENCY   // '$ZRA+0000'
   ];
   
   const startTime = Date.now();
@@ -195,7 +199,7 @@ async function edgeCasesTest() {
   
   // Test currency conversion
   const usdAmount = 100;
-  const currency = DEFAULT_TEST_FEE_CONFIG.baseFeeId; // '$ZRA+0000'
+  const currency = TEST_CURRENCY; // '$ZRA+0000'
   
   const convertedAmount = await convertUSDToCurrency(usdAmount, currency);
   

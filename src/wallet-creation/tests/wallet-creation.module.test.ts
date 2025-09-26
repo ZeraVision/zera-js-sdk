@@ -181,11 +181,12 @@ describe('ZERA Wallet Creation Module', () => {
       try {
         const mnemonic = generateMnemonicPhrase(12);
         await expect(async () => {
-          await createWallet({
-            keyType: 'invalid' as any,
-            hashTypes: [HASH_TYPE.SHA3_256],
-            mnemonic
-          });
+        await createWallet({
+          // @ts-expect-error: Intentionally testing invalid keyType for validation
+          keyType: 'invalid' as any,
+          hashTypes: [HASH_TYPE.SHA3_256],
+          mnemonic
+        });
         }).rejects.toThrow();
         
         testSuite.recordTestResult(moduleName, 'Invalid key type error handling', true, false, false);

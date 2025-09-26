@@ -5,7 +5,7 @@
  */
 
 import { getNonce, getNonces } from '../service.js';
-import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/test-keys.js';
+import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/keys.test.js';
 
 /**
  * Run validator nonce tests

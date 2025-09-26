@@ -5,12 +5,66 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { TestSuite, TestData, Assert, Performance, Mock } from '../../test-setup.js';
-import { assert, createTestInput, createTestInputs, getTestOutput, DEFAULT_TEST_FEE_CONFIG } from '../../test-utils/index.js';
+import { assert } from '../../test-utils/index.js';
 import { createCoinTXN, sendCoinTXN } from '../index.js';
+import { ED25519_TEST_KEYS, ED448_TEST_KEYS, TEST_WALLET_ADDRESSES } from '../../test-utils/keys.test.js';
+import type { CoinTXNInput, CoinTXNOutput, FeeConfig } from '../../types/index.js';
 
 describe('ZERA Coin Transactions', () => {
   const testSuite = TestSuite.getInstance();
   const moduleName = 'coin-txn';
+  
+  // Test fee configuration
+  const DEFAULT_TEST_FEE_CONFIG: FeeConfig = {
+    baseFeeId: '$ZRA+0000',
+    baseFee: '0.001',
+    contractFeeId: '$ZRA+0000',
+    contractFee: '0.0005'
+  };
+  
+  // Helper function to create test input
+  function createTestInput(keyType: 'ed25519' | 'ed448', person: 'alice' | 'bob' | 'charlie', amount: string, feePercent: string = '100'): CoinTXNInput {
+    const keys = keyType === 'ed448' ? ED448_TEST_KEYS : ED25519_TEST_KEYS;
+    const keyPair = keys[person];
+    
+    if (!keyPair) {
+      throw new Error(`No test keys found for ${keyType} ${person}`);
+    }
+    
+    return {
+      privateKey: keyPair.privateKey,
+      publicKey: keyPair.publicKey,
+      amount,
+      feePercent
+    };
+  }
+  
+  // Helper function to create test output
+  function getTestOutput(person: 'alice' | 'bob' | 'charlie' | 'jesse', amount: string, memo: string = ''): CoinTXNOutput {
+    const address = TEST_WALLET_ADDRESSES[person];
+    
+    if (!address) {
+      throw new Error(`No test address found for ${person}`);
+    }
+    
+    const output: CoinTXNOutput = {
+      to: address,
+      amount
+    };
+    
+    if (memo) {
+      output.memo = memo;
+    }
+    
+    return output;
+  }
+  
+  // Helper function to create multiple test inputs
+  function createTestInputs(inputSpecs: Array<{keyType: 'ed25519' | 'ed448', person: 'alice' | 'bob' | 'charlie', amount: string, feePercent?: string}>): CoinTXNInput[] {
+    return inputSpecs.map(spec => 
+      createTestInput(spec.keyType, spec.person, spec.amount, spec.feePercent)
+    );
+  }
   
   beforeAll(() => {
     testSuite.startModule(moduleName);
@@ -25,7 +79,7 @@ describe('ZERA Coin Transactions', () => {
       try {
         const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
         const outputs = [getTestOutput('bob', '1.0', 'payment')];
-        const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', {}, 'memo');
+        const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', {}, 'memo');
         
         expect(coinTxn.$typeName).toBe('zera_txn.CoinTXN');
         
@@ -42,7 +96,7 @@ describe('ZERA Coin Transactions', () => {
       try {
         const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
         const outputs = [getTestOutput('bob', '1.0', 'payment')];
-        const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'memo with fees');
+        const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'memo with fees');
         
         expect(coinTxn.$typeName).toBe('zera_txn.CoinTXN');
         expect(coinTxn.base).toBeDefined();
@@ -69,7 +123,7 @@ describe('ZERA Coin Transactions', () => {
           contractFee: 'auto'
         };
         
-        const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig, 'base fee only');
+        const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, 'base fee only');
         
         expect(coinTxn.$typeName).toBe('zera_txn.CoinTXN');
         expect(coinTxn.base).toBeDefined();
@@ -95,7 +149,7 @@ describe('ZERA Coin Transactions', () => {
           contractFee: '0.5'
         };
         
-        const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig, 'contract fee only');
+        const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, 'contract fee only');
         
         expect(coinTxn.$typeName).toBe('zera_txn.CoinTXN');
         expect(coinTxn.base).toBeDefined();
@@ -120,7 +174,7 @@ describe('ZERA Coin Transactions', () => {
         ]);
         const outputs = [getTestOutput('charlie', '3.5', 'multi-input payment')];
         
-        const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'multi-input');
+        const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'multi-input');
         
         expect(coinTxn.$typeName).toBe('zera_txn.CoinTXN');
         expect((coinTxn as any).inputTransfers.length).toBe(2);
@@ -146,7 +200,7 @@ describe('ZERA Coin Transactions', () => {
           getTestOutput('jesse', '1.5', 'payment to jesse')
         ];
         
-        const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'multi-output');
+        const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'multi-output');
         
         expect(coinTxn.$typeName).toBe('zera_txn.CoinTXN');
         expect((coinTxn as any).inputTransfers.length).toBe(1);
@@ -174,7 +228,7 @@ describe('ZERA Coin Transactions', () => {
           getTestOutput('jesse', '1.5', 'payment to jesse')
         ];
         
-        const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'complex transaction');
+        const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'complex transaction');
         
         expect(coinTxn.$typeName).toBe('zera_txn.CoinTXN');
         expect((coinTxn as any).inputTransfers.length).toBe(2);
@@ -206,7 +260,7 @@ describe('ZERA Coin Transactions', () => {
         }];
         
         await expect(async () => {
-          await createCoinTXN(invalidInputs as any, invalidOutputs as any, '$ZRA+0000', {}, 'invalid');
+          await createCoinTXN(invalidInputs, invalidOutputs, '$ZRA+0000', {}, 'invalid');
         }).rejects.toThrow();
         
         testSuite.recordTestResult(moduleName, 'Invalid data error handling', true, false, false);
@@ -224,7 +278,7 @@ describe('ZERA Coin Transactions', () => {
       try {
         const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
         const outputs = [getTestOutput('bob', '1.0', 'test send')];
-        const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'test send');
+        const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'test send');
         
         // This will likely fail in test environment, which is expected
         await expect(async () => {
@@ -247,7 +301,7 @@ describe('ZERA Coin Transactions', () => {
         const { duration } = await Performance.measureTime(async () => {
           const inputs = [createTestInput('ed25519', 'alice', '1.0', '100')];
           const outputs = [getTestOutput('bob', '1.0', 'performance test')];
-          return await createCoinTXN(inputs as any, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'performance test');
+          return await createCoinTXN(inputs, outputs, '$ZRA+0000', DEFAULT_TEST_FEE_CONFIG, 'performance test');
         });
         
         Performance.expectFast(duration, 1000);
