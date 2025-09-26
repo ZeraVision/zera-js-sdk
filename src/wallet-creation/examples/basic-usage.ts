@@ -65,8 +65,8 @@ async function demonstrateBasicUsage() {
     console.log(`   Same mnemonic, same address: ${wallet.address === importedWallet.address}`);
     console.log('');
 
-    // Example 5: HD wallet derivation
-    console.log('5️⃣ HD Wallet Derivation');
+    // Example 5: HD wallet derivation (ED25519)
+    console.log('5️⃣ HD Wallet Derivation (ED25519)');
     const hdWallets = await deriveMultipleWallets({
       mnemonic: mnemonic,
       keyType: KEY_TYPE.ED25519,
@@ -74,8 +74,35 @@ async function demonstrateBasicUsage() {
       count: 3,
       hdOptions: { addressIndex: 0 }
     });
-    console.log(`   Derived ${hdWallets.length} wallets from same mnemonic`);
+    console.log(`   Derived ${hdWallets.length} ED25519 wallets from same mnemonic`);
     console.log(`   All unique addresses: ${new Set(hdWallets.map(w => w.address)).size === 3}`);
+    console.log('');
+
+    // Example 5b: HD wallet derivation (ED448)
+    console.log('5️⃣b HD Wallet Derivation (ED448)');
+    const ed448HdWallets = await deriveMultipleWallets({
+      mnemonic: mnemonic,
+      keyType: KEY_TYPE.ED448,
+      hashTypes: [HASH_TYPE.SHA3_512],
+      count: 3,
+      hdOptions: { addressIndex: 0 }
+    });
+    console.log(`   Derived ${ed448HdWallets.length} ED448 wallets from same mnemonic`);
+    console.log(`   All unique addresses: ${new Set(ed448HdWallets.map(w => w.address)).size === 3}`);
+    console.log(`   Note: ED448 addresses are different from ED25519 addresses`);
+    console.log('');
+
+    // Example 6: ED448 wallet (higher security)
+    console.log('6️⃣ ED448 Wallet (Higher Security)');
+    const ed448Wallet = await createWallet({
+      keyType: KEY_TYPE.ED448,
+      hashTypes: [HASH_TYPE.SHA3_512],
+      mnemonic: generateWords(12)
+    });
+    console.log(`   Address: ${ed448Wallet.address.substring(0, 20)}...`);
+    console.log(`   Key Type: ${ed448Wallet.keyType}`);
+    console.log(`   Hash Types: ${ed448Wallet.hashTypes.join(', ')}`);
+    console.log(`   Note: ED448 provides higher security than ED25519`);
     console.log('');
 
     console.log('✅ All basic examples completed!');
@@ -84,6 +111,7 @@ async function demonstrateBasicUsage() {
     console.log('   • Hash chaining applies right-to-left');
     console.log('   • HD derivation creates multiple addresses from one mnemonic');
     console.log('   • Same mnemonic + same settings = same address');
+    console.log('   • ED448 provides higher security than ED25519 (larger keys)');
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

@@ -230,7 +230,9 @@ export class SLIP0010HDWallet {
     if (this.keyType === 'ed25519') {
       return ed25519.getPublicKey(privateKey);
     } else if (this.keyType === 'ed448') {
-      return ed448.getPublicKey(privateKey);
+      // For ED448, we need to expand the 32-byte SLIP-0010 seed to 57-byte private key
+      const ed448KeyPair = new Ed448KeyPair(privateKey);
+      return ed448KeyPair.publicKey;
     } else {
       throw new Error(`Unsupported key type: ${this.keyType}`);
     }
