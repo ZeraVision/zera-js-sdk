@@ -14,6 +14,7 @@
 
 import { getNonce, getNonces } from '../../api/validator/nonce/index.js';
 import Decimal from 'decimal.js';
+import { createTestingGRPCConfig } from '../../shared/utils/testing-defaults/index.js';
 
 /**
  * Example 1: Using Functional Nonce Service
@@ -26,11 +27,10 @@ export async function exampleFunctionalNonceService() {
     '5KJvsngHeMby884zrh6A5u6b4SqzZzAb'
   ];
 
-  const options = {
+  const options = createTestingGRPCConfig({
     host: 'localhost',
-    port: 50053,
-    protocol: 'http' as const
-  };
+    port: 50053
+  });
 
   try {
     // Get nonces with Decimal precision and +1 increment

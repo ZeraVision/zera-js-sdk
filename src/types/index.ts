@@ -210,7 +210,7 @@ export interface CoinTXNInput {
   /** Public key identifier */
   publicKey: string;
   /** Amount to spend (user-friendly format) */
-  amount: string | number | Decimal;
+  amount: AmountInput;
   /** Fee percentage (default: '100') */
   feePercent?: string;
   /** Key type (optional, auto-detected if not provided) */
@@ -226,7 +226,7 @@ export interface CoinTXNOutput {
   /** Recipient address */
   to: string;
   /** Amount to send (user-friendly format) */
-  amount: string | number | Decimal;
+  amount: AmountInput;
   /** Optional memo for this output */
   memo?: string;
 }
@@ -238,13 +238,13 @@ export interface FeeConfig {
   /** Base fee instrument ID (defaults to '$ZRA+0000') */
   baseFeeId?: string;
   /** Base fee amount in user-friendly units (auto-calculated if not provided) */
-  baseFee?: string | number | Decimal;
+  baseFee?: AmountInput;
   /** Contract fee instrument (defaults to contractId) */
   contractFeeId?: string;
   /** Contract fee amount in user-friendly units (auto-calculated if not provided) */
-  contractFee?: string | number | Decimal;
+  contractFee?: AmountInput;
   /** Interface fee amount (required if interfaceFeeId is specified) */
-  interfaceFeeAmount?: string | number | Decimal;
+  interfaceFeeAmount?: AmountInput;
   /** Interface fee contract ID (triggers interface fee calculation) */
   interfaceFeeId?: string;
   /** Interface provider address (required if interfaceFeeId is specified) */
@@ -265,6 +265,26 @@ export interface GRPCConfig {
   protocol?: 'http' | 'https';
   /** Additional Node.js options for the transport */
   nodeOptions?: Record<string, any>;
+  /** Connection timeout in milliseconds (default: 30000) */
+  timeout?: number;
+  /** Maximum retry attempts (default: 3) */
+  maxRetries?: number;
+  /** Retry delay in milliseconds (default: 1000) */
+  retryDelay?: number;
+}
+
+/**
+ * gRPC override configuration for specific operations
+ */
+export interface GRPCOverrideConfig {
+  /** Base gRPC configuration */
+  grpcConfig?: GRPCConfig;
+  /** Request timeout in milliseconds (default: 10000) */
+  timeout?: number;
+  /** Maximum retry attempts (default: 2) */
+  maxRetries?: number;
+  /** Retry delay in milliseconds (default: 500) */
+  retryDelay?: number;
 }
 
 // ============================================================================

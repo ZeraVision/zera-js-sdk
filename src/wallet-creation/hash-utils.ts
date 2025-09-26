@@ -170,7 +170,7 @@ export function doubleHash(data: Uint8Array, hashType: HashType): Uint8Array {
 export function createHashChain(hashTypes: HashType[], data: Uint8Array): Uint8Array {
   let result = data;
   
-  for (const hashType of hashTypes) {
+  for (const hashType of hashTypes.reverse()) {
     const hashFn = getHashFunction(hashType);
     result = hashFn(result);
   }

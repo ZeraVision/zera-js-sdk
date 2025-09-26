@@ -14,6 +14,7 @@
 
 import { sendCoinTXN } from '../../coin-txn/transaction.js';
 import { getNonces } from '../../api/validator/nonce/index.js';
+import { createTestingGRPCConfig } from '../../shared/utils/testing-defaults/index.js';
 
 /**
  * Test 1: sendCoinTXN with new architecture
@@ -28,11 +29,10 @@ export async function testSendCoinTXN() {
     }
   };
 
-  const grpcConfig = {
+  const grpcConfig = createTestingGRPCConfig({
     host: 'routing.zerascan.io',
-    port: 50052,
-    protocol: 'http' as const
-  };
+    port: 50052
+  });
 
   try {
     // This uses the new universal gRPC architecture internally

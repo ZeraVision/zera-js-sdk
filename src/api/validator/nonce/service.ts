@@ -7,7 +7,7 @@
 
 import Decimal from 'decimal.js';
 import { createValidatorAPIClient } from '../../../grpc/api/validator-api-client.js';
-import type { GRPCConfig } from '../../../types/index.js';
+import type { GRPCConfig, GRPCOverrideConfig } from '../../../types/index.js';
 
 /**
  * Get a single nonce for an address
@@ -31,7 +31,7 @@ export async function getNonce(address: string, options: GRPCConfig = {}): Promi
 /**
  * Get nonces for multiple addresses
  */
-export async function getNonces(addresses: string[], options: GRPCConfig = {}): Promise<Decimal[]> {
+export async function getNonces(addresses: string[], options: GRPCOverrideConfig = {}): Promise<Decimal[]> {
   if (!Array.isArray(addresses) || addresses.length === 0) {
     throw new Error('Addresses must be a non-empty array');
   }

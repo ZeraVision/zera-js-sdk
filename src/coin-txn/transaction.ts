@@ -20,11 +20,13 @@ import { UniversalFeeCalculator } from '../shared/fee-calculators/universal-fee-
 import { createTransactionClient } from '../grpc/transaction/transaction-client.js';
 import bs58 from 'bs58';
 import { toSmallestUnits, validateAmountBalance, Decimal } from '../shared/utils/amount-utils.js';
+import { TESTING_GRPC_OVERRIDE_CONFIG } from '../shared/utils/testing-defaults/index.js';
 import type { 
   CoinTXNInput, 
   CoinTXNOutput, 
   FeeConfig, 
   GRPCConfig, 
+  GRPCOverrideConfig,
   ContractId,
   AmountInput 
 } from '../types/index.js';
@@ -50,7 +52,7 @@ export function validateContractId(contractId: any): contractId is ContractId {
 async function processInputs(
   inputs: CoinTXNInput[], 
   contractID: ContractId, 
-  nonceOptions: Record<string, any> = {}
+  grpcOverrideConfig: GRPCOverrideConfig = {}
 ): Promise<{
   publicKeys: any[];
   inputTransfers: any[];
@@ -88,7 +90,7 @@ async function processInputs(
     }
     
     // Get nonces for all inputs
-    const nonceDecimals = await getNonces(addresses, nonceOptions);
+    const nonceDecimals = await getNonces(addresses, grpcOverrideConfig);
 
     // For allowance transactions, split the results more efficiently
     let allowanceNonceDecimals: any[] = [];
@@ -247,7 +249,7 @@ export async function createCoinTXN(
   contractId: ContractId, 
   feeConfig: FeeConfig = {}, 
   baseMemo: string = '', 
-  nonceOptions: Record<string, any> = {}
+  grpcOverrideConfig: GRPCOverrideConfig = TESTING_GRPC_OVERRIDE_CONFIG
 ): Promise<any> {
   // Validate inputs
   if (!Array.isArray(inputs) || !Array.isArray(outputs)) {
@@ -271,7 +273,7 @@ export async function createCoinTXN(
   } = feeConfig;
 
   // Step 1: Process inputs (includes nonce generation)
-  const { publicKeys, inputTransfers, nonces, allowanceAddresses, allowanceNonces } = await processInputs(inputs, contractId, nonceOptions);
+  const { publicKeys, inputTransfers, nonces, allowanceAddresses, allowanceNonces } = await processInputs(inputs, contractId, grpcOverrideConfig);
 
   // Used for signatures at bottom, accounts for allowance inputs (filtered to exclude allowance-based inputs)
   const signersArray = JSON.parse(JSON.stringify(inputs)).filter((input: CoinTXNInput) => !input.allowanceAddress);

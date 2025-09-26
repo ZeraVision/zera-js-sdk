@@ -81,7 +81,7 @@ export function fromSmallestUnits(amount: AmountInput, contractId: ContractId = 
  * Add multiple amounts with exact decimal arithmetic
  */
 export function addAmounts(...amounts: AmountInput[]): Decimal {
-  return amounts.reduce((sum: Decimal, amount: AmountInput) => {
+  return amounts.reduce<Decimal>((sum: Decimal, amount: AmountInput) => {
     return sum.add(toDecimal(amount));
   }, new Decimal(0));
 }
@@ -91,7 +91,7 @@ export function addAmounts(...amounts: AmountInput[]): Decimal {
  */
 export function subtractAmounts(minuend: AmountInput, ...subtrahends: AmountInput[]): Decimal {
   const minuendDecimal = toDecimal(minuend);
-  return subtrahends.reduce((result: Decimal, subtrahend: AmountInput) => {
+  return subtrahends.reduce<Decimal>((result: Decimal, subtrahend: AmountInput) => {
     return result.sub(toDecimal(subtrahend));
   }, minuendDecimal);
 }
@@ -100,7 +100,7 @@ export function subtractAmounts(minuend: AmountInput, ...subtrahends: AmountInpu
  * Multiply amounts with exact decimal arithmetic
  */
 export function multiplyAmounts(...amounts: AmountInput[]): Decimal {
-  return amounts.reduce((product: Decimal, amount: AmountInput) => {
+  return amounts.reduce<Decimal>((product: Decimal, amount: AmountInput) => {
     return product.mul(toDecimal(amount));
   }, new Decimal(1));
 }

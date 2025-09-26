@@ -1,5 +1,5 @@
 import { createCoinTXN, sendCoinTXN } from './transaction.js';
-import type { CoinTXNInput, CoinTXNOutput, FeeConfig, GRPCConfig } from '../types/index.js';
+import type { CoinTXNInput, CoinTXNOutput, FeeConfig, GRPCConfig, GRPCOverrideConfig } from '../types/index.js';
 
 /**
  * CoinTXN Module - Main Entry Point
@@ -12,7 +12,7 @@ import type { CoinTXNInput, CoinTXNOutput, FeeConfig, GRPCConfig } from '../type
 export { createCoinTXN, sendCoinTXN } from './transaction.js';
 
 // Re-export types
-export type { CoinTXNInput, CoinTXNOutput, FeeConfig, GRPCConfig } from '../types/index.js';
+export type { CoinTXNInput, CoinTXNOutput, FeeConfig, GRPCConfig, GRPCOverrideConfig } from '../types/index.js';
 
 /**
  * Create a CoinTXN transaction with automatic fee calculation
@@ -22,7 +22,7 @@ export type { CoinTXNInput, CoinTXNOutput, FeeConfig, GRPCConfig } from '../type
  * @param contractId - Contract ID (e.g., '$ZRA+0000')
  * @param feeConfig - Optional fee configuration
  * @param baseMemo - Optional base memo for the transaction
- * @param nonceOptions - Optional nonce request options
+ * @param grpcOverrideConfig - Optional gRPC override configuration
  * @returns Promise resolving to the created CoinTXN protobuf object
  */
 export async function createTransaction(
@@ -31,9 +31,9 @@ export async function createTransaction(
   contractId: string,
   feeConfig: FeeConfig = {},
   baseMemo: string = '',
-  nonceOptions: Record<string, any> = {}
+  grpcOverrideConfig: GRPCOverrideConfig = {}
 ): Promise<any> {
-  return await createCoinTXN(inputs, outputs, contractId, feeConfig, baseMemo, nonceOptions);
+  return await createCoinTXN(inputs, outputs, contractId, feeConfig, baseMemo, grpcOverrideConfig);
 }
 
 /**
@@ -58,7 +58,7 @@ export async function sendTransaction(
  * @param contractId - Contract ID
  * @param feeConfig - Optional fee configuration
  * @param baseMemo - Optional base memo
- * @param nonceOptions - Optional nonce request options
+ * @param grpcOverrideConfig - Optional gRPC override configuration
  * @param grpcConfig - Optional gRPC configuration
  * @returns Promise resolving to the transaction hash
  */
@@ -68,10 +68,10 @@ export async function createAndSendTransaction(
   contractId: string,
   feeConfig: FeeConfig = {},
   baseMemo: string = '',
-  nonceOptions: Record<string, any> = {},
+  grpcOverrideConfig: GRPCOverrideConfig = {},
   grpcConfig: GRPCConfig = {}
 ): Promise<string> {
-  const coinTxn = await createCoinTXN(inputs, outputs, contractId, feeConfig, baseMemo, nonceOptions);
+  const coinTxn = await createCoinTXN(inputs, outputs, contractId, feeConfig, baseMemo, grpcOverrideConfig);
   return await sendCoinTXN(coinTxn, grpcConfig);
 }
 

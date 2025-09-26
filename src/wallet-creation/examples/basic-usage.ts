@@ -14,8 +14,6 @@ import {
  */
 
 // Call the function when this file is run
-demonstrateBasicUsage();
-
 async function demonstrateBasicUsage() {
   console.log('🎯 ZERA Wallet Creation - Basic Examples\n');
 

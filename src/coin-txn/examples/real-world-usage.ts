@@ -9,14 +9,13 @@
  */
 
 import { createCoinTXN, sendCoinTXN } from '../index.js';
-import { 
+import {
   ED25519_TEST_KEYS,
   ED448_TEST_KEYS,
-  TEST_WALLET_ADDRESSES,
-  type TestInput,
-  type TestOutput
+  TEST_WALLET_ADDRESSES
 } from '../../test-utils/index.js';
-import type { AmountInput } from '../../types/index.js';
+import type { CoinTXNInput, CoinTXNOutput} from '../../types/index.js';
+import { TESTING_GRPC_OVERRIDE_CONFIG } from '../../shared/utils/testing-defaults/index.js';
 
 /**
  * Example 1: Simple Payment
@@ -25,6 +24,7 @@ import type { AmountInput } from '../../types/index.js';
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
+//exampleSimplePayment();
 export async function exampleSimplePayment(): Promise<void> {
   console.log('💸 Example 1: Simple Payment');
   
@@ -39,7 +39,7 @@ export async function exampleSimplePayment(): Promise<void> {
   console.log('  Bob address:', bobAddress);
   
   // Construct input manually (as users would do)
-  const input: TestInput[] = [
+  const input: CoinTXNInput[] = [
     {
       privateKey: aliceWallet.privateKey,
       publicKey: aliceWallet.publicKey,
@@ -49,7 +49,7 @@ export async function exampleSimplePayment(): Promise<void> {
   ];
   
   // Construct output manually (as users would do)
-  const output: TestOutput[] = [
+  const output: CoinTXNOutput[] = [
     {
       to: bobAddress,
       amount: '1.5',
@@ -60,14 +60,11 @@ export async function exampleSimplePayment(): Promise<void> {
   // Fee configuration (users would typically store this in config)
   const feeConfig = {
     baseFeeId: '$ZRA+0000',
-    baseFee: '0.001',
-    contractFeeId: '$ZRA+0000',
-    contractFee: '0.0005'
   };
   
   try {
     console.log('🔨 Creating transaction...');
-    const coinTxn = await createCoinTXN(input as any, output, '$ZRA+0000', feeConfig);
+    const coinTxn = await createCoinTXN(input, output, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
     
     console.log('✅ Transaction created successfully!');
     console.log('  Transaction ID:', coinTxn.base?.hash ? 'Generated' : 'Not generated');
@@ -93,6 +90,7 @@ export async function exampleSimplePayment(): Promise<void> {
  * 
  * This demonstrates how to handle multiple inputs from different wallets
  */
+exampleMultiInputPayment();
 export async function exampleMultiInputPayment(): Promise<void> {
   console.log('💸 Example 2: Multi-Input Payment');
   
@@ -107,7 +105,7 @@ export async function exampleMultiInputPayment(): Promise<void> {
   console.log('  Charlie (recipient):', charlieAddress);
   
   // Multiple inputs from different wallets
-  const inputs: TestInput[] = [
+  const inputs: CoinTXNInput[] = [
     {
       privateKey: aliceWallet.privateKey,
       publicKey: aliceWallet.publicKey,
@@ -123,7 +121,7 @@ export async function exampleMultiInputPayment(): Promise<void> {
   ];
   
   // Single output to Charlie
-  const outputs: TestOutput[] = [
+  const outputs: CoinTXNOutput[] = [
     {
       to: charlieAddress,
       amount: '3.5', // Total amount
@@ -133,14 +131,13 @@ export async function exampleMultiInputPayment(): Promise<void> {
   
   const feeConfig = {
     baseFeeId: '$ZRA+0000',
-    baseFee: '0.002', // Higher fee for multi-input
-    contractFeeId: '$ZRA+0000',
-    contractFee: '0.001'
   };
   
   try {
     console.log('🔨 Creating multi-input transaction...');
-    const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig);
+    // Use testing gRPC configuration inline
+
+    const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
     
     console.log('✅ Multi-input transaction created!');
     console.log('  Inputs:', inputs.length);
@@ -175,7 +172,7 @@ export async function exampleMultiOutputPayment(): Promise<void> {
   console.log('  From Alice to Bob, Charlie, and Jesse');
   
   // Single input from Alice
-  const inputs: TestInput[] = [
+  const inputs: CoinTXNInput[] = [
     {
       privateKey: aliceWallet.privateKey,
       publicKey: aliceWallet.publicKey,
@@ -185,7 +182,7 @@ export async function exampleMultiOutputPayment(): Promise<void> {
   ];
   
   // Multiple outputs to different recipients
-  const outputs: TestOutput[] = [
+  const outputs: CoinTXNOutput[] = [
     {
       to: bobAddress,
       amount: '2.0',
@@ -212,7 +209,7 @@ export async function exampleMultiOutputPayment(): Promise<void> {
   
   try {
     console.log('🔨 Creating multi-output transaction...');
-    const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig);
+    const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
     
     console.log('✅ Multi-output transaction created!');
     console.log('  Recipients:', outputs.length);
@@ -246,7 +243,7 @@ export async function exampleComplexPayment(): Promise<void> {
   console.log('  Alice + Bob → Charlie + Jesse');
   
   // Multiple inputs
-  const inputs: TestInput[] = [
+  const inputs: CoinTXNInput[] = [
     {
       privateKey: aliceWallet.privateKey,
       publicKey: aliceWallet.publicKey,
@@ -262,7 +259,7 @@ export async function exampleComplexPayment(): Promise<void> {
   ];
   
   // Multiple outputs
-  const outputs: TestOutput[] = [
+  const outputs: CoinTXNOutput[] = [
     {
       to: charlieAddress,
       amount: '3.5',
@@ -284,7 +281,7 @@ export async function exampleComplexPayment(): Promise<void> {
   
   try {
     console.log('🔨 Creating complex transaction...');
-    const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig);
+    const coinTxn = await createCoinTXN(inputs as any, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
     
     console.log('✅ Complex transaction created!');
     console.log('  Inputs:', inputs.length);
@@ -312,7 +309,7 @@ export async function exampleCustomFees(): Promise<void> {
   const aliceWallet = ED25519_TEST_KEYS.alice;
   const bobAddress = TEST_WALLET_ADDRESSES.bob;
   
-  const input: TestInput[] = [
+  const input: CoinTXNInput[] = [
     {
       privateKey: aliceWallet.privateKey,
       publicKey: aliceWallet.publicKey,
@@ -321,7 +318,7 @@ export async function exampleCustomFees(): Promise<void> {
     }
   ];
   
-  const output: TestOutput[] = [
+  const output: CoinTXNOutput[] = [
     {
       to: bobAddress,
       amount: '1.0',
@@ -342,7 +339,7 @@ export async function exampleCustomFees(): Promise<void> {
     console.log('  Base fee:', customFeeConfig.baseFee);
     console.log('  Contract fee:', customFeeConfig.contractFee);
     
-    const coinTxn = await createCoinTXN(input as any, output, '$ZRA+0000', customFeeConfig);
+    const coinTxn = await createCoinTXN(input as any, output, '$ZRA+0000', customFeeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
     
     console.log('✅ Custom fee transaction created!');
     
@@ -365,7 +362,7 @@ export async function exampleErrorHandling(): Promise<void> {
   
   try {
     // This will fail because we're using invalid data
-    const invalidInput: TestInput[] = [
+    const invalidInput: CoinTXNInput[] = [
       {
         privateKey: 'invalid-key',
         publicKey: 'invalid-public-key',
@@ -374,7 +371,7 @@ export async function exampleErrorHandling(): Promise<void> {
       }
     ];
     
-    const invalidOutput: TestOutput[] = [
+    const invalidOutput: CoinTXNOutput[] = [
       {
         to: 'invalid-address',
         amount: '0',
@@ -390,7 +387,7 @@ export async function exampleErrorHandling(): Promise<void> {
     };
     
     console.log('🔨 Attempting transaction with invalid data...');
-    await createCoinTXN(invalidInput as any, invalidOutput, '$ZRA+0000', feeConfig);
+    await createCoinTXN(invalidInput as any, invalidOutput, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
     
     console.log('❌ This should not have succeeded!');
     
