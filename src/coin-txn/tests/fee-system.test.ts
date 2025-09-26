@@ -16,6 +16,7 @@ import {
 import { TRANSACTION_TYPE, CONTRACT_FEE_TYPE } from '../../../proto/generated/txn_pb.js';
 import { KEY_TYPE } from '../../wallet-creation/constants.js';
 import { Decimal } from '../../shared/utils/amount-utils.js';
+import { ED25519_TEST_KEYS, TEST_WALLET_ADDRESSES } from '../../test-utils/keys.test.js';
 
 describe('ZERA Fee System', () => {
   const testSuite = TestSuite.getInstance();
@@ -102,10 +103,11 @@ describe('ZERA Fee System', () => {
   describe('Transaction Size Calculator', () => {
     it('should calculate transaction size correctly', () => {
       try {
+        const aliceWallet = ED25519_TEST_KEYS.alice;
         const inputs = [
           {
-            privateKey: 'test-private-key',
-            publicKey: 'test-public-key',
+            privateKey: aliceWallet.privateKey,
+            publicKey: aliceWallet.publicKey,
             amount: '100.0',
             feePercent: '100',
             keyType: KEY_TYPE.ED25519
@@ -114,7 +116,7 @@ describe('ZERA Fee System', () => {
         
         const outputs = [
           {
-            to: 'test-recipient-address',
+            to: TEST_WALLET_ADDRESSES.bob,
             amount: '99.0',
             memo: 'Test payment'
           }
