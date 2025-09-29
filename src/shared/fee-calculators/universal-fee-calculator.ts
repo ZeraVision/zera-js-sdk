@@ -88,6 +88,7 @@ import {
   PROTOBUF_HASH_OVERHEAD,
   PROTOBUF_BASE_SIGNATURE_OVERHEAD,
   PROTOBUF_AUTH_SIGNATURE_OVERHEAD,
+  PROTOBUF_AUTH_REPEATED_OVERHEAD,
   FEE_CONSTANTS,
   getFeeConstants,
   updateFeeConstants,
@@ -655,7 +656,7 @@ function calculateTotalTransactionSize(protoObject: TransactionMessage): number 
   // Calculate signature sizes
   let signatureSize = 0;
   for (const keyType of keyTypes) {
-    const rawSignatureSize = SIGNATURE_SIZES[keyType.toUpperCase() as keyof typeof SIGNATURE_SIZES];
+    const rawSignatureSize = getSignatureSize(keyType);
 
     if (detectedTransactionType === TRANSACTION_TYPE.COIN_TYPE) {
       signatureSize += rawSignatureSize + PROTOBUF_AUTH_SIGNATURE_OVERHEAD;
@@ -668,44 +669,6 @@ function calculateTotalTransactionSize(protoObject: TransactionMessage): number 
   const totalHashSize = HASH_SIZE + PROTOBUF_HASH_OVERHEAD;
   
   return protoSize + signatureSize + totalHashSize;
-}
-
-/**
- * Calculate signature size based on key type and hash types
- */
-function calculateSignatureSize(protoObject: TransactionMessage): number {
-  try {
-    // Try to extract key type from transaction
-    if (hasAuthProperty(protoObject) && protoObject.auth.publicKey) {
-      const publicKeys = protoObject.auth.publicKey;
-      if (Array.isArray(publicKeys) && publicKeys.length > 0) {
-        const firstPublicKey = publicKeys[0];
-        if (firstPublicKey.single) {
-          const publicKeyBytes = firstPublicKey.single;
-          const publicKeyString = bs58.encode(publicKeyBytes);
-          
-          try {
-            const keyType = getKeyTypeFromPublicKey(publicKeyString);
-            const hashTypes = getHashTypesFromPublicKey(publicKeyString);
-            
-            let signatureSize = 0;
-            for (const hashType of hashTypes) {
-              signatureSize += getSignatureSize(keyType, hashType);
-            }
-            return signatureSize;
-          } catch (error) {
-            console.warn('Could not determine signature size from public key:', error);
-          }
-        }
-      }
-    }
-    
-    // Default signature size (Ed25519 with SHA3-256)
-    return 64;
-  } catch (error) {
-    console.warn('Could not calculate signature size, using default:', error);
-    return 64;
-  }
 }
 
 // /**
@@ -789,18 +752,22 @@ async function calculateNetworkFee(
   baseFeeId: string,
   exchangeRates: Map<string, Decimal>
 ): Promise<NetworkFeeResult> {
-  // Calculate transaction size
-  const transactionSize = calculateTotalTransactionSize(protoObject);
+  // Calculate initial transaction size (with placeholder fee amount)
+  let transactionSize = calculateTotalTransactionSize(protoObject);
   
   // Get per-byte fee constant for this transaction type
   const perByteFeeConstant = getPerByteFeeConstant(transactionType);
-  
-  // Calculate base network fee: transaction size * per-byte fee
-  const baseNetworkFeeEquiv = toDecimal(transactionSize).mul(toDecimal(perByteFeeConstant));
-  
+
   // Extract key types and restricted status from transaction
   const { keyTypes, isRestricted } = extractKeyTypesFromTransaction(protoObject);
   const hashTypes = extractHashTypesFromTransaction(protoObject);
+
+  if (keyTypes.length > 1) {
+    transactionSize += PROTOBUF_AUTH_REPEATED_OVERHEAD;
+  }
+  
+  // Calculate initial base network fee: transaction size * per-byte fee
+  let baseNetworkFeeEquiv = toDecimal(transactionSize).mul(toDecimal(perByteFeeConstant));
   
   // Calculate key fees
   let totalKeyFees = new Decimal(0);
@@ -818,16 +785,43 @@ async function calculateNetworkFee(
     totalHashFees = totalHashFees.add(toDecimal(hashFee));
   }
   
-  // Calculate total network fee: base fee + key fees + hash fees
-  const totalNetworkFeeEquiv = baseNetworkFeeEquiv.add(totalKeyFees).add(totalHashFees);
+  // Calculate initial total network fee: base fee + key fees + hash fees
+  let totalNetworkFeeEquiv = baseNetworkFeeEquiv.add(totalKeyFees).add(totalHashFees);
   
   // Get exchange rate for base fee
   const exchangeRate = exchangeRates.get(baseFeeId) || new Decimal(1);
 
-  const totalNetworkFee = totalNetworkFeeEquiv.div(exchangeRate);
+  let totalNetworkFee = totalNetworkFeeEquiv.div(exchangeRate);
   
   // Convert to smallest units
-  const feeInSmallestUnits = toSmallestUnits(totalNetworkFee.toString(), baseFeeId);
+  let feeInSmallestUnits = toSmallestUnits(totalNetworkFee.toString(), baseFeeId);
+  
+  // Calculate the difference in size between placeholder '1' and actual fee
+  const placeholderFeeSize = 1; // Size of '1' in bytes
+  const actualFeeSize = feeInSmallestUnits.length; // Size of actual fee string in bytes
+  const feeSizeDifference = actualFeeSize - placeholderFeeSize;
+  
+  // If there's a size difference, recalculate the fee with the corrected transaction size
+  if (feeSizeDifference > 0) {
+    // Add the size difference to transaction size
+    const correctedTransactionSize = transactionSize + feeSizeDifference;
+    
+    // TODO REMOVE
+    console.log('correctedTransactionSize: ', correctedTransactionSize);
+
+    // Recalculate base network fee with corrected size
+    const correctedBaseNetworkFeeEquiv = toDecimal(correctedTransactionSize).mul(toDecimal(perByteFeeConstant));
+    
+    // Recalculate total network fee
+    const correctedTotalNetworkFeeEquiv = correctedBaseNetworkFeeEquiv.add(totalKeyFees).add(totalHashFees);
+    const correctedTotalNetworkFee = correctedTotalNetworkFeeEquiv.div(exchangeRate);
+    
+    // Update the fee in smallest units
+    feeInSmallestUnits = toSmallestUnits(correctedTotalNetworkFee.toString(), baseFeeId);
+    
+    // Update transaction size for return value
+    transactionSize = correctedTransactionSize;
+  }
   
   return {
     fee: feeInSmallestUnits,

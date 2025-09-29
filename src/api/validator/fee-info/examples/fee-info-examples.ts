@@ -10,7 +10,7 @@ import Decimal from 'decimal.js';
 /**
  * Example: Get comprehensive fee information for all tokens
  */
-getAllTokenFeeInfoExample();
+//getAllTokenFeeInfoExample();
 export async function getAllTokenFeeInfoExample() {
   try {
     console.log('Fetching comprehensive fee information for all tokens...');

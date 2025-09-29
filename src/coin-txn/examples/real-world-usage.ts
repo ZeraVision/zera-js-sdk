@@ -29,8 +29,8 @@ export async function exampleSimplePayment(): Promise<void> {
   console.log('💸 Example 1: Simple Payment');
   
   // In a real application, you would pull this data from your storage
-  const aliceWallet = ED25519_TEST_KEYS.alice;
-  //const aliceWallet = ED448_TEST_KEYS.alice;
+  //const aliceWallet = ED25519_TEST_KEYS.alice;
+  const aliceWallet = ED448_TEST_KEYS.alice;
   const bobAddress = TEST_WALLET_ADDRESSES.bob;
   
   console.log('📋 Wallet data pulled from data source:');
@@ -91,12 +91,14 @@ export async function exampleSimplePayment(): Promise<void> {
  * 
  * This demonstrates how to handle multiple inputs from different wallets
  */
+//exampleMultiInputPayment();
 export async function exampleMultiInputPayment(): Promise<void> {
   console.log('💸 Example 2: Multi-Input Payment');
   
   // Pull wallet data from different sources
   const aliceWallet = ED25519_TEST_KEYS.alice;
   const bobWallet = ED448_TEST_KEYS.bob;
+  const aliceWallet2 = ED448_TEST_KEYS.alice;
   const charlieAddress = TEST_WALLET_ADDRESSES.charlie;
   
   console.log('📋 Multi-wallet data:');
@@ -115,16 +117,22 @@ export async function exampleMultiInputPayment(): Promise<void> {
     {
       privateKey: bobWallet.privateKey,
       publicKey: bobWallet.publicKey,
-      amount: '1.5',
+      amount: '2.5',
       feePercent: '40' // Bob pays 40% of fees
-    }
+    },
+    // {
+    //   privateKey: aliceWallet2.privateKey,
+    //   publicKey: aliceWallet2.publicKey,
+    //   amount: '1',
+    //   feePercent: '0'
+    // }
   ];
   
   // Single output to Charlie
   const outputs: CoinTXNOutput[] = [
     {
       to: charlieAddress,
-      amount: '3.5', // Total amount
+      amount: '4.5', // Total amount
       memo: 'Joint payment from Alice and Bob'
     }
   ];
@@ -149,7 +157,7 @@ export async function exampleMultiInputPayment(): Promise<void> {
     const result = await sendCoinTXN(coinTxn);
     console.log('🎉 Multi-input transaction sent!');
     console.log('  Result:', result);
-    
+        
   } catch (error) {
     console.error('❌ Multi-input transaction failed:', (error as Error).message);
     throw error;
@@ -405,64 +413,4 @@ export async function exampleErrorHandling(): Promise<void> {
     // - Retry with corrected data
     // - etc.
   }
-}
-
-/**
- * Run all real-world examples
- */
-export async function runAllRealWorldExamples(): Promise<void> {
-  console.log('🚀 Running All Real-World SDK Usage Examples\n');
-  
-  const examples = [
-    { name: 'Simple Payment', runner: exampleSimplePayment },
-    { name: 'Multi-Input Payment', runner: exampleMultiInputPayment },
-    { name: 'Multi-Output Payment', runner: exampleMultiOutputPayment },
-    { name: 'Complex Payment', runner: exampleComplexPayment },
-    { name: 'Custom Fees', runner: exampleCustomFees },
-    { name: 'Error Handling', runner: exampleErrorHandling }
-  ];
-  
-  let passed = 0;
-  let failed = 0;
-  
-  for (const example of examples) {
-    console.log(`\n${'='.repeat(50)}`);
-    console.log(`📚 ${example.name}`);
-    console.log(`${'='.repeat(50)}`);
-    
-    try {
-      await example.runner();
-      console.log(`✅ ${example.name} completed successfully`);
-      passed++;
-    } catch (error) {
-      console.error(`❌ ${example.name} failed:`, (error as Error).message);
-      failed++;
-    }
-  }
-  
-  console.log(`\n${'='.repeat(50)}`);
-  console.log('📊 Real-World Examples Summary');
-  console.log(`${'='.repeat(50)}`);
-  console.log(`✅ Passed: ${passed}`);
-  console.log(`❌ Failed: ${failed}`);
-  console.log(`📈 Success Rate: ${((passed / (passed + failed)) * 100).toFixed(1)}%`);
-  
-  if (failed > 0) {
-    console.log('\n⚠️  Some examples failed. Check the error messages above.');
-  } else {
-    console.log('\n🎉 All examples completed successfully!');
-  }
-}
-
-// Run examples if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runAllRealWorldExamples()
-    .then(() => {
-      console.log('\n🏁 Real-world examples completed');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('💥 Examples crashed:', error);
-      process.exit(1);
-    });
 }
