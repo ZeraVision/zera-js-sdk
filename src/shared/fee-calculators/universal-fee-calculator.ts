@@ -184,6 +184,12 @@ export interface FeeCalculationOptions<T extends TransactionMessage = Transactio
   interfaceFeeAmount?: AmountInput;
   interfaceFeeId?: string;
   interfaceAddress?: string;
+  /** 
+   * Overestimate percentage to add to final fee (defaults to 5.0%)
+   * Supports decimal values (e.g., 0.1 for 0.1%, 5.0 for 5.0%)
+   * This is the MAXIMUM overestimate - the network will only take the correct amount
+   */
+  overestimatePercent?: number;
 }
 
 /**
@@ -754,14 +760,15 @@ function calculateInterfaceFeeWithDetails(
 
 /**
  * Calculate network fee based on proto object
- *! Note: This function may not be 100% accurate. Nominal testing indicates accuracy within >= 99.999999% (usually exact or 1 denomination unit greater).
+ *! Note: This function may not be 100% accurate. Nominal testing indicates accuracy within >= 99.999999% (usually exact or 1 denomination unit greater). Minimal accuracy difference design choice for better code understandability rather than working strictly with scaled numbers.
  *! Note: Suggest 'maximum' overestimation to account for edge cases such as changes in ACE rates after transaction calculation.
  */
 async function calculateNetworkFee(
   protoObject: TransactionMessage,
   transactionType: number,
   baseFeeId: string,
-  exchangeRates: Map<string, Decimal>
+  exchangeRates: Map<string, Decimal>,
+  overestimatePercent: number = 5.0
 ): Promise<NetworkFeeResult> {
   // Calculate initial transaction size (with placeholder fee amount)
   let transactionSize = calculateTotalTransactionSize(protoObject);
@@ -852,6 +859,18 @@ async function calculateNetworkFee(
     transactionSize = correctedTransactionSize;
   }
   
+  // Apply overestimate percentage to final fee
+  // This is the MAXIMUM overestimate - the network will only take the correct amount
+  // No more fees will actually be taken than needed. The overestimate is a safety buffer
+  // for rate fluctuations and calculation edge cases.
+  // Integrations should show the fee number less the overestimate as "projected" 
+  // while the full number is the "maximum" fee.
+  if (overestimatePercent > 0) {
+    const overestimateMultiplier = new Decimal(100 + overestimatePercent).div(100);
+    const overestimatedFeeDecimal = toDecimal(feeInSmallestUnits).mul(overestimateMultiplier);
+    feeInSmallestUnits = overestimatedFeeDecimal.floor().toString();
+  }
+  
   return {
     fee: feeInSmallestUnits,
     feeDecimal: totalNetworkFee,
@@ -880,7 +899,8 @@ export class UniversalFeeCalculator {
       contractFeeId,
       interfaceFeeAmount,
       interfaceFeeId,
-      interfaceAddress
+      interfaceAddress,
+      overestimatePercent = 5.0
     } = options;
 
     // Check if this is a CoinTXN transaction and contractFeeId is provided
@@ -945,7 +965,8 @@ export class UniversalFeeCalculator {
       protoObject,
       transactionType,
       baseFeeId,
-      exchangeRates
+      exchangeRates,
+      overestimatePercent
     );
 
     // Calculate total fees

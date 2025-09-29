@@ -249,6 +249,14 @@ export interface FeeConfig {
   interfaceFeeId?: string;
   /** Interface provider address (required if interfaceFeeId is specified) */
   interfaceAddress?: string;
+  /** 
+   * Overestimate percentage to add to final fee (defaults to 5.0%)
+   * Supports decimal values (e.g., 0.1 for 0.1%, 5.0 for 5.0%)
+   * This is the MAXIMUM overestimate - the network will only take the correct amount
+   * No more fees will actually be taken than needed. The overestimate is a safety buffer
+   * for rate fluctuations and calculation edge cases.
+   */
+  overestimatePercent?: number;
 }
 
 /**
