@@ -269,7 +269,8 @@ export async function createCoinTXN(
     contractFee,
     interfaceFeeId,
     interfaceFeeAmount,
-    interfaceAddress
+    interfaceAddress,
+    overestimatePercent = 5.0
   } = feeConfig;
 
   // Step 1: Process inputs (includes nonce generation)
@@ -348,6 +349,10 @@ export async function createCoinTXN(
         if (interfaceFeeAmount) feeOptions.interfaceFeeAmount = interfaceFeeAmount;
         if (interfaceFeeId) feeOptions.interfaceFeeId = interfaceFeeId;
         if (interfaceAddress) feeOptions.interfaceAddress = interfaceAddress;
+      }
+      
+      if (overestimatePercent !== undefined) {
+        feeOptions.overestimatePercent = overestimatePercent;
       }
       
       const feeResult = await UniversalFeeCalculator.calculateFee(feeOptions);

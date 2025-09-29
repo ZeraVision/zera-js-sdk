@@ -63,7 +63,7 @@ export async function exampleSimplePayment(): Promise<void> {
   // This can be left empty to default to ZERA, shown for example
   const feeConfig: FeeConfig = {
     baseFeeId: '$ZRA+0000',
-    overestimatePercent: 2.5 // default 5% if not specified
+    // overestimatePercent: 2.5 // default 5% if not specified
   };
   
   try {
