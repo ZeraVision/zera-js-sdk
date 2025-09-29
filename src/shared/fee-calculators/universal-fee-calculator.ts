@@ -85,6 +85,9 @@ import {
   SIGNATURE_SIZES, 
   HASH_SIZES,
   HASH_SIZE, 
+  PROTOBUF_HASH_OVERHEAD,
+  PROTOBUF_BASE_SIGNATURE_OVERHEAD,
+  PROTOBUF_AUTH_SIGNATURE_OVERHEAD,
   FEE_CONSTANTS,
   getFeeConstants,
   updateFeeConstants,
@@ -652,34 +655,19 @@ function calculateTotalTransactionSize(protoObject: TransactionMessage): number 
   // Calculate signature sizes
   let signatureSize = 0;
   for (const keyType of keyTypes) {
-    signatureSize += SIGNATURE_SIZES[keyType.toUpperCase() as keyof typeof SIGNATURE_SIZES] || SIGNATURE_SIZES.ED25519;
+    const rawSignatureSize = SIGNATURE_SIZES[keyType.toUpperCase() as keyof typeof SIGNATURE_SIZES];
+
+    if (detectedTransactionType === TRANSACTION_TYPE.COIN_TYPE) {
+      signatureSize += rawSignatureSize + PROTOBUF_AUTH_SIGNATURE_OVERHEAD;
+    } else {
+      signatureSize += rawSignatureSize + PROTOBUF_BASE_SIGNATURE_OVERHEAD;
+    }
   }
   
-  // Auto-detect hash types and calculate total hash size
-  const hashTypes = extractHashTypesFromTransaction(protoObject);
-  let totalHashSize = 0;
-  for (const hashType of hashTypes) {
-    totalHashSize += HASH_SIZES[hashType as keyof typeof HASH_SIZES] || HASH_SIZE; // fallback to default hash size
-  }
-  
-  // If no hash types detected, use default hash size
-  if (totalHashSize === 0) {
-    totalHashSize = HASH_SIZE;
-  }
+  // Calculate hash size with protobuf overhead
+  const totalHashSize = HASH_SIZE + PROTOBUF_HASH_OVERHEAD;
   
   return protoSize + signatureSize + totalHashSize;
-}
-
-/**
- * Calculate transaction size in bytes
- */
-function calculateTransactionSize(protoObject: TransactionMessage): number {
-  try {
-    return calculateTotalTransactionSize(protoObject);
-  } catch (error) {
-    console.warn('Could not calculate transaction size, using default:', error);
-    return 1000; // Default size estimate
-  }
 }
 
 /**
@@ -802,7 +790,7 @@ async function calculateNetworkFee(
   exchangeRates: Map<string, Decimal>
 ): Promise<NetworkFeeResult> {
   // Calculate transaction size
-  const transactionSize = calculateTransactionSize(protoObject);
+  const transactionSize = calculateTotalTransactionSize(protoObject);
   
   // Get per-byte fee constant for this transaction type
   const perByteFeeConstant = getPerByteFeeConstant(transactionType);

@@ -21,10 +21,14 @@ export const HASH_SIZES = {
   BLAKE3: 32     // BLAKE3 hash size in bytes (typically 32 bytes)
 } as const;
 
+export const HASH_SIZE = HASH_SIZES.SHA3_256; // TXN Hash size
+
 /**
- * Default hash size (for backward compatibility)
+ * Calculate protobuf overhead for bytes fields (hash / signature)
  */
-export const HASH_SIZE = HASH_SIZES.SHA3_256; // SHA3-256 hash size in bytes
+export const PROTOBUF_HASH_OVERHEAD = 2;
+export const PROTOBUF_BASE_SIGNATURE_OVERHEAD = 2;
+export const PROTOBUF_AUTH_SIGNATURE_OVERHEAD = 4;
 
 
 /**
