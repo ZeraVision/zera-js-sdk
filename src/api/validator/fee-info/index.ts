@@ -6,8 +6,6 @@
 
 export { 
   getTokenFeeInfo, 
-  getACETokenRates, 
-  getACETokenRate,
   type TokenFeeInfo,
   type GetTokenFeeInfoParams
 } from './request.js';

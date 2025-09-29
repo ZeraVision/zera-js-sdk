@@ -7,6 +7,7 @@
 import { runNonceExamples } from '../validator/nonce/examples/index.js';
 import { runZVIndexerNonceExamples } from '../zv-indexer/nonce/examples/index.js';
 import { runRateExamples } from '../zv-indexer/rate/examples/index.js';
+import { runRateHandlerExamples } from '../handler/rate/examples/index.js';
 
 /**
  * Run all API examples
@@ -17,7 +18,8 @@ export async function runAllAPIExamples(): Promise<{ totalPassed: number; totalF
   const exampleSuites = [
     { name: 'Validator Nonce Service', runner: runNonceExamples },
     { name: 'ZV-Indexer Nonce Service', runner: runZVIndexerNonceExamples },
-    { name: 'ACE Exchange Rate Service', runner: runRateExamples }
+    { name: 'ZV-Indexer Rate Service', runner: runRateExamples },
+    { name: 'Rate Handler Service', runner: runRateHandlerExamples }
   ];
   
   let totalPassed = 0;

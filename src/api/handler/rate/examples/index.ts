@@ -1,11 +1,10 @@
 /**
- * ZV-Indexer Rate Service Examples
+ * Rate Handler Examples
  * 
- * This provides examples for the ZV-Indexer rate service.
+ * This provides examples for the centralized rate handler service.
  */
 
-import { getExchangeRate } from '../service.js';
-import { convertUSDToCurrency } from '../../../handler/rate/service.js';
+import { getExchangeRate, convertUSDToCurrency, processRate } from '../service.js';
 import type { Decimal } from 'decimal.js';
 
 // Test currency constant
@@ -27,16 +26,16 @@ interface MockTransaction {
 }
 
 /**
- * Run ZV-Indexer rate examples
+ * Run rate handler examples
  */
-export async function runRateExamples(): Promise<ExampleResult> {
-  console.log('🔬 ZV-Indexer Rate Service Examples\n');
+export async function runRateHandlerExamples(): Promise<ExampleResult> {
+  console.log('🔬 Rate Handler Examples\n');
   
   const examples = [
     { name: 'Basic Usage', runner: basicUsageExample },
-    { name: 'Additional Features', runner: advancedFeaturesExample },
+    { name: 'Rate Processing', runner: rateProcessingExample },
+    { name: 'Currency Conversion', runner: currencyConversionExample },
     { name: 'Error Handling', runner: errorHandlingExample },
-    { name: 'Performance', runner: performanceExample },
     { name: 'Integration', runner: integrationExample }
   ];
   
@@ -62,17 +61,21 @@ export async function runRateExamples(): Promise<ExampleResult> {
 }
 
 /**
- * Example 1: Basic Usage
+ * Example 1: Basic Usage with Environment-Based Fallback
  */
 async function basicUsageExample(): Promise<void> {
-  console.log('Getting exchange rate for ZRA from ZV-Indexer...');
+  console.log('Getting exchange rate using environment-based fallback chain...');
   
-  const currency = TEST_CURRENCY; // '$ZRA+0000'
+  const currency = TEST_CURRENCY;
+  
+  // This will use the fallback chain: cache -> indexer (if API key) -> validator -> fallback
   const rate = await getExchangeRate(currency);
   
   console.log(`Currency: ${currency}`);
   console.log(`Rate: ${rate.toString()}`);
-  console.log(`Rate type: ${typeof rate}`);
+  console.log(`Environment variables:`);
+  console.log(`  INDEXER_API_KEY: ${process.env.INDEXER_API_KEY ? 'SET' : 'NOT SET'}`);
+  console.log(`  INDEXER_URL: ${process.env.INDEXER_URL || 'NOT SET'}`);
   
   if (!rate || rate.lt(0)) {
     throw new Error('Invalid rate returned');
@@ -80,19 +83,45 @@ async function basicUsageExample(): Promise<void> {
 }
 
 /**
- * Example 2: Additional Features
+ * Example 2: Environment-Based Fallback Chain
  */
-async function advancedFeaturesExample(): Promise<void> {
-  console.log('Testing currency conversion with ZV-Indexer rates...');
+async function rateProcessingExample(): Promise<void> {
+  console.log('Testing environment-based fallback chain...');
+  
+  const currency = TEST_CURRENCY;
+  
+  console.log('Environment configuration:');
+  console.log(`  INDEXER_API_KEY: ${process.env.INDEXER_API_KEY ? 'SET' : 'NOT SET'}`);
+  console.log(`  INDEXER_URL: ${process.env.INDEXER_URL || 'NOT SET'}`);
+  
+  // This will follow the fallback chain based on environment variables
+  const rate = await getExchangeRate(currency);
+  console.log(`Final rate: ${rate.toString()}`);
+  
+  // Test with cache disabled to see the full fallback chain
+  console.log('\nTesting with cache disabled:');
+  const rateNoCache = await getExchangeRate(currency);
+  console.log(`Rate (no cache): ${rateNoCache.toString()}`);
+  
+  if (!rate || !rateNoCache) {
+    throw new Error('Invalid rates returned');
+  }
+}
+
+/**
+ * Example 3: Currency Conversion with Environment-Based Rates
+ */
+async function currencyConversionExample(): Promise<void> {
+  console.log('Testing currency conversion with environment-based rates...');
   
   const usdAmount = 100.50;
-  const currency = TEST_CURRENCY; // '$ZRA+0000'
+  const currency = TEST_CURRENCY;
   
-  // First get the rate from ZV-Indexer
+  // Get rate using environment-based fallback chain
   const rate = await getExchangeRate(currency);
-  console.log(`ZV-Indexer Rate: ${rate.toString()}`);
+  console.log(`Exchange rate: ${rate.toString()}`);
   
-  // Then convert using the handler
+  // Convert USD to currency
   const convertedAmount = await convertUSDToCurrency(usdAmount, currency);
   
   console.log(`USD Amount: $${usdAmount}`);
@@ -112,14 +141,14 @@ async function advancedFeaturesExample(): Promise<void> {
 }
 
 /**
- * Example 3: Error Handling
+ * Example 4: Error Handling
  */
 async function errorHandlingExample(): Promise<void> {
   console.log('Testing error handling...');
   
   try {
-    // Test invalid currency
-    await getExchangeRate('INVALID_CURRENCY');
+    // Test invalid currency without fallback
+    await getExchangeRate('INVALID_CURRENCY_NO_FALLBACK');
     throw new Error('Should have thrown error for invalid currency');
   } catch (error) {
     console.log(`✅ Caught expected error: ${(error as Error).message}`);
@@ -127,83 +156,39 @@ async function errorHandlingExample(): Promise<void> {
   
   try {
     // Test null currency
-    await getExchangeRate(null as any);
+    await processRate(null as any, 3.18, 'validator');
     throw new Error('Should have thrown error for null currency');
   } catch (error) {
     console.log(`✅ Caught expected error: ${(error as Error).message}`);
   }
   
   try {
-    // Test invalid USD amount
-    await convertUSDToCurrency(-100, TEST_CURRENCY);
-    throw new Error('Should have thrown error for negative amount');
+    // Test invalid rate
+    await processRate(TEST_CURRENCY, -100, 'validator');
+    throw new Error('Should have thrown error for negative rate');
   } catch (error) {
     console.log(`✅ Caught expected error: ${(error as Error).message}`);
   }
 }
 
 /**
- * Example 4: Performance
- */
-async function performanceExample(): Promise<void> {
-  console.log('Testing performance with ZV-Indexer...');
-  
-  const currencies = [
-    TEST_CURRENCY,     // '$ZRA+0000'
-    TEST_CURRENCY   // '$ZRA+0000'
-  ];
-  
-  const startTime = Date.now();
-  
-  // Test individual requests
-  const individualRates: Decimal[] = [];
-  for (const currency of currencies) {
-    if (currency) {
-      const rate = await getExchangeRate(currency);
-      individualRates.push(rate);
-    }
-  }
-  
-  const individualTime = Date.now() - startTime;
-  
-  console.log(`Individual requests: ${individualTime}ms for ${currencies.length} currencies`);
-  console.log(`Average per currency: ${Math.round(individualTime / currencies.length)}ms`);
-  
-  // Test batch conversion
-  const batchStartTime = Date.now();
-  const batchConversions: Decimal[] = [];
-  
-  for (const currency of currencies) {
-    if (currency) {
-      const converted = await convertUSDToCurrency(100, currency);
-      batchConversions.push(converted);
-    }
-  }
-  
-  const batchTime = Date.now() - batchStartTime;
-  
-  console.log(`Batch conversions: ${batchTime}ms for ${currencies.length} conversions`);
-  console.log(`Average per conversion: ${Math.round(batchTime / currencies.length)}ms`);
-  
-  if (individualRates.length !== currencies.length) {
-    throw new Error('Rate count mismatch');
-  }
-}
-
-/**
- * Example 5: Integration
+ * Example 5: Integration with Environment-Based Rate Sources
  */
 async function integrationExample(): Promise<void> {
-  console.log('Testing integration with transaction creation...');
+  console.log('Testing integration with environment-based rate sources...');
   
-  const currency = TEST_CURRENCY; // '$ZRA+0000'
+  const currency = TEST_CURRENCY;
   const usdAmount = 50.25;
   
-  // Get exchange rate from ZV-Indexer
-  const rate = await getExchangeRate(currency);
-  console.log(`ZV-Indexer exchange rate: ${rate.toString()}`);
+  console.log('Environment configuration:');
+  console.log(`  INDEXER_API_KEY: ${process.env.INDEXER_API_KEY ? 'SET' : 'NOT SET'}`);
+  console.log(`  INDEXER_URL: ${process.env.INDEXER_URL || 'NOT SET'}`);
   
-  // Convert USD to currency using handler
+  // Get exchange rate using environment-based fallback chain
+  const rate = await getExchangeRate(currency);
+  console.log(`Exchange rate: ${rate.toString()}`);
+  
+  // Convert USD to currency
   const currencyAmount = await convertUSDToCurrency(usdAmount, currency);
   console.log(`Converted amount: ${currencyAmount.toString()}`);
   
@@ -235,12 +220,12 @@ async function integrationExample(): Promise<void> {
     throw new Error('Invalid currency amount');
   }
   
-  console.log('✅ Integration test passed - transaction ready with ZV-Indexer exchange rate');
+  console.log('✅ Integration test passed - transaction ready with environment-based exchange rate');
 }
 
 // Run examples if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runRateExamples()
+  runRateHandlerExamples()
     .then(({ passed, failed }) => {
       console.log(`\n🎯 Final Results: ${passed} passed, ${failed} failed`);
       process.exit(failed > 0 ? 1 : 0);

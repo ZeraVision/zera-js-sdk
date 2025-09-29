@@ -76,7 +76,7 @@ import {
   calculatePercentage,
   Decimal 
 } from '../utils/amount-utils.js';
-import { aceExchangeService } from '../../api/zv-indexer/rate/service.js';
+import { getExchangeRate } from '../../api/handler/rate/service.js';
 import { getTokenFeeInfo } from '../../api/validator/fee-info/index.js';
 import { contractFeeService } from './contract-fee-service.js';
 import { sanitizeForSerialization } from '../utils/protobuf-utils.js';
@@ -881,7 +881,7 @@ export class UniversalFeeCalculator {
     // Fetch all needed exchange rates in parallel
     const exchangeRates = new Map<string, Decimal>();
     const ratePromises = Array.from(neededContractIds).map(async (contractId) => {
-      const rate = await aceExchangeService.getExchangeRate(contractId);
+      const rate = await getExchangeRate(contractId);
       exchangeRates.set(contractId, rate);
       return rate;
     });
@@ -967,7 +967,7 @@ export class UniversalFeeCalculator {
    * Get exchange rate for a given contract ID
    */
   static async getExchangeRate(contractId: string): Promise<Decimal> {
-    return await aceExchangeService.getExchangeRate(contractId);
+    return await getExchangeRate(contractId);
   }
 
   /**

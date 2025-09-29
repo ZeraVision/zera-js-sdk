@@ -1,11 +1,12 @@
 /**
- * ACE Exchange Rate Service
+ * ZV-Indexer Rate Service
  * 
- * Handles fetching and caching exchange rates for currency conversion.
- * Moved to structured organization.
+ * Handles fetching exchange rates from the ZV-Indexer API.
+ * This service ONLY fetches data and feeds it to the rate handler.
  */
 
 import { Decimal } from '../../../shared/utils/amount-utils.js';
+import { processRate } from '../../handler/rate/service.js';
 import dotenv from 'dotenv';
 import type { ContractId, AmountInput } from '../../../types/index.js';
 
@@ -13,137 +14,69 @@ import type { ContractId, AmountInput } from '../../../types/index.js';
 dotenv.config();
 
 /**
- * Exchange rate service options
+ * ZV-Indexer rate service options
  */
-export interface ExchangeRateServiceOptions {
-  cacheTimeout?: number;
+export interface ZVIndexerRateServiceOptions {
   baseUrl?: string;
-  fallbackRates?: Record<string, number>;
-  minimumRates?: Record<string, number>;
+  requestTimeout?: number;
+  apiKey?: string;
 }
 
 /**
- * Fallback rate information
+ * ZV-Indexer Rate Service
+ * Handles fetching exchange rates from the ZV-Indexer API and feeding them to the rate handler
  */
-export interface FallbackRateInfo {
-  rate: number;
-  source: 'exact_match' | 'symbol_match';
-  sourceKey: string;
-}
-
-/**
- * Cache entry
- */
-interface CacheEntry {
-  rate: Decimal;
-  timestamp: number;
-}
-
-/**
- * Cache information
- */
-export interface CacheInfo {
-  size: number;
-  timeout: number;
-  entries: Array<{
-    contractId: string;
-    rate: string;
-    age: number;
-    expired: boolean;
-  }>;
-}
-
-/**
- * ACE Exchange Rate Service
- * Handles fetching and caching exchange rates for currency conversion
- */
-export class ACEExchangeRateService {
-  private cache: Map<string, CacheEntry>;
-  private cacheTimeout: number;
+export class ZVIndexerRateService {
   private baseUrl: string;
-  private fallbackRates: Record<string, number>;
-  private minimumRates: Record<string, number>;
+  private requestTimeout: number;
+  private apiKey: string | undefined;
 
-  constructor(options: ExchangeRateServiceOptions = {}) {
-    this.cache = new Map();
-    this.cacheTimeout = options.cacheTimeout || 3000; // 3 seconds default
+  constructor(options: ZVIndexerRateServiceOptions = {}) {
     this.baseUrl = options.baseUrl || process.env.INDEXER_URL || 'https://api.zerascan.io'; // Default API endpoint
-    this.fallbackRates = options.fallbackRates || {
-      '$ZRA+0000': 3.18,  // $0.10 per ZRA (fallback) // TODO change back to 0.10
-    };
-    this.minimumRates = options.minimumRates || {
-      '$ZRA+0000': 0.10,  // Minimum $0.10 per ZRA for fee evaluation (network enforced safeguard)
-    };
+    this.requestTimeout = options.requestTimeout || 2500; // 2.5 second timeout
+    this.apiKey = options.apiKey || process.env.INDEXER_API_KEY;
   }
 
   /**
-   * Get exchange rate for a currency
+   * Get exchange rate for a currency from ZV-Indexer
+   * Fetches data and feeds it to the rate handler
    */
-  async getExchangeRate(contractId: ContractId, useCache: boolean = true): Promise<Decimal> {
-    // Check cache first
-    if (useCache && this.cache.has(contractId)) {
-      const cached = this.cache.get(contractId)!;
-      if (Date.now() - cached.timestamp < this.cacheTimeout) {
-        return this.applyMinimumRateSafeguard(cached.rate, contractId);
-      }
-    }
-
+  async getExchangeRate(contractId: ContractId): Promise<Decimal> {
     try {
-      // Fetch from API
+      // Fetch from ZV-Indexer API
       const rate = await this.fetchExchangeRateFromAPI(contractId);
-      const rateDecimal = new Decimal(rate);
       
-      // Cache the result
-      this.cache.set(contractId, {
-        rate: rateDecimal,
-        timestamp: Date.now()
-      });
-      
-      return this.applyMinimumRateSafeguard(rateDecimal, contractId);
+      // Feed the rate to the handler for processing and caching
+      return await processRate(contractId, rate, 'zv-indexer');
     } catch (error) {
-      // Get detailed fallback rate information
-      const fallbackInfo = this.getFallbackRateInfo(contractId);
-      
-      // If no fallback is available, throw an error
-      if (!fallbackInfo) {
-        throw new Error(`No exchange rate available for "${contractId}" and no fallback rate configured. Please add a fallback rate for this contract ID or ensure the API is accessible.`);
-      }
-      
-      const fallbackRateDecimal = this.applyMinimumRateSafeguard(new Decimal(fallbackInfo.rate), contractId);
-      
-      // Enhanced error message with detailed fallback information
-      let sourceDescription: string;
-      switch (fallbackInfo.source) {
-        case 'exact_match':
-          sourceDescription = `exact match for ${fallbackInfo.sourceKey}`;
-          break;
-        case 'symbol_match':
-          sourceDescription = `symbol match using ${fallbackInfo.sourceKey}`;
-          break;
-        default:
-          sourceDescription = 'unknown source';
-      }
-      
-      const errorMessage = `Failed to fetch exchange rate for "${contractId}": ${(error as Error).message}. Using fallback rate: ${fallbackRateDecimal.toString()} USD per ${contractId} (source: ${sourceDescription})`;
-      console.warn(errorMessage);
-      
-      return fallbackRateDecimal;
+      throw new Error(`Failed to fetch exchange rate for "${contractId}" from ZV-Indexer: ${(error as Error).message}`);
     }
   }
 
   /**
-   * Fetch exchange rate from API
+   * Fetch exchange rate from ZV-Indexer API
    */
   async fetchExchangeRateFromAPI(contractId: ContractId): Promise<number> {
     const url = `${this.baseUrl}/api/v1/exchange-rates/${encodeURIComponent(contractId)}`;
     
+    // Prepare headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Add API key if available
+    if (this.apiKey) {
+      headers['Authorization'] = `Bearer ${this.apiKey}`;
+    }
+    
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
     
     try {
       const response = await fetch(url, {
-        signal: controller.signal
+        signal: controller.signal,
+        headers
       });
       
       clearTimeout(timeoutId);
@@ -162,127 +95,22 @@ export class ACEExchangeRateService {
     } catch (error) {
       clearTimeout(timeoutId);
       if ((error as Error).name === 'AbortError') {
-        throw new Error('Request timeout after 2.5 seconds');
+        throw new Error(`Request timeout after ${this.requestTimeout}ms`);
       }
       throw error;
     }
   }
 
-  /**
-   * Apply minimum rate safeguard for fee evaluation
-   * Ensures that rates never go below the network-enforced minimum for fee calculations
-   */
-  applyMinimumRateSafeguard(rate: Decimal, contractId: ContractId): Decimal {
-    const minimumRate = this.minimumRates[contractId];
-    if (minimumRate && rate.lt(minimumRate)) {
-      console.warn(`Rate ${rate.toString()} for ${contractId} below minimum ${minimumRate}, applying safeguard`);
-      return new Decimal(minimumRate);
-    }
-    return rate;
-  }
-
-  /**
-   * Get fallback rate for a contract ID with detailed information
-   */
-  getFallbackRateInfo(contractId: ContractId): FallbackRateInfo | null {
-    // First try to get exact contract ID match
-    if (this.fallbackRates[contractId]) {
-      return {
-        rate: this.fallbackRates[contractId],
-        source: 'exact_match',
-        sourceKey: contractId
-      };
-    }
-    
-    // Extract currency symbol from contract ID as fallback
-    const match = contractId.match(/^\$([A-Za-z]+)\+\d{4}$/);
-    if (match) {
-      const symbol = match[1];
-      const symbolKey = `$${symbol}+0000`; // Try with +0000 suffix
-      if (this.fallbackRates[symbolKey]) {
-        return {
-          rate: this.fallbackRates[symbolKey],
-          source: 'symbol_match',
-          sourceKey: symbolKey
-        };
-      }
-    }
-    
-    // No fallback available - return null to indicate no fallback
-    return null;
-  }
-
-  /**
-   * Convert USD amount to currency amount
-   */
-  async convertUSDToCurrency(usdAmount: AmountInput, contractId: ContractId): Promise<Decimal> {
-    const usdDecimal = new Decimal(usdAmount);
-    const exchangeRate = await this.getExchangeRate(contractId);
-    
-    // Convert USD to currency: currencyAmount = usdAmount / exchangeRate
-    return usdDecimal.div(exchangeRate);
-  }
-
-  /**
-   * Convert currency amount to USD
-   */
-  async convertCurrencyToUSD(currencyAmount: AmountInput, contractId: ContractId): Promise<Decimal> {
-    const currencyDecimal = new Decimal(currencyAmount);
-    const exchangeRate = await this.getExchangeRate(contractId);
-    
-    // Convert currency to USD: usdAmount = currencyAmount * exchangeRate
-    return currencyDecimal.mul(exchangeRate);
-  }
-
-  /**
-   * Clear cache
-   */
-  clearCache(): void {
-    this.cache.clear();
-  }
-
-  /**
-   * Get cached rates info
-   */
-  getCacheInfo(): CacheInfo {
-    const now = Date.now();
-    const entries = Array.from(this.cache.entries()).map(([contractId, data]) => ({
-      contractId,
-      rate: data.rate.toString(),
-      age: now - data.timestamp,
-      expired: now - data.timestamp >= this.cacheTimeout
-    }));
-    
-    return {
-      size: this.cache.size,
-      timeout: this.cacheTimeout,
-      entries
-    };
-  }
 }
 
 /**
- * Default ACE exchange rate service instance
+ * Default ZV-Indexer rate service instance
  */
-export const aceExchangeService = new ACEExchangeRateService();
+export const zvIndexerRateService = new ZVIndexerRateService();
 
 /**
- * Convenience function to get exchange rate
+ * Convenience function to get exchange rate from ZV-Indexer
  */
 export async function getExchangeRate(contractId: ContractId): Promise<Decimal> {
-  return aceExchangeService.getExchangeRate(contractId);
-}
-
-/**
- * Convenience function to convert USD to currency
- */
-export async function convertUSDToCurrency(usdAmount: AmountInput, contractId: ContractId): Promise<Decimal> {
-  return aceExchangeService.convertUSDToCurrency(usdAmount, contractId);
-}
-
-/**
- * Convenience function to convert currency to USD
- */
-export async function convertCurrencyToUSD(currencyAmount: AmountInput, contractId: ContractId): Promise<Decimal> {
-  return aceExchangeService.convertCurrencyToUSD(currencyAmount, contractId);
+  return zvIndexerRateService.getExchangeRate(contractId);
 }
