@@ -18,15 +18,14 @@ import type { CoinTXNInput, CoinTXNOutput, FeeConfig} from '../../types/index.js
 import { TESTING_GRPC_OVERRIDE_CONFIG } from '../../shared/utils/testing-defaults/index.js';
 
 /**
- * Example 1: Simple Payment
+ * Example 1: Simple Transfer
  * Alice sends 1.5 ZRA to Bob
  * 
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
-exampleSimplePayment();
-export async function exampleSimplePayment(): Promise<void> {
-  console.log('💸 Example 1: Simple Payment');
+export async function exampleSimpleTransfer(): Promise<void> {
+  console.log('💸 Example 1: Simple Transfer');
   
   // Start timer for end-to-end measurement
   const startTime = Date.now();
@@ -56,7 +55,7 @@ export async function exampleSimplePayment(): Promise<void> {
     {
       to: bobAddress,
       amount: '1.5',
-      memo: 'Payment to Bob'
+      memo: 'Transfer to Bob'
     }
   ];
   
@@ -101,14 +100,14 @@ export async function exampleSimplePayment(): Promise<void> {
 }
 
 /**
- * Example 2: Multi-Input Payment
+ * Example 2: Multi-Input Transfer
  * Alice and Bob both send money to Charlie
  * 
  * This demonstrates how to handle multiple inputs from different wallets
  */
-//exampleMultiInputPayment();
-export async function exampleMultiInputPayment(): Promise<void> {
-  console.log('💸 Example 2: Multi-Input Payment');
+//exampleMultiInputTransfer();
+export async function exampleMultiInputTransfer(): Promise<void> {
+  console.log('💸 Example 2: Multi-Input Transfer');
   
   // Pull wallet data from different sources
   //const aliceWallet = ED25519_TEST_KEYS.bob;
@@ -150,7 +149,7 @@ export async function exampleMultiInputPayment(): Promise<void> {
     {
       to: charlieAddress,
       amount: '5.5', // Total amount
-      memo: 'Joint payment from Alice and Bob'
+      memo: 'Joint transfer from Alice and Bob'
     }
   ];
   
@@ -182,20 +181,20 @@ export async function exampleMultiInputPayment(): Promise<void> {
 }
 
 /**
- * Example 3: Multi-Output Payment
+ * Example 3: Multi-Output Transfer
  * Alice sends money to multiple recipients
  * 
- * This shows how to handle multiple outputs (splitting payments)
+ * This shows how to handle multiple outputs (splitting transfers)
  */
-export async function exampleMultiOutputPayment(): Promise<void> {
-  console.log('💸 Example 3: Multi-Output Payment');
+export async function exampleMultiOutputTransfer(): Promise<void> {
+  console.log('💸 Example 3: Multi-Output Transfer');
   
   const aliceWallet = ED25519_TEST_KEYS.alice;
   const bobAddress = TEST_WALLET_ADDRESSES.bob;
   const charlieAddress = TEST_WALLET_ADDRESSES.charlie;
   const jesseAddress = TEST_WALLET_ADDRESSES.jesse;
   
-  console.log('📋 Payment splitting:');
+  console.log('📋 Transfer splitting:');
   console.log('  From Alice to Bob, Charlie, and Jesse');
   
   // Single input from Alice
@@ -213,17 +212,17 @@ export async function exampleMultiOutputPayment(): Promise<void> {
     {
       to: bobAddress,
       amount: '2.0',
-      memo: 'Payment to Bob'
+      memo: 'Transfer to Bob'
     },
     {
       to: charlieAddress,
       amount: '1.5',
-      memo: 'Payment to Charlie'
+      memo: 'Transfer to Charlie'
     },
     {
       to: jesseAddress,
       amount: '1.5',
-      memo: 'Payment to Jesse'
+      memo: 'Transfer to Jesse'
     }
   ];
   
@@ -252,20 +251,20 @@ export async function exampleMultiOutputPayment(): Promise<void> {
 }
 
 /**
- * Example 4: Complex Multi-Input/Multi-Output Payment
+ * Example 4: Complex Multi-Input/Multi-Output Transfer
  * Alice and Bob send money to Charlie and Jesse
  * 
  * This demonstrates the most complex scenario with multiple inputs and outputs
  */
-export async function exampleComplexPayment(): Promise<void> {
-  console.log('💸 Example 4: Complex Multi-Input/Multi-Output Payment');
+export async function exampleComplexTransfer(): Promise<void> {
+  console.log('💸 Example 4: Complex Multi-Input/Multi-Output Transfer');
   
   const aliceWallet = ED25519_TEST_KEYS.alice;
   const bobWallet = ED448_TEST_KEYS.bob;
   const charlieAddress = TEST_WALLET_ADDRESSES.charlie;
   const jesseAddress = TEST_WALLET_ADDRESSES.jesse;
   
-  console.log('📋 Complex payment scenario:');
+  console.log('📋 Complex transfer scenario:');
   console.log('  Alice + Bob → Charlie + Jesse');
   
   // Multiple inputs
@@ -289,12 +288,12 @@ export async function exampleComplexPayment(): Promise<void> {
     {
       to: charlieAddress,
       amount: '3.5',
-      memo: 'Payment to Charlie'
+      memo: 'Transfer to Charlie'
     },
     {
       to: jesseAddress,
       amount: '1.5',
-      memo: 'Payment to Jesse'
+      memo: 'Transfer to Jesse'
     }
   ];
   
@@ -349,7 +348,7 @@ export async function exampleCustomFees(): Promise<void> {
     {
       to: bobAddress,
       amount: '1.0',
-      memo: 'Custom fee payment'
+      memo: 'Custom fee transfer'
     }
   ];
   
