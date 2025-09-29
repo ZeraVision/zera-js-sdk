@@ -220,7 +220,7 @@ function createTimestamp(): { seconds: number; nanos: number } {
  * Create base transaction for CoinTXN
  * Note: CoinTXN base only has timestamp, feeAmount, and feeId (no public key or nonce)
  */
-function createBaseTransaction(baseFeeId: string, baseFee: string, baseMemo: string): any {
+function createBaseTransaction(baseFeeId: string, baseFee: AmountInput, baseMemo: string): any {
   // Validate base fee is not 0
   if (!baseFee || baseFee === '0') {
     throw new Error('Base fee must be provided and cannot be 0');
@@ -228,7 +228,7 @@ function createBaseTransaction(baseFeeId: string, baseFee: string, baseMemo: str
 
   const baseData: any = {
     timestamp: createTimestamp(),
-    feeAmount: toSmallestUnits(baseFee, baseFeeId),
+    feeAmount: baseFee,
     feeId: baseFeeId
   };
   
@@ -374,7 +374,7 @@ export async function createCoinTXN(
   }
 
   // Step 7: Create final base transaction with correct fees
-  const txnBase = createBaseTransaction(baseFeeId, String(finalBaseFee), baseMemo);
+  const txnBase = createBaseTransaction(baseFeeId, finalBaseFee, baseMemo);
 
   // Add interface fees to base transaction if specified
   if (shouldUseInterfaceFee && interfaceFeeAmount && interfaceFeeId) {

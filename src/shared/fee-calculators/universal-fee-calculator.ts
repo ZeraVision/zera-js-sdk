@@ -85,10 +85,16 @@ import {
   SIGNATURE_SIZES, 
   HASH_SIZES,
   HASH_SIZE, 
-  FEE_CALCULATION_CONSTANTS,
+  FEE_CONSTANTS,
   getFeeConstants,
   updateFeeConstants,
-  getSignatureSize
+  getSignatureSize,
+  getPerByteFeeConstant,
+  getKeyFee,
+  getHashFee,
+  isRestrictedKey,
+  isRestrictedHash,
+  extractKeyTypeFromIdentifier
 } from './base-fee-constants.js';
 import bs58 from 'bs58';
 import type { 
@@ -215,7 +221,6 @@ export interface NetworkFeeResult {
   fee: string;
   feeDecimal: Decimal;
   transactionSize: number;
-  signatureSize: number;
   exchangeRate: Decimal;
 }
 
@@ -365,10 +370,11 @@ function extractTransactionTypeFromProtoObject(protoObject: TransactionMessage):
 }
 
 /**
- * Extract key types from a transaction protobuf object
+ * Extract key types and restricted status from a transaction protobuf object
  */
-function extractKeyTypesFromTransaction(protoObject: TransactionMessage): string[] {
+function extractKeyTypesFromTransaction(protoObject: TransactionMessage): { keyTypes: string[], isRestricted: boolean } {
   const keyTypes: string[] = [];
+  let isRestricted = false;
   
   try {
     // Check if this is a CoinTXN (has auth field with publicKey array)
@@ -378,10 +384,14 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): string
         if (publicKey.single) {
           // Single key - convert bytes back to string identifier for key type detection
           const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
-          const keyType = detectKeyTypeFromIdentifier(publicKeyString);
-          if (keyType) {
-            keyTypes.push(keyType);
+          
+          // Check if this public key is restricted (starts with 'r_')
+          if (publicKeyString.startsWith('r_')) {
+            isRestricted = true;
           }
+          
+          const keyType = extractKeyTypeFromIdentifier(publicKeyString);
+          keyTypes.push(keyType);
         } else if (publicKey.multi && publicKey.multi.publicKeys) {
           throw new Error('multi signature wallet not yet supported in SDK'); // TODO
         }
@@ -390,10 +400,15 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): string
       // Non-CoinTXN: extract key type from BaseTXN.public_key
       const publicKey = protoObject.base.publicKey;
       if (publicKey.single) {
-        const keyType = detectKeyTypeFromBytes(publicKey.single);
-        if (keyType) {
-          keyTypes.push(keyType);
+        const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+        
+        // Check if this public key is restricted (starts with 'r_')
+        if (publicKeyString.startsWith('r_')) {
+          isRestricted = true;
         }
+        
+        const keyType = extractKeyTypeFromIdentifier(publicKeyString);
+        keyTypes.push(keyType);
       } else if (publicKey.multi && publicKey.multi.publicKeys) {
         throw new Error('multi signature wallet not yet supported in SDK'); // TODO
       }
@@ -413,7 +428,7 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): string
     }
   }
   
-  return keyTypes;
+  return { keyTypes, isRestricted };
 }
 
 /**
@@ -429,7 +444,13 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
       for (const publicKey of protoObject.auth.publicKey) {
         if (publicKey.single) {
           // Single key - convert bytes back to string identifier for hash type detection
-          const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+          let publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+          
+          // Remove 'r_' prefix if present to get clean hash types
+          if (publicKeyString.startsWith('r_')) {
+            publicKeyString = publicKeyString.substring(2);
+          }
+          
           try {
             const keyHashTypes = getHashTypesFromPublicKey(publicKeyString);
             hashTypes.push(...keyHashTypes);
@@ -438,14 +459,20 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
             console.warn(`Failed to extract hash types from key: ${error instanceof Error ? error.message : String(error)}`);
           }
         } else if (publicKey.multi && publicKey.multi.publicKeys) {
-          throw new Error('multi signature wallet not yet supported in SDK'); // TODO
+          throw new Error('multi signature wallet not yet supported in SDK');
         }
       }
     } else if (hasBaseProperty(protoObject) && protoObject.base.publicKey) {
       // Non-CoinTXN: extract hash types from BaseTXN.public_key
       const publicKey = protoObject.base.publicKey;
       if (publicKey.single) {
-        const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+        let publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+        
+        // Remove 'r_' prefix if present to get clean hash types
+        if (publicKeyString.startsWith('r_')) {
+          publicKeyString = publicKeyString.substring(2);
+        }
+        
         try {
           const keyHashTypes = getHashTypesFromPublicKey(publicKeyString);
           hashTypes.push(...keyHashTypes);
@@ -454,7 +481,7 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
           console.warn(`Failed to extract hash types from key: ${error instanceof Error ? error.message : String(error)}`);
         }
       } else if (publicKey.multi && publicKey.multi.publicKeys) {
-        throw new Error('multi signature wallet not yet supported in SDK'); // TODO
+        throw new Error('multi signature wallet not yet supported in SDK');
       }
     }
   } catch (error) {
@@ -620,7 +647,7 @@ function calculateTotalTransactionSize(protoObject: TransactionMessage): number 
   const protoSize = calculateProtobufSize(protoObject, detectedTransactionType);
   
   // Auto-detect key types from transaction
-  const keyTypes = extractKeyTypesFromTransaction(protoObject);
+  const { keyTypes } = extractKeyTypesFromTransaction(protoObject);
   
   // Calculate signature sizes
   let signatureSize = 0;
@@ -693,18 +720,18 @@ function calculateSignatureSize(protoObject: TransactionMessage): number {
   }
 }
 
-/**
- * Calculate base network fee
- */
-function calculateBaseNetworkFee(transactionSize: number, signatureSize: number): Decimal {
-  const constants = getFeeConstants();
+// /**
+//  * Calculate base network fee
+//  */
+// function calculateBaseNetworkFee(transactionSize: number, signatureSize: number): Decimal {
+//   const constants = getFeeConstants();
   
-  // Base fee calculation: size * rate + signature fee
-  const sizeFee = toDecimal(transactionSize).mul(constants.BYTES_PER_USD_CENT);
-  const signatureFee = toDecimal(signatureSize).mul(constants.SIGNATURE_FEE_PER_BYTE);
+//   // Base fee calculation: size * rate + signature fee
+//   const sizeFee = toDecimal(transactionSize).mul(constants.BYTES_PER_USD_CENT);
+//   const signatureFee = toDecimal(signatureSize).mul(constants.SIGNATURE_FEE_PER_BYTE);
   
-  return addAmounts(sizeFee, signatureFee);
-}
+//   return addAmounts(sizeFee, signatureFee);
+// }
 
 /**
  * Calculate contract fee using the service
@@ -770,31 +797,54 @@ function calculateInterfaceFeeWithDetails(
  */
 async function calculateNetworkFee(
   protoObject: TransactionMessage,
+  transactionType: number,
   baseFeeId: string,
   exchangeRates: Map<string, Decimal>
 ): Promise<NetworkFeeResult> {
   // Calculate transaction size
   const transactionSize = calculateTransactionSize(protoObject);
   
-  // Calculate signature size
-  const signatureSize = calculateSignatureSize(protoObject);
+  // Get per-byte fee constant for this transaction type
+  const perByteFeeConstant = getPerByteFeeConstant(transactionType);
   
-  // Calculate base network fee
-  const baseNetworkFeeEquiv = calculateBaseNetworkFee(transactionSize, signatureSize);
+  // Calculate base network fee: transaction size * per-byte fee
+  const baseNetworkFeeEquiv = toDecimal(transactionSize).mul(toDecimal(perByteFeeConstant));
+  
+  // Extract key types and restricted status from transaction
+  const { keyTypes, isRestricted } = extractKeyTypesFromTransaction(protoObject);
+  const hashTypes = extractHashTypesFromTransaction(protoObject);
+  
+  // Calculate key fees
+  let totalKeyFees = new Decimal(0);
+  for (const keyType of keyTypes) {
+    // Apply restricted multiplier if the public key starts with 'r_'
+    const keyFee = getKeyFee(keyType, isRestricted);
+    totalKeyFees = totalKeyFees.add(toDecimal(keyFee));
+  }
+  
+  // Calculate hash fees
+  let totalHashFees = new Decimal(0);
+  for (const hashType of hashTypes) {
+    // Apply restricted multiplier if the public key starts with 'r_'
+    const hashFee = getHashFee(hashType, isRestricted);
+    totalHashFees = totalHashFees.add(toDecimal(hashFee));
+  }
+  
+  // Calculate total network fee: base fee + key fees + hash fees
+  const totalNetworkFeeEquiv = baseNetworkFeeEquiv.add(totalKeyFees).add(totalHashFees);
   
   // Get exchange rate for base fee
   const exchangeRate = exchangeRates.get(baseFeeId) || new Decimal(1);
 
-  const baseNetworkFee = baseNetworkFeeEquiv.div(exchangeRate);
+  const totalNetworkFee = totalNetworkFeeEquiv.div(exchangeRate);
   
   // Convert to smallest units
-  const feeInSmallestUnits = toSmallestUnits(baseNetworkFee.toString(), baseFeeId);
+  const feeInSmallestUnits = toSmallestUnits(totalNetworkFee.toString(), baseFeeId);
   
   return {
     fee: feeInSmallestUnits,
-    feeDecimal: baseNetworkFee,
+    feeDecimal: totalNetworkFee,
     transactionSize,
-    signatureSize,
     exchangeRate
   };
 }
@@ -882,6 +932,7 @@ export class UniversalFeeCalculator {
     // STEP 3: Calculate network fee based on the proto object
     const networkFee = await calculateNetworkFee(
       protoObject,
+      transactionType,
       baseFeeId,
       exchangeRates
     );
@@ -953,12 +1004,24 @@ export class UniversalFeeCalculator {
       validator: string;
     } | undefined;
   }[]> {
-    const feeInfo = await getTokenFeeInfo({
+    const response = await getTokenFeeInfo({
       contractIds,
       includeRates: true,
       includeContractFees: true
     });
 
-    return feeInfo;
+    // Transform the response to match the expected return type
+    return response.tokens.map(token => ({
+      contractId: token.contractId,
+      rate: toDecimal(token.rate),
+      authorized: token.authorized,
+      denomination: token.denomination,
+      contractFees: token.contractFees ? {
+        fee: token.contractFees.fee,
+        ...(token.contractFees.feeAddress && { feeAddress: token.contractFees.feeAddress }),
+        burn: token.contractFees.burn,
+        validator: token.contractFees.validator
+      } : undefined
+    }));
   }
 }

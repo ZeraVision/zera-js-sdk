@@ -69,6 +69,9 @@ export function makeGRPCCall<TRequest = unknown, TResponse = unknown>(
           if (value instanceof Uint8Array) {
             return Buffer.from(value).toString('hex');
           }
+          if (typeof value === 'bigint') {
+            return value.toString();
+          }
           return value;
         }, 2));
       } catch (logError) {
