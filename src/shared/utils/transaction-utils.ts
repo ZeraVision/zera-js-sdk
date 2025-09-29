@@ -14,6 +14,7 @@ import {
   PROPOSAL_PERIOD,
   VARIABLE_TYPE
 } from '../../../proto/generated/txn_pb.js';
+import { toDecimal } from './amount-utils.js';
 
 // Re-export for external use
 export { 
@@ -45,7 +46,7 @@ export class TransactionValidator {
     const { minAmount = 0, maxAmount = Number.MAX_SAFE_INTEGER, decimals = 18 } = options;
     
     // Convert to number if string
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const numAmount = typeof amount === 'string' ? toDecimal(amount).toNumber() : amount;
     
     if (isNaN(numAmount)) {
       return { valid: false, error: 'Amount must be a valid number' };
@@ -151,7 +152,7 @@ export class TransactionValidator {
   } = {}): { valid: boolean; error?: string; fee?: number } {
     const { minFee = 0, maxFee = Number.MAX_SAFE_INTEGER, decimals = 18 } = options;
     
-    const numFee = typeof fee === 'string' ? parseFloat(fee) : fee;
+    const numFee = typeof fee === 'string' ? toDecimal(fee).toNumber() : fee;
     
     if (isNaN(numFee)) {
       return { valid: false, error: 'Fee must be a valid number' };
@@ -186,7 +187,7 @@ export class TransactionFormatter {
   } = {}): string {
     const { decimals = 18, showSymbol = false, symbol = 'ZERA' } = options;
     
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const numAmount = typeof amount === 'string' ? toDecimal(amount).toNumber() : amount;
     
     if (isNaN(numAmount)) {
       return '0';

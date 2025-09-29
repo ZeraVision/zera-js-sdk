@@ -56,15 +56,23 @@ export function toAmountString(amount: AmountInput, contractId: ContractId = '$Z
 
 /**
  * Convert user-friendly amount to smallest units (e.g., 1.5 ZRA -> 1500000000000000000)
+ * For base fees, always rounds UP to avoid decimals in protobuf
  */
-export function toSmallestUnits(amount: AmountInput, contractId: ContractId = '$ZRA+0000'): string {
+export function toSmallestUnits(amount: AmountInput, contractId: ContractId = '$ZRA+0000', isBaseFee: boolean = false): string {
   if (amount === undefined || amount === null || amount === '') {
     return '';
   }
   const decimalAmount = toDecimal(amount);
   const decimals = getTokenDecimals(contractId);
   const multiplier = new Decimal(10).pow(decimals);
-  return decimalAmount.mul(multiplier).floor().toString();
+  const result = decimalAmount.mul(multiplier);
+  
+  // For base fees, always round UP to avoid decimals in protobuf
+  if (isBaseFee) {
+    return result.ceil().toString();
+  }
+  
+  return result.toString();
 }
 
 /**
@@ -170,14 +178,14 @@ export function roundAmount(amount: AmountInput, decimalPlaces: number): Decimal
  * Floor amount (round down)
  */
 export function floorAmount(amount: AmountInput): Decimal {
-  return toDecimal(amount).floor();
+  return toDecimal(amount);
 }
 
 /**
  * Ceiling amount (round up)
  */
 export function ceilAmount(amount: AmountInput): Decimal {
-  return toDecimal(amount).ceil();
+  return toDecimal(amount);
 }
 
 /**

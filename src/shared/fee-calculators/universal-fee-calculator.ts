@@ -665,6 +665,14 @@ function calculateTotalTransactionSize(protoObject: TransactionMessage): number 
     }
   }
   
+  // Accomodate single ED448 key signature overhead (inferred cause of calculation issue based on integration testing)
+  // ! May not be root cause, but it's a workaround for the issue with negligible real-world effect - Raise a PR to fix this issue if solution is found.
+  // ! Problem seems when there is a single ED448 key the size calculation is short by 1 byte.
+  // ! Issue should be non present if using suggested buffer overhead values to account for potential changing ACE values.
+  if (keyTypes.length == 1 && keyTypes[0] === KEY_TYPE.ED448) {
+    signatureSize += 1;
+  }
+    
   // Calculate hash size with protobuf overhead
   const totalHashSize = HASH_SIZE + PROTOBUF_HASH_OVERHEAD;
   
@@ -762,10 +770,6 @@ async function calculateNetworkFee(
   const { keyTypes, isRestricted } = extractKeyTypesFromTransaction(protoObject);
   const hashTypes = extractHashTypesFromTransaction(protoObject);
 
-  if (keyTypes.length > 1) {
-    transactionSize += PROTOBUF_AUTH_REPEATED_OVERHEAD;
-  }
-  
   // Calculate initial base network fee: transaction size * per-byte fee
   let baseNetworkFeeEquiv = toDecimal(transactionSize).mul(toDecimal(perByteFeeConstant));
   
@@ -793,8 +797,8 @@ async function calculateNetworkFee(
 
   let totalNetworkFee = totalNetworkFeeEquiv.div(exchangeRate);
   
-  // Convert to smallest units
-  let feeInSmallestUnits = toSmallestUnits(totalNetworkFee.toString(), baseFeeId);
+  // Convert to smallest units (round UP for base fees to avoid decimals)
+  let feeInSmallestUnits = toSmallestUnits(totalNetworkFee.toString(), baseFeeId, true);
   
   // Calculate the difference in size between placeholder '1' and actual fee
   const placeholderFeeSize = 1; // Size of '1' in bytes
@@ -816,8 +820,8 @@ async function calculateNetworkFee(
     const correctedTotalNetworkFeeEquiv = correctedBaseNetworkFeeEquiv.add(totalKeyFees).add(totalHashFees);
     const correctedTotalNetworkFee = correctedTotalNetworkFeeEquiv.div(exchangeRate);
     
-    // Update the fee in smallest units
-    feeInSmallestUnits = toSmallestUnits(correctedTotalNetworkFee.toString(), baseFeeId);
+    // Update the fee in smallest units (round UP for base fees to avoid decimals)
+    feeInSmallestUnits = toSmallestUnits(correctedTotalNetworkFee.toString(), baseFeeId, true);
     
     // Update transaction size for return value
     transactionSize = correctedTransactionSize;

@@ -24,13 +24,13 @@ import { TESTING_GRPC_OVERRIDE_CONFIG } from '../../shared/utils/testing-default
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
-exampleSimplePayment();
+//exampleSimplePayment();
 export async function exampleSimplePayment(): Promise<void> {
   console.log('💸 Example 1: Simple Payment');
   
   // In a real application, you would pull this data from your storage
-  //const aliceWallet = ED25519_TEST_KEYS.alice;
-  const aliceWallet = ED448_TEST_KEYS.alice;
+  var aliceWallet = ED25519_TEST_KEYS.alice;
+  //aliceWallet = ED448_TEST_KEYS.alice;
   const bobAddress = TEST_WALLET_ADDRESSES.bob;
   
   console.log('📋 Wallet data pulled from data source:');
@@ -91,27 +91,29 @@ export async function exampleSimplePayment(): Promise<void> {
  * 
  * This demonstrates how to handle multiple inputs from different wallets
  */
-//exampleMultiInputPayment();
+exampleMultiInputPayment();
 export async function exampleMultiInputPayment(): Promise<void> {
   console.log('💸 Example 2: Multi-Input Payment');
   
   // Pull wallet data from different sources
-  const aliceWallet = ED25519_TEST_KEYS.alice;
+  //const aliceWallet = ED25519_TEST_KEYS.bob;
+  const aliceWallet = ED448_TEST_KEYS.alice;
   const bobWallet = ED448_TEST_KEYS.bob;
-  const aliceWallet2 = ED448_TEST_KEYS.alice;
+  const charlieWallet = ED25519_TEST_KEYS.charlie;
   const charlieAddress = TEST_WALLET_ADDRESSES.charlie;
   
   console.log('📋 Multi-wallet data:');
-  console.log('  Alice (ED25519):', aliceWallet.address);
+  console.log('  Alice (ED448):', aliceWallet.address);
   console.log('  Bob (ED448):', bobWallet.address);
+  console.log('  Charlie (ED25519):', charlieWallet.address);
   console.log('  Charlie (recipient):', charlieAddress);
   
   // Multiple inputs from different wallets
   const inputs: CoinTXNInput[] = [
     {
-      privateKey: aliceWallet.privateKey,
-      publicKey: aliceWallet.publicKey,
-      amount: '2.0',
+      privateKey: charlieWallet.privateKey,
+      publicKey: charlieWallet.publicKey,
+      amount: '1.5',
       feePercent: '60' // Alice pays 60% of fees
     },
     {
@@ -120,19 +122,19 @@ export async function exampleMultiInputPayment(): Promise<void> {
       amount: '2.5',
       feePercent: '40' // Bob pays 40% of fees
     },
-    // {
-    //   privateKey: aliceWallet2.privateKey,
-    //   publicKey: aliceWallet2.publicKey,
-    //   amount: '1',
-    //   feePercent: '0'
-    // }
+    {
+      privateKey: charlieWallet.privateKey,
+      publicKey: charlieWallet.publicKey,
+      amount: '1.5',
+      feePercent: '0'
+    }
   ];
   
   // Single output to Charlie
   const outputs: CoinTXNOutput[] = [
     {
       to: charlieAddress,
-      amount: '4.5', // Total amount
+      amount: '5.5', // Total amount
       memo: 'Joint payment from Alice and Bob'
     }
   ];

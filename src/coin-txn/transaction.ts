@@ -19,7 +19,7 @@ import { getNonces } from '../api/validator/nonce/service.js';
 import { UniversalFeeCalculator } from '../shared/fee-calculators/universal-fee-calculator.js';
 import { createTransactionClient } from '../grpc/transaction/transaction-client.js';
 import bs58 from 'bs58';
-import { toSmallestUnits, validateAmountBalance, Decimal } from '../shared/utils/amount-utils.js';
+import { toSmallestUnits, validateAmountBalance, Decimal, toDecimal } from '../shared/utils/amount-utils.js';
 import { TESTING_GRPC_OVERRIDE_CONFIG } from '../shared/utils/testing-defaults/index.js';
 import type { 
   CoinTXNInput, 
@@ -293,9 +293,9 @@ export async function createCoinTXN(
   validateAmountBalance(inputAmounts, outputAmounts);
 
   // Step 4: Validate fee percentages
-  const totalFeePercent = inputTransfers.reduce((sum, t) => new Decimal(sum).add(t.feePercent).toNumber(), 0);
-  if (totalFeePercent !== 100000000) {
-    throw new Error(`Fee percentages must sum to exactly 100% (100,000,000). Current sum: ${totalFeePercent}`);
+  const totalFeePercent = inputTransfers.reduce((sum, t) => new Decimal(sum).add(t.feePercent), new Decimal(0));
+  if (!totalFeePercent.equals(100000000)) {
+    throw new Error(`Fee percentages must sum to exactly 100% (100,000,000). Current sum: ${totalFeePercent.toString()}`);
   }
 
   // Step 5: Determine fee calculation strategy
@@ -324,7 +324,7 @@ export async function createCoinTXN(
     // Only include contract fee fields if there's actually a contract fee
     if (finalContractFee !== undefined && finalContractFee !== null) {
       tempCoinTxnData.contractFeeId = contractFeeId;
-      tempCoinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
+      tempCoinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId, true);
     } else {
       // Explicitly set to undefined instead of letting protobuf assign empty strings
       tempCoinTxnData.contractFeeId = undefined;
@@ -355,7 +355,7 @@ export async function createCoinTXN(
       if (shouldUseAutoBaseFee) {
         finalBaseFee = feeResult.networkFee;
         } else { // check if their fee is valid...
-          if (baseFee && parseFloat(String(baseFee)) < parseFloat(feeResult.networkFee)) {
+          if (baseFee && toDecimal(baseFee).lessThan(toDecimal(feeResult.networkFee))) {
             console.warn(`WARNING: Base fee ${baseFee} is less than the calculated base fee ${feeResult.networkFee}. Transaction expected to be rejected by network.`);
           }
         }
@@ -378,7 +378,7 @@ export async function createCoinTXN(
 
   // Add interface fees to base transaction if specified
   if (shouldUseInterfaceFee && interfaceFeeAmount && interfaceFeeId) {
-    txnBase.interfaceFee = toSmallestUnits(interfaceFeeAmount, interfaceFeeId);
+    txnBase.interfaceFee = toSmallestUnits(interfaceFeeAmount, interfaceFeeId, true);
     txnBase.interfaceFeeId = interfaceFeeId;
     if (interfaceAddress) {
       txnBase.interfaceAddress = bs58.decode(interfaceAddress);
@@ -397,7 +397,7 @@ export async function createCoinTXN(
   // Only include contract fee fields if there's actually a contract fee
   if (finalContractFee !== undefined && finalContractFee !== null) {
     coinTxnData.contractFeeId = contractFeeId;
-    coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId);
+    coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId, true);
   } else {
     // Explicitly set to undefined instead of letting protobuf assign empty strings
     coinTxnData.contractFeeId = undefined;
