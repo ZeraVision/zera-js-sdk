@@ -79,6 +79,7 @@ import {
 import { getExchangeRate } from '../../api/handler/rate/service.js';
 import { getTokenFeeInfo } from '../../api/validator/fee-info/index.js';
 import { contractFeeService } from './contract-fee-service.js';
+import { getDenominationFallback, getDecimalPlacesFromDenomination } from './denomination-fallback.js';
 import { sanitizeForSerialization } from '../utils/protobuf-utils.js';
 import { getKeyTypeFromPublicKey, getHashTypesFromPublicKey } from '../crypto/address-utils.js';
 import { 
@@ -753,6 +754,8 @@ function calculateInterfaceFeeWithDetails(
 
 /**
  * Calculate network fee based on proto object
+ *! Note: This function may not be 100% accurate. Nominal testing indicates accuracy within >= 99.999999% (usually exact or 1 denomination unit greater).
+ *! Note: Suggest 'maximum' overestimation to account for edge cases such as changes in ACE rates after transaction calculation.
  */
 async function calculateNetworkFee(
   protoObject: TransactionMessage,
@@ -795,10 +798,30 @@ async function calculateNetworkFee(
   // Get exchange rate for base fee
   const exchangeRate = exchangeRates.get(baseFeeId) || new Decimal(1);
 
+  // Use precise division with proper rounding for base fees
   let totalNetworkFee = totalNetworkFeeEquiv.div(exchangeRate);
   
-  // Convert to smallest units (round UP for base fees to avoid decimals)
-  let feeInSmallestUnits = toSmallestUnits(totalNetworkFee.toString(), baseFeeId, true);
+  // Get token fee info to determine precision from denomination
+  const tokenFeeInfo = await UniversalFeeCalculator.getTokenFeeInfo([baseFeeId]);
+  const tokenInfo = tokenFeeInfo.find(t => t.contractId === baseFeeId);
+  
+  // Calculate decimal places from denomination
+  let decimals: number;
+  if (tokenInfo?.denomination) {
+    // Use denomination from token fee info
+    decimals = getDecimalPlacesFromDenomination(tokenInfo.denomination);
+  } else {
+    // Use fallback denomination
+    const fallbackDenomination = getDenominationFallback(baseFeeId);
+    decimals = getDecimalPlacesFromDenomination(fallbackDenomination);
+  }
+  
+  // Round to the precision specified by the denomination
+  const precisionMultiplier = new Decimal(10).pow(decimals);
+  const roundedFee = totalNetworkFee.mul(precisionMultiplier).floor().div(precisionMultiplier);
+  
+  // Convert to smallest units with precise denomination-based precision
+  let feeInSmallestUnits = toSmallestUnits(roundedFee.toString(), baseFeeId, true);
   
   // Calculate the difference in size between placeholder '1' and actual fee
   const placeholderFeeSize = 1; // Size of '1' in bytes
@@ -810,18 +833,20 @@ async function calculateNetworkFee(
     // Add the size difference to transaction size
     const correctedTransactionSize = transactionSize + feeSizeDifference;
     
-    // TODO REMOVE
-    console.log('correctedTransactionSize: ', correctedTransactionSize);
-
     // Recalculate base network fee with corrected size
     const correctedBaseNetworkFeeEquiv = toDecimal(correctedTransactionSize).mul(toDecimal(perByteFeeConstant));
     
     // Recalculate total network fee
     const correctedTotalNetworkFeeEquiv = correctedBaseNetworkFeeEquiv.add(totalKeyFees).add(totalHashFees);
+    // Use precise division with proper rounding for base fees
     const correctedTotalNetworkFee = correctedTotalNetworkFeeEquiv.div(exchangeRate);
     
-    // Update the fee in smallest units (round UP for base fees to avoid decimals)
-    feeInSmallestUnits = toSmallestUnits(correctedTotalNetworkFee.toString(), baseFeeId, true);
+    // Round to the precision specified by the denomination
+    const precisionMultiplier = new Decimal(10).pow(decimals);
+    const correctedRoundedFee = correctedTotalNetworkFee.mul(precisionMultiplier).floor().div(precisionMultiplier);
+    
+    // Update the fee in smallest units with precise denomination-based precision
+    feeInSmallestUnits = toSmallestUnits(correctedRoundedFee.toString(), baseFeeId, true);
     
     // Update transaction size for return value
     transactionSize = correctedTransactionSize;

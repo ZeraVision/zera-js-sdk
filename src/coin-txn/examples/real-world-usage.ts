@@ -28,9 +28,12 @@ exampleSimplePayment();
 export async function exampleSimplePayment(): Promise<void> {
   console.log('💸 Example 1: Simple Payment');
   
+  // Start timer for end-to-end measurement
+  const startTime = Date.now();
+  
   // In a real application, you would pull this data from your storage
   var aliceWallet = ED25519_TEST_KEYS.alice;
-  aliceWallet = ED448_TEST_KEYS.alice;
+  //aliceWallet = ED448_TEST_KEYS.alice;
   const bobAddress = TEST_WALLET_ADDRESSES.bob;
   
   console.log('📋 Wallet data pulled from data source:');
@@ -79,7 +82,19 @@ export async function exampleSimplePayment(): Promise<void> {
     console.log('🎉 Transaction sent successfully!');
     console.log('  Result:', result);
     
+    // Calculate and display end-to-end time
+    const endTime = Date.now();
+    const totalTime = endTime - startTime;
+    console.log(`⏱️  End-to-end time: ${totalTime}ms`);
+
+    console.log(`Done Example`);
+    
   } catch (error) {
+    // Calculate and display time even on failure
+    const endTime = Date.now();
+    const totalTime = endTime - startTime;
+    console.log(`⏱️  Time to failure: ${totalTime}ms`);
+    
     console.error('❌ Transaction failed:', (error as Error).message);
     throw error;
   }

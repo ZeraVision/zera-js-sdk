@@ -67,11 +67,13 @@ export function toSmallestUnits(amount: AmountInput, contractId: ContractId = '$
   const multiplier = new Decimal(10).pow(decimals);
   const result = decimalAmount.mul(multiplier);
   
-  // For base fees, always round UP to avoid decimals in protobuf
+  // For base fees, always round DOWN to avoid overcharging
   if (isBaseFee) {
-    return result.ceil().toString();
+    // Use precise floor to avoid overcharging and floating point errors
+    return result.floor().toString();
   }
   
+  // For non-base fees, use precise decimal representation
   return result.toString();
 }
 

@@ -45,32 +45,32 @@ export class TransactionValidator {
   } = {}): { valid: boolean; error?: string; amount?: number } {
     const { minAmount = 0, maxAmount = Number.MAX_SAFE_INTEGER, decimals = 18 } = options;
     
-    // Convert to number if string
-    const numAmount = typeof amount === 'string' ? toDecimal(amount).toNumber() : amount;
+    // Convert to Decimal for precise comparison
+    const decimalAmount = typeof amount === 'string' ? toDecimal(amount) : new Decimal(amount);
     
-    if (isNaN(numAmount)) {
+    if (decimalAmount.isNaN()) {
       return { valid: false, error: 'Amount must be a valid number' };
     }
     
-    if (numAmount <= 0) {
+    if (decimalAmount.lte(0)) {
       return { valid: false, error: 'Amount must be greater than zero' };
     }
     
-    if (numAmount < minAmount) {
+    if (decimalAmount.lt(minAmount)) {
       return { valid: false, error: `Amount must be at least ${minAmount}` };
     }
     
-    if (numAmount > maxAmount) {
+    if (decimalAmount.gt(maxAmount)) {
       return { valid: false, error: `Amount must not exceed ${maxAmount}` };
     }
     
     // Check decimal precision
-    const decimalPlaces = (numAmount.toString().split('.')[1] || '').length;
+    const decimalPlaces = decimalAmount.decimalPlaces();
     if (decimalPlaces > decimals) {
       return { valid: false, error: `Amount cannot have more than ${decimals} decimal places` };
     }
     
-    return { valid: true, amount: numAmount };
+    return { valid: true, amount: decimalAmount.toNumber() };
   }
 
   /**
@@ -152,21 +152,21 @@ export class TransactionValidator {
   } = {}): { valid: boolean; error?: string; fee?: number } {
     const { minFee = 0, maxFee = Number.MAX_SAFE_INTEGER, decimals = 18 } = options;
     
-    const numFee = typeof fee === 'string' ? toDecimal(fee).toNumber() : fee;
+    const decimalFee = typeof fee === 'string' ? toDecimal(fee) : new Decimal(fee);
     
-    if (isNaN(numFee)) {
+    if (decimalFee.isNaN()) {
       return { valid: false, error: 'Fee must be a valid number' };
     }
     
-    if (numFee < minFee) {
+    if (decimalFee.lt(minFee)) {
       return { valid: false, error: `Fee must be at least ${minFee}` };
     }
     
-    if (numFee > maxFee) {
+    if (decimalFee.gt(maxFee)) {
       return { valid: false, error: `Fee must not exceed ${maxFee}` };
     }
     
-    return { valid: true, fee: numFee };
+    return { valid: true, fee: decimalFee.toNumber() };
   }
 }
 
@@ -187,13 +187,13 @@ export class TransactionFormatter {
   } = {}): string {
     const { decimals = 18, showSymbol = false, symbol = 'ZERA' } = options;
     
-    const numAmount = typeof amount === 'string' ? toDecimal(amount).toNumber() : amount;
+    const decimalAmount = typeof amount === 'string' ? toDecimal(amount) : new Decimal(amount);
     
-    if (isNaN(numAmount)) {
+    if (decimalAmount.isNaN()) {
       return '0';
     }
     
-    const formatted = numAmount.toFixed(decimals).replace(/\.?0+$/, '');
+    const formatted = decimalAmount.toFixed(decimals).replace(/\.?0+$/, '');
     return showSymbol ? `${formatted} ${symbol}` : formatted;
   }
 

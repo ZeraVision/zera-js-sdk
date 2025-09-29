@@ -25,8 +25,8 @@ export interface RateSource {
  */
 export interface RateHandlerOptions {
   cacheTimeout?: number;
-  fallbackRates?: Record<string, number>;
-  minimumRates?: Record<string, number>;
+  fallbackRates?: Record<string, string>;
+  minimumRates?: Record<string, string>;
   enableSafeguards?: boolean;
 }
 
@@ -34,7 +34,7 @@ export interface RateHandlerOptions {
  * Fallback rate information
  */
 export interface FallbackRateInfo {
-  rate: number;
+  rate: string;
   source: 'exact_match' | 'symbol_match';
   sourceKey: string;
 }
@@ -70,18 +70,18 @@ export interface CacheInfo {
 export class RateHandler {
   private cache: Map<string, CacheEntry>;
   private cacheTimeout: number;
-  private fallbackRates: Record<string, number>;
-  private minimumRates: Record<string, number>;
+  private fallbackRates: Record<string, string>;
+  private minimumRates: Record<string, string>;
   private enableSafeguards: boolean;
 
   constructor(options: RateHandlerOptions = {}) {
     this.cache = new Map();
     this.cacheTimeout = options.cacheTimeout || 3000; // 3 seconds default
     this.fallbackRates = options.fallbackRates || {
-      '$ZRA+0000': 3.18,  // $0.10 per ZRA (fallback) // TODO change back to 0.10
+      '$ZRA+0000': '3.18',  // $3.18 per ZRA (fallback) // TODO change back to 0.10
     };
     this.minimumRates = options.minimumRates || {
-      '$ZRA+0000': 0.10,  // Minimum $0.10 per ZRA for fee evaluation (network enforced safeguard)
+      '$ZRA+0000': '0.10',  // Minimum $0.10 per ZRA for fee evaluation (network enforced safeguard)
     };
     this.enableSafeguards = options.enableSafeguards !== false; // Default to true
   }
@@ -91,7 +91,7 @@ export class RateHandler {
    */
   async processRate(
     contractId: ContractId, 
-    rate: number, 
+    rate: string | number, 
     source: 'validator' | 'zv-indexer',
     useCache: boolean = true
   ): Promise<Decimal> {
@@ -200,7 +200,7 @@ export class RateHandler {
 
     // Apply minimum rate safeguard for fee evaluation
     const minimumRate = this.minimumRates[contractId];
-    if (minimumRate && rate.lt(minimumRate)) {
+    if (minimumRate && rate.lt(new Decimal(minimumRate))) {
       console.warn(`Rate ${rate.toString()} for ${contractId} below minimum ${minimumRate}, applying safeguard`);
       return new Decimal(minimumRate);
     }
@@ -296,14 +296,14 @@ export class RateHandler {
   /**
    * Update fallback rates
    */
-  updateFallbackRates(rates: Record<string, number>): void {
+  updateFallbackRates(rates: Record<string, string>): void {
     this.fallbackRates = { ...this.fallbackRates, ...rates };
   }
 
   /**
    * Update minimum rates
    */
-  updateMinimumRates(rates: Record<string, number>): void {
+  updateMinimumRates(rates: Record<string, string>): void {
     this.minimumRates = { ...this.minimumRates, ...rates };
   }
 
@@ -325,7 +325,7 @@ export const rateHandler = new RateHandler();
  */
 export async function processRate(
   contractId: ContractId, 
-  rate: number, 
+  rate: string | number, 
   source: 'validator' | 'zv-indexer'
 ): Promise<Decimal> {
   return rateHandler.processRate(contractId, rate, source);

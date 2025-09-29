@@ -6,7 +6,7 @@
 
 import { getExchangeRate } from '../service.js';
 import { convertUSDToCurrency } from '../../../handler/rate/service.js';
-import type { Decimal } from 'decimal.js';
+import { Decimal } from 'decimal.js';
 
 // Test currency constant
 const TEST_CURRENCY = '$ZRA+0000';
@@ -104,11 +104,11 @@ async function advancedFeaturesExample(): Promise<void> {
   }
   
   // Verify conversion makes sense
-  const expectedAmount = usdAmount / rate.toNumber();
+  const expectedAmount = new Decimal(usdAmount).div(rate);
   
-  console.log(`Expected: ${expectedAmount}`);
-  console.log(`Actual: ${convertedAmount.toNumber()}`);
-  console.log(`Difference: ${Math.abs(expectedAmount - convertedAmount.toNumber())}`);
+  console.log(`Expected: ${expectedAmount.toString()}`);
+  console.log(`Actual: ${convertedAmount.toString()}`);
+  console.log(`Difference: ${expectedAmount.sub(convertedAmount).abs().toString()}`);
 }
 
 /**

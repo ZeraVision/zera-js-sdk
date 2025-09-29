@@ -5,7 +5,7 @@
  */
 
 import { getExchangeRate, convertUSDToCurrency, processRate } from '../service.js';
-import type { Decimal } from 'decimal.js';
+import { Decimal } from 'decimal.js';
 
 // Test currency constant
 const TEST_CURRENCY = '$ZRA+0000';
@@ -133,11 +133,11 @@ async function currencyConversionExample(): Promise<void> {
   }
   
   // Verify conversion makes sense
-  const expectedAmount = usdAmount / rate.toNumber();
+  const expectedAmount = new Decimal(usdAmount).div(rate);
   
-  console.log(`Expected: ${expectedAmount}`);
-  console.log(`Actual: ${convertedAmount.toNumber()}`);
-  console.log(`Difference: ${Math.abs(expectedAmount - convertedAmount.toNumber())}`);
+  console.log(`Expected: ${expectedAmount.toString()}`);
+  console.log(`Actual: ${convertedAmount.toString()}`);
+  console.log(`Difference: ${expectedAmount.sub(convertedAmount).abs().toString()}`);
 }
 
 /**
@@ -164,7 +164,7 @@ async function errorHandlingExample(): Promise<void> {
   
   try {
     // Test invalid rate
-    await processRate(TEST_CURRENCY, -100, 'validator');
+    await processRate(TEST_CURRENCY, '-100', 'validator');
     throw new Error('Should have thrown error for negative rate');
   } catch (error) {
     console.log(`✅ Caught expected error: ${(error as Error).message}`);

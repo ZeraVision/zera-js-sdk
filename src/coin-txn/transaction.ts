@@ -132,7 +132,7 @@ async function processInputs(
       // Create input transfer
       const finalAmount = toSmallestUnits(input.amount, contractID);
       const feePercent = input.feePercent !== undefined ? input.feePercent : '100';
-      const scaledFeePercent = new Decimal(feePercent).mul(1000000).toNumber();
+      const scaledFeePercent = new Decimal(feePercent).mul(1000000).toFixed(0);
       
       const inputTransferData = {
         index: i,

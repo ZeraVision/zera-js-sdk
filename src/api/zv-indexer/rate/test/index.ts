@@ -4,7 +4,9 @@
  * This provides tests for the ACE exchange rate service.
  */
 
-import { getExchangeRate, convertUSDToCurrency } from '../service.js';
+import { getExchangeRate } from '../service.js';
+import { convertUSDToCurrency } from '../../../handler/rate/service.js';
+import { Decimal } from 'decimal.js';
 
 // Test currency constant
 const TEST_CURRENCY = '$ZRA+0000';
@@ -79,7 +81,6 @@ async function inputValidationTest() {
   
   // Test null/undefined currency
   try {
-    // @ts-expect-error: Intentionally testing invalid input for validation
     await getExchangeRate(null as any);
     throw new Error('Should throw error for null currency');
   } catch (error) {
@@ -87,7 +88,6 @@ async function inputValidationTest() {
   }
   
   try {
-    // @ts-expect-error: Intentionally testing invalid input for validation
     await getExchangeRate(undefined as any);
     throw new Error('Should throw error for undefined currency');
   } catch (error) {
@@ -161,7 +161,7 @@ async function performanceTest() {
   ];
   
   const startTime = Date.now();
-  const rates = [];
+  const rates: Decimal[] = [];
   
   for (const currency of currencies) {
     if (currency) {
@@ -211,20 +211,20 @@ async function edgeCasesTest() {
   
   // Test rate consistency
   const rate = await getExchangeRate(currency);
-  const expectedAmount = usdAmount / rate.toNumber();
-  const actualAmount = convertedAmount.toNumber();
+  const expectedAmount = new Decimal(usdAmount).div(rate);
+  const actualAmount = convertedAmount;
   
-  const difference = Math.abs(expectedAmount - actualAmount);
-  const tolerance = 0.0001; // Allow small floating point differences
+  const difference = expectedAmount.sub(actualAmount).abs();
+  const tolerance = new Decimal('0.0001'); // Allow small differences
   
-  if (difference > tolerance) {
-    throw new Error(`Rate consistency check failed: expected ${expectedAmount}, got ${actualAmount}`);
+  if (difference.gt(tolerance)) {
+    throw new Error(`Rate consistency check failed: expected ${expectedAmount.toString()}, got ${actualAmount.toString()}`);
   }
   
   console.log('✅ Rate consistency test passed');
   
   // Test minimum rate safeguard
-  const minRate = 0.0001;
+  const minRate = new Decimal('0.0001');
   if (rate.lt(minRate)) {
     console.log(`⚠️ Rate is very low: ${rate.toString()} (minimum: ${minRate})`);
   } else {
