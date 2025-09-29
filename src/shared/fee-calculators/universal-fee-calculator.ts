@@ -83,25 +83,18 @@ import { getDenominationFallback, getDecimalPlacesFromDenomination } from './den
 import { sanitizeForSerialization } from '../utils/protobuf-utils.js';
 import { getKeyTypeFromPublicKey, getHashTypesFromPublicKey } from '../crypto/address-utils.js';
 import { 
-  SIGNATURE_SIZES, 
-  HASH_SIZES,
   HASH_SIZE, 
   PROTOBUF_HASH_OVERHEAD,
   PROTOBUF_BASE_SIGNATURE_OVERHEAD,
   PROTOBUF_AUTH_SIGNATURE_OVERHEAD,
-  PROTOBUF_AUTH_REPEATED_OVERHEAD,
-  FEE_CONSTANTS,
   getFeeConstants,
   updateFeeConstants,
   getSignatureSize,
   getPerByteFeeConstant,
   getKeyFee,
   getHashFee,
-  isRestrictedKey,
-  isRestrictedHash,
   extractKeyTypeFromIdentifier
 } from './base-fee-constants.js';
-import bs58 from 'bs58';
 import type { 
   KeyType, 
   HashType, 
