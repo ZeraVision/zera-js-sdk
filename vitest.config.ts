@@ -65,12 +65,7 @@ export default defineConfig({
     testTimeout: 10000,
     
     // Enhanced reporter for rich output
-    reporter: ['verbose'],
-    
-    // Output file for JSON results
-    outputFile: {
-      json: './test-results.json'
-    },
+    reporters: ['verbose'],
     
     // Watch mode
     watch: false,

@@ -1,0 +1,64 @@
+/**
+ * Shared Cryptographic Constants for ZERA JS SDK
+ * 
+ * This module contains cryptographic constants that are used across multiple
+ * modules in the SDK, including wallet creation, address generation, and
+ * fee calculation.
+ */
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+export type KeyType = 'ed25519' | 'ed448';
+export type HashType = 'sha3-256' | 'sha3-512' | 'blake3';
+
+// ============================================================================
+// CRYPTOGRAPHIC CONSTANTS
+// ============================================================================
+
+// Key type enums - these are the only valid key types
+export const KEY_TYPE = {
+  ED25519: 'ed25519',
+  ED448: 'ed448'
+} as const;
+
+// Hash type enums - these are the only valid hash types
+export const HASH_TYPE = {
+  SHA3_256: 'sha3-256',
+  SHA3_512: 'sha3-512',
+  BLAKE3: 'blake3'
+} as const;
+
+// Type arrays for validation
+export const VALID_KEY_TYPES: readonly KeyType[] = Object.values(KEY_TYPE);
+export const VALID_HASH_TYPES: readonly HashType[] = Object.values(HASH_TYPE);
+
+// ============================================================================
+// DISPLAY PREFIXES
+// ============================================================================
+
+// Key type prefixes for display
+export const KEY_TYPE_PREFIXES: Record<KeyType, string> = {
+  [KEY_TYPE.ED25519]: 'A_',
+  [KEY_TYPE.ED448]: 'B_'
+};
+
+// Hash type prefixes for display
+export const HASH_TYPE_PREFIXES: Record<HashType, string> = {
+  [HASH_TYPE.SHA3_256]: 'a_',
+  [HASH_TYPE.SHA3_512]: 'b_',
+  [HASH_TYPE.BLAKE3]: 'c_'
+};
+
+// ============================================================================
+// VALIDATION FUNCTIONS
+// ============================================================================
+
+export function isValidKeyType(keyType: any): keyType is KeyType {
+  return VALID_KEY_TYPES.includes(keyType as KeyType);
+}
+
+export function isValidHashType(hashType: any): hashType is HashType {
+  return VALID_HASH_TYPES.includes(hashType as HashType);
+}

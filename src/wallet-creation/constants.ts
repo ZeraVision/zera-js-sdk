@@ -20,68 +20,71 @@
  * STANDARDS: We follow SLIP-0010 (de-facto standard for EdDSA HD wallets)
  */
 
-import type { KeyType, HashType, MnemonicLength } from '../types/index.js';
+// ============================================================================
+// IMPORTS FROM SHARED CRYPTO MODULE
+// ============================================================================
 
-// ZERA Network constants
+// Import cryptographic constants from shared module
+import {
+  KEY_TYPE,
+  HASH_TYPE,
+  VALID_KEY_TYPES,
+  VALID_HASH_TYPES,
+  KEY_TYPE_PREFIXES,
+  HASH_TYPE_PREFIXES,
+  isValidKeyType,
+  isValidHashType
+} from '../shared/crypto/constants.js';
+
+// Re-export for external use
+export type {
+  KeyType,
+  HashType
+} from '../shared/crypto/constants.js';
+
+export {
+  KEY_TYPE,
+  HASH_TYPE,
+  VALID_KEY_TYPES,
+  VALID_HASH_TYPES,
+  KEY_TYPE_PREFIXES,
+  HASH_TYPE_PREFIXES,
+  isValidKeyType,
+  isValidHashType
+};
+
+// ============================================================================
+// WALLET-SPECIFIC TYPE DEFINITIONS
+// ============================================================================
+
+export type MnemonicLength = 12 | 15 | 18 | 21 | 24;
+
+// ============================================================================
+// NETWORK CONSTANTS
+// ============================================================================
+
 export const ZERA_TYPE = 1110; // SLIP44 coin type for ZRA
 export const ZERA_TYPE_HEX = '0x80000456';
 export const ZERA_SYMBOL = 'ZRA';
 export const ZERA_NAME = 'ZERA';
 
-// SLIP-0010 derivation path for Ed25519/Ed448 (fully hardened)
-// ⚠️  WARNING: This is NOT BIP44 compatible due to EdDSA security requirements
-// While the path structure follows BIP44 format, it enforces SLIP-0010 hardening
-// which prevents interoperability with standard BIP44 wallets
-export const SLIP0010_DERIVATION_PATH = `m/44'/${ZERA_TYPE}'/0'/0'/0'`;
-
-// Legacy name for backward compatibility (deprecated - use SLIP0010_DERIVATION_PATH)
-export const DERIVATION_PATH = SLIP0010_DERIVATION_PATH;
-
-// Only valid derivation scheme for Ed25519/Ed448
-export const DERIVATION_SCHEME = 'slip0010'; // SLIP-0010 (fully hardened for Ed25519/Ed448)
-
-// Key type enums - these are the only valid key types
-export const KEY_TYPE = {
-  ED25519: 'ed25519',
-  ED448: 'ed448'
-} as const;
-
-// Hash type enums - these are the only valid hash types
-export const HASH_TYPE = {
-  SHA3_256: 'sha3-256',
-  SHA3_512: 'sha3-512',
-  BLAKE3: 'blake3'
-} as const;
-
-// Key type prefixes for display
-export const KEY_TYPE_PREFIXES: Record<KeyType, string> = {
-  [KEY_TYPE.ED25519]: 'A_',
-  [KEY_TYPE.ED448]: 'B_'
-};
-
-// Hash type prefixes for display
-export const HASH_TYPE_PREFIXES: Record<HashType, string> = {
-  [HASH_TYPE.SHA3_256]: 'a_',
-  [HASH_TYPE.SHA3_512]: 'b_',
-  [HASH_TYPE.BLAKE3]: 'c_'
-};
-
-// Type arrays for validation
-export const VALID_KEY_TYPES: readonly KeyType[] = Object.values(KEY_TYPE);
-export const VALID_HASH_TYPES: readonly HashType[] = Object.values(HASH_TYPE);
-
-// Legacy support - keep existing constants
-export const SUPPORTED_KEY_TYPES = VALID_KEY_TYPES;
-export const KEY_TYPES = KEY_TYPE_PREFIXES; // For backward compatibility
-
-// ZERA extended key version bytes (custom to prevent cross-chain confusion)
-export const EXTENDED_KEY_VERSIONS = {
-  PRIVATE: 0x04b2430c, // ZERA private key version
-  PUBLIC: 0x04b2430d   // ZERA public key version
-} as const;
+// ============================================================================
+// WALLET-SPECIFIC CONSTANTS
+// ============================================================================
 
 // BIP39 supported mnemonic lengths
 export const MNEMONIC_LENGTHS: readonly MnemonicLength[] = [12, 15, 18, 21, 24];
+
+// ============================================================================
+// DERIVATION CONSTANTS
+// ============================================================================
+
+// SLIP-0010 derivation path for Ed25519/Ed448 (fully hardened)
+// ⚠️  WARNING: This is NOT BIP44 compatible due to EdDSA security requirements
+export const SLIP0010_DERIVATION_PATH = `m/44'/${ZERA_TYPE}'/0'/0'/0'`;
+
+// Only valid derivation scheme for Ed25519/Ed448
+export const DERIVATION_SCHEME = 'slip0010';
 
 // Default HD wallet settings
 export const DEFAULT_HD_SETTINGS = {
@@ -90,7 +93,20 @@ export const DEFAULT_HD_SETTINGS = {
   addressIndex: 0
 } as const;
 
-// Error messages
+// ============================================================================
+// EXTENDED KEY VERSIONS
+// ============================================================================
+
+// ZERA extended key version bytes (custom to prevent cross-chain confusion)
+export const EXTENDED_KEY_VERSIONS = {
+  PRIVATE: 0x04b2430c, // ZERA private key version
+  PUBLIC: 0x04b2430d   // ZERA public key version
+} as const;
+
+// ============================================================================
+// ERROR MESSAGES
+// ============================================================================
+
 export const ERROR_MESSAGES = {
   INVALID_KEY_TYPE: `Invalid key type. Must be one of: ${VALID_KEY_TYPES.join(', ')}`,
   INVALID_HASH_TYPE: `Invalid hash type. Must be one of: ${VALID_HASH_TYPES.join(', ')}`,
@@ -105,14 +121,9 @@ export const ERROR_MESSAGES = {
   HASH_TYPES_REQUIRED: 'Hash types array is required'
 } as const;
 
-// Type guards and validation functions
-export function isValidKeyType(keyType: any): keyType is KeyType {
-  return VALID_KEY_TYPES.includes(keyType as KeyType);
-}
-
-export function isValidHashType(hashType: any): hashType is HashType {
-  return VALID_HASH_TYPES.includes(hashType as HashType);
-}
+// ============================================================================
+// WALLET-SPECIFIC VALIDATION FUNCTIONS
+// ============================================================================
 
 export function isValidMnemonicLength(length: any): length is MnemonicLength {
   return MNEMONIC_LENGTHS.includes(length as MnemonicLength);
@@ -143,12 +154,15 @@ export function validateSLIP0010Path(path: any): path is string {
   }
 }
 
-// Get key type prefix
-export function getKeyTypePrefix(keyType: KeyType): string {
-  return KEY_TYPE_PREFIXES[keyType];
-}
+// ============================================================================
+// LEGACY COMPATIBILITY (DEPRECATED)
+// ============================================================================
 
-// Get hash type prefix
-export function getHashTypePrefix(hashType: HashType): string {
-  return HASH_TYPE_PREFIXES[hashType];
-}
+/** @deprecated Use SLIP0010_DERIVATION_PATH instead */
+export const DERIVATION_PATH = SLIP0010_DERIVATION_PATH;
+
+/** @deprecated Use VALID_KEY_TYPES instead */
+export const SUPPORTED_KEY_TYPES = VALID_KEY_TYPES;
+
+/** @deprecated Use KEY_TYPE_PREFIXES instead */
+export const KEY_TYPES = KEY_TYPE_PREFIXES;

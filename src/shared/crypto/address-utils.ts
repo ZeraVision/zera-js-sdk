@@ -4,10 +4,10 @@
  * This module provides utilities for working with ZERA addresses and public key identifiers.
  */
 
-import { KEY_TYPE, HASH_TYPE, isValidKeyType, isValidHashType } from '../../wallet-creation/constants.js';
+import { KEY_TYPE, HASH_TYPE, isValidKeyType, isValidHashType } from './constants.js';
 import { createHashChain } from '../../wallet-creation/hash-utils.js';
 import bs58 from 'bs58';
-import type { KeyType, HashType } from '../../types/index.js';
+import type { KeyType, HashType } from './constants.js';
 
 /**
  * Generate ZERA address from public key and hash types

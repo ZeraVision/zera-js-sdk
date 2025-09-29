@@ -77,43 +77,30 @@ export function isError<T, E>(result: Result<T, E>): result is { success: false;
 // ENUMS AND CONSTANTS
 // ============================================================================
 
-/**
- * Supported key types for wallet creation
- */
-export const KEY_TYPE = {
-  ED25519: 'ed25519',
-  ED448: 'ed448'
-} as const;
+// Import types and constants from shared crypto module
+import type {
+  KeyType,
+  HashType
+} from '../shared/crypto/constants.js';
 
-export type KeyType = typeof KEY_TYPE[keyof typeof KEY_TYPE];
+import type {
+  MnemonicLength
+} from '../wallet-creation/constants.js';
 
-/**
- * Supported hash algorithms
- */
-export const HASH_TYPE = {
-  SHA3_256: 'sha3-256',
-  SHA3_512: 'sha3-512',
-  BLAKE3: 'blake3'
-} as const;
+import {
+  KEY_TYPE,
+  HASH_TYPE,
+  VALID_KEY_TYPES,
+  VALID_HASH_TYPES
+} from '../shared/crypto/constants.js';
 
-export type HashType = typeof HASH_TYPE[keyof typeof HASH_TYPE];
+import {
+  MNEMONIC_LENGTHS
+} from '../wallet-creation/constants.js';
 
-/**
- * Valid key types array
- */
-export const VALID_KEY_TYPES: readonly KeyType[] = Object.values(KEY_TYPE);
-
-/**
- * Valid hash types array
- */
-export const VALID_HASH_TYPES: readonly HashType[] = Object.values(HASH_TYPE);
-
-/**
- * Supported mnemonic lengths
- */
-export const MNEMONIC_LENGTHS = [12, 15, 18, 21, 24] as const;
-
-export type MnemonicLength = typeof MNEMONIC_LENGTHS[number];
+// Re-export for external use
+export type { KeyType, HashType, MnemonicLength };
+export { KEY_TYPE, HASH_TYPE, VALID_KEY_TYPES, VALID_HASH_TYPES, MNEMONIC_LENGTHS };
 
 // ============================================================================
 // WALLET TYPES
@@ -403,26 +390,18 @@ export interface ValidationResult {
   details?: Record<string, any>;
 }
 
-/**
- * Type guard for key type validation
- */
-export function isValidKeyType(value: any): value is KeyType {
-  return typeof value === 'string' && VALID_KEY_TYPES.includes(value as KeyType);
-}
+// Import validation functions from shared modules
+import {
+  isValidKeyType,
+  isValidHashType
+} from '../shared/crypto/constants.js';
 
-/**
- * Type guard for hash type validation
- */
-export function isValidHashType(value: any): value is HashType {
-  return typeof value === 'string' && VALID_HASH_TYPES.includes(value as HashType);
-}
+import {
+  isValidMnemonicLength
+} from '../wallet-creation/constants.js';
 
-/**
- * Type guard for mnemonic length validation
- */
-export function isValidMnemonicLength(value: any): value is MnemonicLength {
-  return typeof value === 'number' && MNEMONIC_LENGTHS.includes(value as MnemonicLength);
-}
+// Re-export for external use
+export { isValidKeyType, isValidHashType, isValidMnemonicLength };
 
 /**
  * Type guard for contract ID validation

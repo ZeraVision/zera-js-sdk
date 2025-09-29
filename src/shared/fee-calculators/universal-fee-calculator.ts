@@ -4,7 +4,7 @@
  * Uses proper USD-based, size-dependent calculation
  */
 
-import { KEY_TYPE, HASH_TYPE } from '../../wallet-creation/constants.js';
+import { KEY_TYPE, HASH_TYPE } from '../crypto/constants.js';
 import { 
   TRANSACTION_TYPE, 
   CONTRACT_FEE_TYPE

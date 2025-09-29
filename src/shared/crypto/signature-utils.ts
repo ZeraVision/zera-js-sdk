@@ -8,7 +8,6 @@ import { Ed25519KeyPair, Ed448KeyPair } from '../../wallet-creation/crypto-core.
 import { getKeyTypeFromPublicKey } from './address-utils.js';
 import bs58 from 'bs58';
 import { createHash } from 'crypto';
-import type { KeyType } from '../../types/index.js';
 
 /**
  * Sign transaction data with automatic key type detection
