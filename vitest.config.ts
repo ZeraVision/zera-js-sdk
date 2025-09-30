@@ -78,14 +78,8 @@ export default defineConfig({
       }
     },
     
-    // Log level
-    logLevel: 'info',
-    
     // Show console output
-    silent: false,
-    
-    // Show unhandled rejections
-    onUnhandledRejection: 'strict'
+    silent: false
   },
   
   // Resolve configuration
