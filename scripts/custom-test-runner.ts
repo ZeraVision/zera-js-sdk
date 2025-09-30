@@ -90,10 +90,9 @@ function showModuleInstructions(): void {
   console.log('');
 }
 
-function parseTestResults(): { results: TestResult[], failedTests: FailedTest[] } {
+function parseTestResults(jsonOutput: string): { results: TestResult[], failedTests: FailedTest[] } {
   try {
-    const resultsFile = './test-results.json';
-    const results = JSON.parse(readFileSync(resultsFile, 'utf8'));
+    const results = JSON.parse(jsonOutput);
     
     const moduleStats = new Map<string, TestResult>();
     const failedTests: FailedTest[] = [];
@@ -318,16 +317,17 @@ function main(): void {
     console.log(chalk.blue('🧪 Running tests...'));
     console.log('');
     
-    execSync('vitest run --reporter=json --outputFile=test-results.json', { 
+    const output = execSync('vitest run --reporter=json', { 
       stdio: 'pipe',
-      cwd: process.cwd()
+      cwd: process.cwd(),
+      encoding: 'utf8'
     });
     
     // Parse and show results
     console.log(chalk.blue('📊 Analyzing results...'));
     console.log('');
     
-    const { results, failedTests } = parseTestResults();
+    const { results, failedTests } = parseTestResults(output);
     
     // Show module breakdown with failures integrated
     showModuleBreakdown(results, failedTests);
@@ -337,9 +337,20 @@ function main(): void {
     console.log('');
     
     // Try to show results even if tests failed
-    const { results, failedTests } = parseTestResults();
-    if (results.length > 0) {
-      showModuleBreakdown(results, failedTests);
+    // Check if the error has output that we can parse
+    if (error.stdout) {
+      try {
+        const { results, failedTests } = parseTestResults(error.stdout);
+        if (results.length > 0) {
+          showModuleBreakdown(results, failedTests);
+        } else {
+          console.log(chalk.red('❌ Test execution failed and no results available'));
+          console.log(chalk.gray('='.repeat(80)));
+        }
+      } catch (parseError) {
+        console.log(chalk.red('❌ Test execution failed and no results available'));
+        console.log(chalk.gray('='.repeat(80)));
+      }
     } else {
       console.log(chalk.red('❌ Test execution failed and no results available'));
       console.log(chalk.gray('='.repeat(80)));
