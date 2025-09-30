@@ -9,4 +9,4 @@
 export { createCoinTXN, sendCoinTXN } from './transaction.js';
 
 // Re-export types
-export type { CoinTXNInput, CoinTXNOutput, FeeConfig, GRPCConfig, GRPCOverrideConfig } from '../types/index.js';
+export type { CoinTXNInput, CoinTXNOutput, FeeConfig, GRPCConfig } from '../types/index.js';

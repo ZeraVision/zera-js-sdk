@@ -1,10 +1,8 @@
-import type { GRPCConfig, GRPCOverrideConfig } from '../../../types/index.js';
+import type { GRPCConfig } from '../../../types/index.js';
 
 /**
- * Testing gRPC override configuration -- select your GRPC endpoint
+ * Testing gRPC configuration -- select your GRPC endpoint
  */
-export const TESTING_GRPC_OVERRIDE_CONFIG: GRPCOverrideConfig = {
-  grpcConfig: {
-    host: '146.190.114.124',
-  },
+export const TESTING_GRPC_CONFIG: GRPCConfig = {
+  host: '146.190.114.124',
 };

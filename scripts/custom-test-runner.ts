@@ -318,7 +318,7 @@ function main(): void {
     console.log(chalk.blue('🧪 Running tests...'));
     console.log('');
     
-    execSync('vitest run --reporter=json', { 
+    execSync('vitest run --reporter=json --outputFile=test-results.json', { 
       stdio: 'pipe',
       cwd: process.cwd()
     });

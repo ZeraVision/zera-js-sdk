@@ -6,7 +6,7 @@
  */
 
 import { Decimal } from '../../../shared/utils/amount-utils.js';
-import { processRate } from '../../handler/rate/service.js';
+import { processRate } from '../../handler/fee-info/service.js';
 import dotenv from 'dotenv';
 import type { ContractId, AmountInput } from '../../../types/index.js';
 

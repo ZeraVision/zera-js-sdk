@@ -15,7 +15,7 @@ import {
   TEST_WALLET_ADDRESSES
 } from '../../test-utils/index.js';
 import type { CoinTXNInput, CoinTXNOutput, FeeConfig} from '../../types/index.js';
-import { TESTING_GRPC_OVERRIDE_CONFIG } from '../../shared/utils/testing-defaults/index.js';
+import { TESTING_GRPC_CONFIG } from '../../shared/utils/testing-defaults/grpc-config.js';
 
 /**
  * Example 1: Simple Transfer
@@ -67,7 +67,7 @@ export async function exampleSimpleTransfer(): Promise<void> {
   
   try {
     console.log('🔨 Creating transaction...');
-    const coinTxn = await createCoinTXN(input, output, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
+    const coinTxn = await createCoinTXN(input, output, '$ZRA+0000', feeConfig, '', TESTING_GRPC_CONFIG);
     
     console.log('✅ Transaction created successfully!');
     console.log('  Transaction ID:', coinTxn.base?.hash ? 'Generated' : 'Not generated');
@@ -163,7 +163,7 @@ export async function exampleMultiInputTransfer(): Promise<void> {
     console.log('🔨 Creating multi-input transaction...');
     // Use testing gRPC configuration inline
 
-    const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
+    const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_CONFIG);
     
     console.log('✅ Multi-input transaction created!');
     console.log('  Inputs:', inputs.length);
@@ -234,7 +234,7 @@ export async function exampleMultiOutputTransfer(): Promise<void> {
   
   try {
     console.log('🔨 Creating multi-output transaction...');
-    const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
+    const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_CONFIG);
     
     console.log('✅ Multi-output transaction created!');
     console.log('  Recipients:', outputs.length);
@@ -307,7 +307,7 @@ export async function exampleComplexTransfer(): Promise<void> {
   
   try {
     console.log('🔨 Creating complex transaction...');
-    const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
+    const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_CONFIG);
     
     console.log('✅ Complex transaction created!');
     console.log('  Inputs:', inputs.length);
@@ -365,7 +365,7 @@ export async function exampleCustomFees(): Promise<void> {
     console.log('  Base fee:', customFeeConfig.baseFee);
     console.log('  Contract fee:', customFeeConfig.contractFee);
     
-    const coinTxn = await createCoinTXN(input, output, '$ZRA+0000', customFeeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
+    const coinTxn = await createCoinTXN(input, output, '$ZRA+0000', customFeeConfig, '', TESTING_GRPC_CONFIG);
     
     console.log('✅ Custom fee transaction created!');
     
@@ -414,7 +414,7 @@ export async function exampleErrorHandling(): Promise<void> {
     };
     
     console.log('🔨 Attempting transaction with invalid data...');
-    await createCoinTXN(invalidInput, invalidOutput, '$ZRA+0000', feeConfig, '', TESTING_GRPC_OVERRIDE_CONFIG);
+    await createCoinTXN(invalidInput, invalidOutput, '$ZRA+0000', feeConfig, '', TESTING_GRPC_CONFIG);
     
     console.log('❌ This should not have succeeded!');
     

@@ -5,13 +5,11 @@
  */
 
 import { getTokenFeeInfo } from '../request.js';
-import Decimal from 'decimal.js';
 
 /**
  * Example: Get comprehensive fee information for all tokens
  */
-//getAllTokenFeeInfoExample();
-export async function getAllTokenFeeInfoExample() {
+async function getAllTokenFeeInfoExample() {
   try {
     console.log('Fetching comprehensive fee information for all tokens...');
     

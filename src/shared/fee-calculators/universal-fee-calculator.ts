@@ -76,7 +76,7 @@ import {
   calculatePercentage,
   Decimal 
 } from '../utils/amount-utils.js';
-import { getExchangeRate } from '../../api/handler/rate/service.js';
+import { getExchangeRate } from '../../api/handler/fee-info/service.js';
 import { getTokenFeeInfo } from '../../api/validator/fee-info/index.js';
 import { contractFeeService } from './contract-fee-service.js';
 import { getDenominationFallback, getDecimalPlacesFromDenomination } from './denomination-fallback.js';

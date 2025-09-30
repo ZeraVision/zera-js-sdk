@@ -4,6 +4,37 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
+  
+  // Resolve configuration
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+      '@types': resolve(__dirname, './src/types'),
+      '@wallet': resolve(__dirname, './src/wallet-creation'),
+      '@coin-txn': resolve(__dirname, './src/coin-txn'),
+      '@grpc': resolve(__dirname, './src/grpc'),
+      '@shared': resolve(__dirname, './src/shared'),
+      '@api': resolve(__dirname, './src/api'),
+      '@test-utils': resolve(__dirname, './src/test-utils')
+    }
+  },
+  
+  // ESM configuration
+  esbuild: {
+    target: 'node18'
+  },
+  
+  // Define external dependencies that should not be bundled
+  define: {
+    global: 'globalThis'
+  },
+  
+  // Optimize dependencies
+  optimizeDeps: {
+    include: ['@grpc/grpc-js', '@grpc/proto-loader']
+  },
+  
+  // Test dependency configuration for Node.js modules
   test: {
     // Test file patterns
     include: [
@@ -70,34 +101,20 @@ export default defineConfig({
     // Watch mode
     watch: false,
     
-    // Parallel execution
-    pool: 'threads',
+    // Pool configuration for better Node.js module handling
+    pool: 'forks',
     poolOptions: {
-      threads: {
-        singleThread: false
+      forks: {
+        singleFork: true
       }
     },
     
     // Show console output
-    silent: false
-  },
-  
-  // Resolve configuration
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, './src'),
-      '@types': resolve(__dirname, './src/types'),
-      '@wallet': resolve(__dirname, './src/wallet-creation'),
-      '@coin-txn': resolve(__dirname, './src/coin-txn'),
-      '@grpc': resolve(__dirname, './src/grpc'),
-      '@shared': resolve(__dirname, './src/shared'),
-      '@api': resolve(__dirname, './src/api'),
-      '@test-utils': resolve(__dirname, './src/test-utils')
+    silent: false,
+    
+    // Dependency configuration for Node.js modules
+    deps: {
+      external: ['@grpc/grpc-js', '@grpc/proto-loader']
     }
-  },
-  
-  // ESM configuration
-  esbuild: {
-    target: 'node18'
   }
 });

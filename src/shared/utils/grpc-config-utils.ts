@@ -1,4 +1,4 @@
-import type { GRPCConfig, GRPCOverrideConfig } from '../../types/index.js';
+import type { GRPCConfig } from '../../types/index.js';
 
 /**
  * Create a custom gRPC configuration

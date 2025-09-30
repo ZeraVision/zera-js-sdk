@@ -6,9 +6,5 @@
 
 export { 
   getTokenFeeInfo, 
-  type TokenFeeInfo,
   type GetTokenFeeInfoParams
 } from './request.js';
-
-// Re-export examples for convenience
-export * from './examples/fee-info-examples.js';

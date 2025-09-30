@@ -5,28 +5,9 @@
  * Uses the GetTokenFeeInfo API to get comprehensive token fee information.
  */
 
-import Decimal from 'decimal.js';
 import { createValidatorAPIClient } from '../../../grpc/api/validator-api-client.js';
-import type { GRPCConfig, GRPCOverrideConfig } from '../../../types/index.js';
+import type { GRPCConfig } from '../../../types/index.js';
 import type { TokenFeeInfoResponse } from '../../../../proto/generated/api_pb.js';
-
-/**
- * Fee information interface for token and contract fees
- */
-export interface TokenFeeInfo {
-  contractId: string;
-  rate: Decimal;
-  authorized: boolean;
-  denomination: string;
-  contractFees?: {
-    fee: string;
-    feeAddress?: Uint8Array;
-    burn: string;
-    validator: string;
-    allowedFeeInstrument: string[];
-    contractFeeType: 'FIXED' | 'CUR_EQUIVALENT' | 'PERCENTAGE' | 'NONE';
-  } | undefined;
-}
 
 /**
  * Parameters for GetTokenFeeInfo API call

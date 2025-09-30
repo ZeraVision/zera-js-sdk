@@ -7,7 +7,7 @@
  */
 
 import { Decimal } from '../../../shared/utils/amount-utils.js';
-import { getExchangeRate as getIndexerExchangeRate } from '../../zv-indexer/rate/service.js';
+import { getExchangeRate as getIndexerExchangeRate } from '../../zv-indexer/fee-info/service.js';
 import { getTokenFeeInfo } from '../../validator/fee-info/index.js';
 import type { ContractId, AmountInput } from '../../../types/index.js';
 
@@ -78,7 +78,7 @@ export class RateHandler {
     this.cache = new Map();
     this.cacheTimeout = options.cacheTimeout || 3000; // 3 seconds default
     this.fallbackRates = options.fallbackRates || {
-      '$ZRA+0000': '3.18',  // $3.18 per ZRA (fallback) // TODO change back to 0.10
+      '$ZRA+0000': '0.10',
     };
     this.minimumRates = options.minimumRates || {
       '$ZRA+0000': '0.10',  // Minimum $0.10 per ZRA for fee evaluation (network enforced safeguard)

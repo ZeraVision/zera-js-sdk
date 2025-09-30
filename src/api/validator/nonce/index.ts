@@ -5,4 +5,4 @@
  */
 
 export { getNonce, getNonces } from './service.js';
-export { runNonceExamples } from './examples/index.js';
+export { runNonceExamples } from './examples/basic-example.js';

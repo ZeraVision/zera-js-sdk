@@ -5,7 +5,7 @@
  */
 
 import { getExchangeRate } from '../service.js';
-import { convertUSDToCurrency } from '../../../handler/rate/service.js';
+import { convertUSDToCurrency } from '../../../handler/fee-info/service.js';
 import { Decimal } from 'decimal.js';
 
 // Test currency constant

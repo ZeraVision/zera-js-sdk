@@ -268,19 +268,6 @@ export interface GRPCConfig {
   retryDelay?: number;
 }
 
-/**
- * gRPC override configuration for specific operations
- */
-export interface GRPCOverrideConfig {
-  /** Base gRPC configuration */
-  grpcConfig?: GRPCConfig;
-  /** Request timeout in milliseconds (default: 10000) */
-  timeout?: number;
-  /** Maximum retry attempts (default: 2) */
-  maxRetries?: number;
-  /** Retry delay in milliseconds (default: 500) */
-  retryDelay?: number;
-}
 
 // ============================================================================
 // API TYPES
