@@ -51,6 +51,12 @@ export const HASH_TYPE_PREFIXES: Record<HashType, string> = {
   [HASH_TYPE.BLAKE3]: 'c_'
 };
 
+// Special identifier prefixes
+export const SPECIAL_PREFIXES = {
+  SMART_CONTRACT: 'sc_',
+  GOVERNANCE: 'gov_'
+} as const;
+
 // ============================================================================
 // VALIDATION FUNCTIONS
 // ============================================================================

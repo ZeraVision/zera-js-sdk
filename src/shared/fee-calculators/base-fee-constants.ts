@@ -4,6 +4,8 @@
  * These are fallback values for when remote data is not available
  */
 
+import { KEY_TYPE, HASH_TYPE } from '../crypto/constants.js';
+
 /**
  * Signature sizes for different key types
  */
@@ -49,9 +51,9 @@ export function updateFeeConstants(newConstants: Partial<typeof FEE_CONSTANTS>):
  * Get signature size for a key type
  */
 export function getSignatureSize(keyType: string, hashType?: string): number {
-  if (keyType === 'ed25519') {
+  if (keyType === KEY_TYPE.ED25519) {
     return SIGNATURE_SIZES.ED25519;
-  } else if (keyType === 'ed448') {
+  } else if (keyType === KEY_TYPE.ED448) {
     return SIGNATURE_SIZES.ED448;
   } else {
     // Default to Ed25519 size
@@ -64,11 +66,11 @@ export function getSignatureSize(keyType: string, hashType?: string): number {
  */
 export function getHashSize(hashType: string): number {
   switch (hashType) {
-    case 'sha3-256':
+    case HASH_TYPE.SHA3_256:
       return HASH_SIZES.SHA3_256;
-    case 'sha3-512':
+    case HASH_TYPE.SHA3_512:
       return HASH_SIZES.SHA3_512;
-    case 'blake3':
+    case HASH_TYPE.BLAKE3:
       return HASH_SIZES.BLAKE3;
     default:
       return HASH_SIZE; // Default to SHA3-256
@@ -194,11 +196,11 @@ export function getKeyFee(keyType: string, isRestricted: boolean = false): numbe
   let baseFee: number;
   
   switch (keyType.toLowerCase()) {
-    case 'ed25519':
+    case KEY_TYPE.ED25519:
     case 'a':
       baseFee = FEE_CONSTANTS.ED25519_KEY_FEE;
       break;
-    case 'ed448':
+    case KEY_TYPE.ED448:
     case 'b':
       baseFee = FEE_CONSTANTS.ED448_KEY_FEE;
       break;
@@ -220,15 +222,15 @@ export function getHashFee(hashType: string, isRestricted: boolean = false): num
   let baseFee: number;
   
   switch (hashType.toLowerCase()) {
-    case 'sha3-256':
+    case HASH_TYPE.SHA3_256:
     case 'a':
       baseFee = FEE_CONSTANTS.SHA3_256_HASH_FEE;
       break;
-    case 'sha3-512':
+    case HASH_TYPE.SHA3_512:
     case 'b':
       baseFee = FEE_CONSTANTS.SHA3_512_HASH_FEE;
       break;
-    case 'blake3':
+    case HASH_TYPE.BLAKE3:
     case 'c':
       baseFee = FEE_CONSTANTS.BLAKE3_HASH_FEE;
       break;
@@ -303,9 +305,9 @@ export function extractKeyTypeFromIdentifier(keyIdentifier: string): string {
     const keyTypePrefix = cleanIdentifier.substring(0, firstUnderscoreIndex);
     
     if (keyTypePrefix === 'A') {
-      return 'ed25519';
+      return KEY_TYPE.ED25519;
     } else if (keyTypePrefix === 'B') {
-      return 'ed448';
+      return KEY_TYPE.ED448;
     } else {
       throw new Error(`Unsupported key type prefix: '${keyTypePrefix}'.`);
     }
@@ -335,11 +337,11 @@ export function extractHashTypeFromIdentifier(hashIdentifier: string): string {
     
     switch (hashTypePrefix.toLowerCase()) {
       case 'a':
-        return 'sha3-256';
+        return HASH_TYPE.SHA3_256;
       case 'b':
-        return 'sha3-512';
+        return HASH_TYPE.SHA3_512;
       case 'c':
-        return 'blake3';
+        return HASH_TYPE.BLAKE3;
       case 'd':
         return 'd';
       case 'e':

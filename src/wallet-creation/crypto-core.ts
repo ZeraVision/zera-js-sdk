@@ -5,6 +5,7 @@ import { ed25519 } from '@noble/curves/ed25519.js';
 import { ed448 } from '@noble/curves/ed448.js';
 import bs58 from 'bs58';
 import { EXTENDED_KEY_VERSIONS } from './constants.js';
+import { KEY_TYPE } from '../shared/crypto/constants.js';
 import type { KeyType } from '../types/index.js';
 
 // SLIP-0010 constants
@@ -227,9 +228,9 @@ export class SLIP0010HDWallet {
    * Generate public key from private key
    */
   private generatePublicKey(privateKey: Uint8Array): Uint8Array {
-    if (this.keyType === 'ed25519') {
+    if (this.keyType === KEY_TYPE.ED25519) {
       return ed25519.getPublicKey(privateKey);
-    } else if (this.keyType === 'ed448') {
+    } else if (this.keyType === KEY_TYPE.ED448) {
       // For ED448, we need to expand the 32-byte SLIP-0010 seed to 57-byte private key
       const ed448KeyPair = new Ed448KeyPair(privateKey);
       return ed448KeyPair.publicKey;
@@ -493,9 +494,9 @@ export const CryptoUtils = {
    * Generate random private key
    */
   randomPrivateKey(keyType: KeyType): Uint8Array {
-    if (keyType === 'ed25519') {
+    if (keyType === KEY_TYPE.ED25519) {
       return ed25519.utils.randomSecretKey();
-    } else if (keyType === 'ed448') {
+    } else if (keyType === KEY_TYPE.ED448) {
       return ed448.utils.randomSecretKey();
     } else {
       throw new Error(`Unsupported key type: ${keyType}`);
@@ -506,9 +507,9 @@ export const CryptoUtils = {
    * Generate public key from private key
    */
   getPublicKey(privateKey: Uint8Array, keyType: KeyType): Uint8Array {
-    if (keyType === 'ed25519') {
+    if (keyType === KEY_TYPE.ED25519) {
       return ed25519.getPublicKey(privateKey);
-    } else if (keyType === 'ed448') {
+    } else if (keyType === KEY_TYPE.ED448) {
       return ed448.getPublicKey(privateKey);
     } else {
       throw new Error(`Unsupported key type: ${keyType}`);

@@ -4,7 +4,7 @@
  * This module provides utilities for working with ZERA addresses and public key identifiers.
  */
 
-import { KEY_TYPE, HASH_TYPE, isValidKeyType, isValidHashType } from './constants.js';
+import { KEY_TYPE, HASH_TYPE, KEY_TYPE_PREFIXES, HASH_TYPE_PREFIXES, SPECIAL_PREFIXES, isValidKeyType, isValidHashType } from './constants.js';
 import { createHashChain } from '../../wallet-creation/hash-utils.js';
 import bs58 from 'bs58';
 import type { KeyType, HashType } from './constants.js';
@@ -150,16 +150,16 @@ export function getKeyTypeFromPublicKey(publicKeyIdentifier: string): KeyType {
   }
 
   // Special cases: sc_ and gov_ don't have key types
-  if (publicKeyIdentifier.startsWith('sc_') || publicKeyIdentifier.startsWith('gov_')) {
-    throw new Error('Special identifiers (sc_, gov_) do not have key types');
+  if (publicKeyIdentifier.startsWith(SPECIAL_PREFIXES.SMART_CONTRACT) || publicKeyIdentifier.startsWith(SPECIAL_PREFIXES.GOVERNANCE)) {
+    throw new Error(`Special identifiers (${SPECIAL_PREFIXES.SMART_CONTRACT}, ${SPECIAL_PREFIXES.GOVERNANCE}) do not have key types`);
   }
 
-  if (publicKeyIdentifier.startsWith('A_')) {
+  if (publicKeyIdentifier.startsWith(KEY_TYPE_PREFIXES[KEY_TYPE.ED25519])) {
     return KEY_TYPE.ED25519;
-  } else if (publicKeyIdentifier.startsWith('B_')) {
+  } else if (publicKeyIdentifier.startsWith(KEY_TYPE_PREFIXES[KEY_TYPE.ED448])) {
     return KEY_TYPE.ED448;
   } else {
-    throw new Error('Invalid public key identifier: missing key type prefix (A_ or B_)');
+    throw new Error(`Invalid public key identifier: missing key type prefix (${KEY_TYPE_PREFIXES[KEY_TYPE.ED25519]} or ${KEY_TYPE_PREFIXES[KEY_TYPE.ED448]})`);
   }
 }
 
@@ -172,7 +172,7 @@ export function getPublicKeyBytes(publicKeyIdentifier: string): Uint8Array {
   }
 
   // Special cases: if it starts with sc_ or gov_, return as-is
-  if (publicKeyIdentifier.startsWith('sc_') || publicKeyIdentifier.startsWith('gov_')) {
+  if (publicKeyIdentifier.startsWith(SPECIAL_PREFIXES.SMART_CONTRACT) || publicKeyIdentifier.startsWith(SPECIAL_PREFIXES.GOVERNANCE)) {
     return new Uint8Array(Buffer.from(publicKeyIdentifier, 'utf8'));
   }
 
@@ -210,29 +210,31 @@ export function getHashTypesFromPublicKey(publicKeyIdentifier: string): HashType
   }
 
   // Special cases: sc_ and gov_ don't have hash types
-  if (publicKeyIdentifier.startsWith('sc_') || publicKeyIdentifier.startsWith('gov_')) {
-    throw new Error('Special identifiers (sc_, gov_) do not have hash types');
+  if (publicKeyIdentifier.startsWith(SPECIAL_PREFIXES.SMART_CONTRACT) || publicKeyIdentifier.startsWith(SPECIAL_PREFIXES.GOVERNANCE)) {
+    throw new Error(`Special identifiers (${SPECIAL_PREFIXES.SMART_CONTRACT}, ${SPECIAL_PREFIXES.GOVERNANCE}) do not have hash types`);
   }
 
   let remaining = publicKeyIdentifier;
   
   // Skip key type prefix
-  if (remaining.startsWith('A_') || remaining.startsWith('B_')) {
+  if (remaining.startsWith(KEY_TYPE_PREFIXES[KEY_TYPE.ED25519]) || remaining.startsWith(KEY_TYPE_PREFIXES[KEY_TYPE.ED448])) {
     remaining = remaining.substring(2);
   } else {
-    throw new Error('Invalid public key identifier: missing key type prefix (A_ or B_)');
+    throw new Error(`Invalid public key identifier: missing key type prefix (${KEY_TYPE_PREFIXES[KEY_TYPE.ED25519]} or ${KEY_TYPE_PREFIXES[KEY_TYPE.ED448]})`);
   }
 
   // Extract hash types
   const hashTypes: HashType[] = [];
-  while (remaining.startsWith('a_') || remaining.startsWith('b_') || remaining.startsWith('c_')) {
-    if (remaining.startsWith('a_')) {
+  while (remaining.startsWith(HASH_TYPE_PREFIXES[HASH_TYPE.SHA3_256]) || 
+         remaining.startsWith(HASH_TYPE_PREFIXES[HASH_TYPE.SHA3_512]) || 
+         remaining.startsWith(HASH_TYPE_PREFIXES[HASH_TYPE.BLAKE3])) {
+    if (remaining.startsWith(HASH_TYPE_PREFIXES[HASH_TYPE.SHA3_256])) {
       hashTypes.push(HASH_TYPE.SHA3_256);
       remaining = remaining.substring(2);
-    } else if (remaining.startsWith('b_')) {
+    } else if (remaining.startsWith(HASH_TYPE_PREFIXES[HASH_TYPE.SHA3_512])) {
       hashTypes.push(HASH_TYPE.SHA3_512);
       remaining = remaining.substring(2);
-    } else if (remaining.startsWith('c_')) {
+    } else if (remaining.startsWith(HASH_TYPE_PREFIXES[HASH_TYPE.BLAKE3])) {
       hashTypes.push(HASH_TYPE.BLAKE3);
       remaining = remaining.substring(2);
     }
