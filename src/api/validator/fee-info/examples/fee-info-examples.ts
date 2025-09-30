@@ -4,7 +4,7 @@
  * Demonstrates how to use the fee info service to get comprehensive token fee information.
  */
 
-import { getTokenFeeInfo, getACETokenRates, getACETokenRate } from '../request.js';
+import { getTokenFeeInfo } from '../request.js';
 import Decimal from 'decimal.js';
 
 /**

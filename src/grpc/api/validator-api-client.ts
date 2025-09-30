@@ -8,7 +8,7 @@
 import { createGenericGRPCClient, makeGRPCCall } from '../generic-grpc-client.js';
 import bs58 from 'bs58';
 import type { GRPCConfig, GRPCClient } from '../../types/index.js';
-import type { TokenFeeInfoResponse } from '../../../../proto/generated/api_pb.js';
+import type { TokenFeeInfoResponse } from '../../../proto/generated/api_pb.js';
 
 /**
  * Validator API client interface

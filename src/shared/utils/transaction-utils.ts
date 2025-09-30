@@ -15,6 +15,7 @@ import {
   VARIABLE_TYPE
 } from '../../../proto/generated/txn_pb.js';
 import { toDecimal } from './amount-utils.js';
+import Decimal from 'decimal.js';
 
 // Re-export for external use
 export { 

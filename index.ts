@@ -35,35 +35,9 @@ export {
   type GRPCConfig
 } from './src/coin-txn/index.js';
 
-// Import API services
-export {
-  getExchangeRate,
-  type ExchangeRateServiceOptions
-} from './src/api/zv-indexer/rate/index.js';
 
-// Import gRPC infrastructure
-export {
-  createGenericGRPCClient,
-  makeGRPCCall,
-  createValidatorAPIClient,
-  createTransactionClient,
-  SERVICE_PORTS,
-  SERVICE_TYPES,
-  type GRPCClientOptions,
-  type GRPCClient
-} from './src/grpc/index.js';
 
-// Import shared utilities
-export {
-  TRANSACTION_TYPE,
-  CONTRACT_FEE_TYPE,
-  TXN_STATUS,
-  GOVERNANCE_TYPE,
-  CONTRACT_TYPE,
-  LANGUAGE,
-  PROPOSAL_PERIOD,
-  VARIABLE_TYPE
-} from './src/shared/protobuf/index.js';
+
 
 // Import error classes
 export {

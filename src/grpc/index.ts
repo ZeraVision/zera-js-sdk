@@ -11,9 +11,9 @@ import { createTransactionClient } from './transaction/transaction-client.js';
 
 // Service ports configuration
 export const SERVICE_PORTS = {
-  VALIDATOR: 50052,
+  VALIDATOR: 50051,
   TRANSACTION: 50052,
-  API: 50052
+  API: 50053
 } as const;
 
 // Service types
