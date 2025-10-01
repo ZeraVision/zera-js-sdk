@@ -10,6 +10,7 @@ import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/index.js';
 /**
  * Example 1: Basic Usage
  */
+basicUsageExample();
 async function basicUsageExample(): Promise<void> {
   console.log('Getting nonce for Alice\'s address...');
   

@@ -5,15 +5,39 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/keys.test.js';
+import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/keys.test';
 
 // Mock the gRPC dependencies at the top level
 vi.mock('@grpc/grpc-js', () => ({
   credentials: {
     createInsecure: vi.fn()
   },
-  Client: vi.fn(),
-  loadPackageDefinition: vi.fn()
+  Client: vi.fn().mockImplementation(() => ({
+    Nonce: vi.fn((request, callback) => {
+      // Check if address is empty and simulate error
+      if (!request.walletAddress || request.walletAddress.length === 0) {
+        callback(new Error('Invalid address'), null);
+      } else {
+        // Simulate successful gRPC call
+        callback(null, { nonce: '100' });
+      }
+    })
+  })),
+  loadPackageDefinition: vi.fn(() => ({
+    zera_api: {
+      APIService: vi.fn().mockImplementation(() => ({
+        Nonce: vi.fn((request, callback) => {
+          // Check if address is empty and simulate error
+          if (!request.walletAddress || request.walletAddress.length === 0) {
+            callback(new Error('Invalid address'), null);
+          } else {
+            // Simulate successful gRPC call
+            callback(null, { nonce: '100' });
+          }
+        })
+      }))
+    }
+  }))
 }));
 
 vi.mock('@grpc/proto-loader', () => ({
@@ -24,7 +48,12 @@ vi.mock('@grpc/proto-loader', () => ({
 // Mock the entire gRPC module to avoid import issues
 vi.mock('../../../grpc/generic-grpc-client.js', () => ({
   createGenericGRPCClient: vi.fn(() => ({
-    client: {},
+    client: {
+      Nonce: vi.fn((request, callback) => {
+        // Simulate successful gRPC call
+        callback(null, { nonce: '100' });
+      })
+    },
     proto: {
       zera_api: {
         APIService: {
@@ -35,28 +64,18 @@ vi.mock('../../../grpc/generic-grpc-client.js', () => ({
     host: 'test-host',
     port: 1234
   })),
-  makeGRPCCall: vi.fn().mockResolvedValue({ nonce: '100' })
+  makeGRPCCall: vi.fn((client, method, request) => {
+    // Simulate the gRPC call
+    return new Promise((resolve) => {
+      if (method === 'Nonce') {
+        resolve({ nonce: '100' });
+      } else {
+        resolve({});
+      }
+    });
+  })
 }));
 
-// Mock the validator API client directly
-vi.mock('../../../grpc/api/validator-api-client.js', () => ({
-  createValidatorAPIClient: vi.fn(() => ({
-    client: {},
-    proto: {
-      zera_api: {
-        APIService: {
-          Nonce: vi.fn()
-        }
-      }
-    },
-    host: 'test-host',
-    port: 1234,
-    serviceName: 'APIService',
-    getNonce: vi.fn().mockResolvedValue({ nonce: '100' }),
-    getACETokens: vi.fn().mockResolvedValue({ tokens: [] }),
-    getTokenFeeInfo: vi.fn().mockResolvedValue({})
-  }))
-}));
 
 // Import after mocking
 import { getNonce, getNonces } from '../service.js';
