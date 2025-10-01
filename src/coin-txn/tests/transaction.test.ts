@@ -63,9 +63,9 @@ describe('Transaction Unit Tests', () => {
   describe('Amount Validation', () => {
     it('should validate valid amounts', () => {
       const validAmounts = [
-        '1000000', // 1 ZRA in microZRA
-        '5000000', // 5 ZRA
-        '1000000000', // 1000 ZRA
+        '1000000000', // 1 ZRA in Zerite
+        '5000000000', // 5 ZRA
+        '1000000000000', // 1000 ZRA
         '1' // Minimum amount
       ];
 
@@ -94,8 +94,8 @@ describe('Transaction Unit Tests', () => {
 
   describe('Address Validation', () => {
     it('should validate valid addresses', () => {
-      const senderResult = validateBase58Address(ED25519_TEST_KEYS.alice.address);
-      const recipientResult = validateBase58Address(ED25519_TEST_KEYS.bob.address);
+      const senderResult = validateBase58Address(TEST_WALLET_ADDRESSES.alice);
+      const recipientResult = validateBase58Address(TEST_WALLET_ADDRESSES.bob);
       expect(senderResult.isValid).toBe(true);
       expect(recipientResult.isValid).toBe(true);
     });
@@ -119,14 +119,14 @@ describe('Transaction Unit Tests', () => {
 
   describe('Wallet Integration', () => {
     it('should have different addresses', () => {
-      expect(ED25519_TEST_KEYS.alice.address).toBeDefined();
-      expect(ED25519_TEST_KEYS.bob.address).toBeDefined();
-      expect(ED25519_TEST_KEYS.alice.address).not.toBe(ED25519_TEST_KEYS.bob.address);
+      expect(TEST_WALLET_ADDRESSES.alice).toBeDefined();
+      expect(TEST_WALLET_ADDRESSES.bob).toBeDefined();
+      expect(TEST_WALLET_ADDRESSES.alice).not.toBe(TEST_WALLET_ADDRESSES.bob);
     });
 
     it('should have valid addresses', () => {
-      expect(ED25519_TEST_KEYS.alice.address).toMatch(/^[A-Za-z0-9]+$/);
-      expect(ED25519_TEST_KEYS.bob.address).toMatch(/^[A-Za-z0-9]+$/);
+      expect(TEST_WALLET_ADDRESSES.alice).toMatch(/^[A-Za-z0-9]+$/);
+      expect(TEST_WALLET_ADDRESSES.bob).toMatch(/^[A-Za-z0-9]+$/);
     });
 
     it('should have valid public keys', () => {

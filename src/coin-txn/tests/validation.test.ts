@@ -15,9 +15,9 @@ describe('Transaction Validation Tests', () => {
   describe('Amount Validation', () => {
     it('should validate valid amounts', () => {
       const validAmounts = [
-        '1000000', // 1 ZRA in microZRA
-        '5000000', // 5 ZRA
-        '1000000000', // 1000 ZRA
+        '1000000000', // 1 ZRA in zerite
+        '5000000000', // 5 ZRA
+        '1000000000000', // 1000 ZRA
         '1' // Minimum amount
       ];
 

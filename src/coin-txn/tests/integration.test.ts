@@ -186,9 +186,9 @@ describe('Transaction Integration Tests', () => {
     });
 
     it('should validate wallet addresses', () => {
-      const validAddress = validateBase58Address(ED25519_TEST_KEYS.alice.address);
+      const validAddress = validateBase58Address(TEST_WALLET_ADDRESSES.alice);
       expect(validAddress.isValid).toBe(true);
-      expect(validAddress.value).toBe(ED25519_TEST_KEYS.alice.address);
+      expect(validAddress.value).toBe(TEST_WALLET_ADDRESSES.alice);
 
       const invalidAddress = validateBase58Address('invalid-address');
       expect(invalidAddress.isValid).toBe(false);
@@ -533,7 +533,7 @@ describe('Transaction Integration Tests', () => {
         'Submission test transaction'
       );
 
-      // This will likely fail in test environment, but should handle gracefully
+      // This may fail in test environment, but should handle gracefully
       try {
         await sendCoinTXN(transaction);
       } catch (error) {
