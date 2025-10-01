@@ -24,7 +24,6 @@ import { TESTING_GRPC_CONFIG } from '../../shared/utils/testing-defaults/grpc-co
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
-exampleSimpleTransfer();
 export async function exampleSimpleTransfer(): Promise<void> {
   console.log('💸 Example 1: Simple Transfer');
   
