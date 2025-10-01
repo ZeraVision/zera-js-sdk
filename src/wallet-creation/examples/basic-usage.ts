@@ -116,10 +116,3 @@ async function demonstrateBasicUsage() {
     console.error('❌ Example failed:', errorMessage);
   }
 }
-
-// Run example if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  demonstrateBasicUsage();
-}
-
-export { demonstrateBasicUsage };

@@ -25,7 +25,7 @@ async function testZeraNetworkConstants(): Promise<void> {
   assert.equal(ZERA_TYPE, 1110, 'ZERA_TYPE should be 1110');
   assert.equal(ZERA_TYPE_HEX, '0x80000456', 'ZERA_TYPE_HEX should be 0x80000456');
   assert.equal(ZERA_SYMBOL, 'ZRA', 'ZERA_SYMBOL should be ZRA');
-  assert.equal(ZERA_NAME, 'ZERA', 'ZERA_NAME should be ZRA');
+  assert.equal(ZERA_NAME, 'ZERA', 'ZERA_NAME should be ZERA');
 }
 
 /**

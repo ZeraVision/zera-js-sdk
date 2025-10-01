@@ -423,11 +423,5 @@ export async function exampleErrorHandling(): Promise<void> {
     console.log('✅ Error caught successfully!');
     console.log('  Error type:', (error as Error).constructor.name);
     console.log('  Error message:', (error as Error).message);
-    
-    // In a real application, you would handle this error appropriately
-    // - Log it for debugging
-    // - Show user-friendly message
-    // - Retry with corrected data
-    // - etc.
   }
 }

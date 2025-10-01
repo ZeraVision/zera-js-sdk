@@ -9,7 +9,7 @@ import {
   generateSeed, 
   buildDerivationPath 
 } from '../hd-utils.js';
-import { KEY_TYPE, HASH_TYPE } from '../constants.js';
+import { KEY_TYPE } from '../constants.js';
 
 /**
  * Test SLIP-0010 HD Wallet implementation
