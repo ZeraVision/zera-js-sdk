@@ -1,63 +1,23 @@
 /**
  * Contract Fee Constants
- * Hardcoded fallback values for contract fees when API is unavailable
+ * Production fallback values for contract fees when API is unavailable
  * 
- * Each contract can specify:
- * - feeType: FIXED, PERCENTAGE, CUR_EQUIVALENT, or NONE
- * - feeAmount: The fee amount or percentage
- * - allowedFeeIds: Array of contract IDs that can be used to pay the fee
+ * This file contains only production-ready contract fee configurations.
  */
 
 import { CONTRACT_FEE_TYPE } from '../protobuf/index.js';
-
-export interface ContractFeeConfig {
-  feeType: number;
-  feeAmount: string;
-  allowedFeeIds: string[];
-}
+import type { ContractFeeConfig } from './types.js';
 
 /**
- * Contract fee configuration fallback data
+ * Production contract fee configuration fallback data
  * This serves as a fallback when the API is unavailable
+ * 
+ * Note: This should only contain real, production contract configurations.
+ * Only used for production fallbacks when the data is unavailable.
  */
 export const CONTRACT_FEE_CONFIG: Record<string, ContractFeeConfig> = {
-  // Test contract configurations
-  '$TESTFEE+0000': {
-    feeType: CONTRACT_FEE_TYPE.FIXED,
-    feeAmount: '0.001', // 0.001 TESTFEE fixed fee
-    allowedFeeIds: ['$TESTFEE+0000', '$ZRA+0000']
-  },
-  
-  '$TESTFEE+0001': {
-    feeType: CONTRACT_FEE_TYPE.CUR_EQUIVALENT,
-    feeAmount: '0.01', // $0.01 USD equivalent (rate fetched from API)
-    allowedFeeIds: ['$TESTFEE+0001', '$ZRA+0000']
-  },
-  
-  '$TESTFEE+0002': {
-    feeType: CONTRACT_FEE_TYPE.PERCENTAGE,
-    feeAmount: '0.5', // 0.5% of transaction amount
-    allowedFeeIds: ['$TESTFEE+0002', '$ZRA+0000']
-  },
-  
-  // Additional example contracts
-  '$BTC+1234': {
-    feeType: CONTRACT_FEE_TYPE.FIXED,
-    feeAmount: '0.0001', // 0.0001 BTC fixed fee
-    allowedFeeIds: ['$BTC+1234', '$ZRA+0000']
-  },
-  
-  '$ETH+5678': {
-    feeType: CONTRACT_FEE_TYPE.PERCENTAGE,
-    feeAmount: '0.25', // 0.25% of transaction amount
-    allowedFeeIds: ['$ETH+5678', '$ZRA+0000']
-  },
-  
-  '$USDC+9999': {
-    feeType: CONTRACT_FEE_TYPE.CUR_EQUIVALENT,
-    feeAmount: '0.01', // $0.01 USD equivalent
-    allowedFeeIds: ['$USDC+9999', '$ZRA+0000']
-  }
+  // Production contract configurations will be added here as needed
+  // Currently empty - all contract fees should be fetched from API
 };
 
 /**
@@ -104,27 +64,6 @@ export function getAllowedFeeContractIds(contractId: string): string[] {
 }
 
 /**
- * Add or update contract fee configuration
- * @param contractId - Contract ID
- * @param config - Contract fee configuration
- */
-export function setContractFeeConfig(contractId: string, config: Partial<ContractFeeConfig>): void {
-  CONTRACT_FEE_CONFIG[contractId] = {
-    feeType: config.feeType || CONTRACT_FEE_TYPE.NONE,
-    feeAmount: config.feeAmount || '0',
-    allowedFeeIds: config.allowedFeeIds || ['$ZRA+0000']
-  };
-}
-
-/**
- * Remove contract fee configuration
- * @param contractId - Contract ID to remove
- */
-export function removeContractFeeConfig(contractId: string): void {
-  delete CONTRACT_FEE_CONFIG[contractId];
-}
-
-/**
  * Get all configured contract IDs
  * @returns Array of all configured contract IDs
  */
@@ -138,7 +77,5 @@ export default {
   getContractFeeConfig,
   isFeeContractIdAllowed,
   getAllowedFeeContractIds,
-  setContractFeeConfig,
-  removeContractFeeConfig,
   getAllConfiguredContractIds
 };
