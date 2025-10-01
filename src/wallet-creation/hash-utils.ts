@@ -94,12 +94,12 @@ export function getHashFunction(hashType: HashType): (data: Uint8Array) => Uint8
 /**
  * Validate hash types array
  */
-export function validateHashTypes(hashTypes: any[]): hashTypes is HashType[] {
-  if (!Array.isArray(hashTypes) || hashTypes.length === 0) {
+export function validateHashTypes(hashTypes: HashType[]): boolean {
+  if (hashTypes.length === 0) {
     return false;
   }
   
-  return hashTypes.every(hashType => VALID_HASH_TYPES.includes(hashType as HashType));
+  return hashTypes.every(hashType => VALID_HASH_TYPES.includes(hashType));
 }
 
 /**

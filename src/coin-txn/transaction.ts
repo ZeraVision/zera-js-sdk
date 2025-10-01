@@ -44,11 +44,7 @@ import type {
  * ContractID should follow the format: $[letters]+[4 digits]
  * Examples: $ZRA+0000, $BTC+1234, $ETH+9999
  */
-export function validateContractId(contractId: string): contractId is ContractId {
-  if (!contractId) {
-    return false;
-  }
-  
+export function validateContractId(contractId: ContractId): boolean {
   // Regex: $ followed by one or more letters, then + followed by exactly 4 digits
   const contractIdRegex = /^\$[A-Za-z]+\+\d{4}$/;
   return contractIdRegex.test(contractId);

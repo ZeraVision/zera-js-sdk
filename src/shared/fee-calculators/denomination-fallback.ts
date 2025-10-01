@@ -61,7 +61,7 @@ export function addDenominationFallback(contractId: ContractId, denomination: st
     throw new Error('Denomination must be a valid number string');
   }
   
-  (DENOMINATION_FALLBACKS as any)[contractId] = denomination;
+  (DENOMINATION_FALLBACKS as Record<string, string>)[contractId] = denomination;
 }
 
 /**

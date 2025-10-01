@@ -20,7 +20,7 @@ import bs58 from 'bs58';
  * - Performance testing
  * - Legacy key support
  */
-async function testEd448(): Promise<{ success: boolean; results: any }> {
+async function testEd448(): Promise<{ success: boolean; results: Record<string, string | number | boolean> }> {
   console.log('🔍 Testing ED448 Implementation\n');
   
   try {

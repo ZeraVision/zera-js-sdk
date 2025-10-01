@@ -57,10 +57,23 @@ export interface ContractFeeCalculationResult {
 }
 
 /**
+ * Contract fee configuration interface
+ */
+export interface ContractFeeConfig {
+  feeType: number;
+  feeAmount: string;
+  allowedFeeIds: string[];
+  feePercentage?: number;
+  minimumFee?: string;
+  maximumFee?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Cache entry
  */
 interface CacheEntry {
-  data: any;
+  data: ContractFeeConfig;
   timestamp: number;
 }
 
@@ -84,7 +97,7 @@ export class ContractFeeService {
   /**
    * Get contract fee information for a given contract ID
    */
-  async getContractFeeInfo(contractId: ContractId): Promise<any> {
+  async getContractFeeInfo(contractId: ContractId): Promise<ContractFeeConfig> {
     if (!contractId) {
       return DEFAULT_CONTRACT_FEE_CONFIG;
     }
@@ -138,7 +151,7 @@ export class ContractFeeService {
   /**
    * Fetch contract fee information from API
    */
-  async fetchContractFeeFromAPI(contractId: ContractId): Promise<any | null> {
+  async fetchContractFeeFromAPI(contractId: ContractId): Promise<ContractFeeConfig | null> {
     try {
       // TODO: Replace with actual API call when implemented
       // For now, this is a placeholder that always returns null
@@ -159,18 +172,23 @@ export class ContractFeeService {
   /**
    * Normalize API response data to standard format
    */
-  normalizeAPIData(apiData: any): any {
+  normalizeAPIData(apiData: Record<string, unknown>): ContractFeeConfig {
     return {
       feeType: this.normalizeFeeType(apiData.feeType || apiData.fee_type),
-      feeAmount: apiData.feeAmount || apiData.fee_amount || '0',
-      allowedFeeIds: apiData.allowedFeeIds || apiData.allowed_fee_ids || ['$ZRA+0000']
+      feeAmount: String(apiData.feeAmount || apiData.fee_amount || '0'),
+      allowedFeeIds: Array.isArray(apiData.allowedFeeIds) ? apiData.allowedFeeIds as string[] : 
+                     Array.isArray(apiData.allowed_fee_ids) ? apiData.allowed_fee_ids as string[] : 
+                     ['$ZRA+0000'],
+      feePercentage: typeof apiData.feePercentage === 'number' ? apiData.feePercentage : undefined,
+      minimumFee: typeof apiData.minimumFee === 'string' ? apiData.minimumFee : undefined,
+      maximumFee: typeof apiData.maximumFee === 'string' ? apiData.maximumFee : undefined
     };
   }
 
   /**
    * Normalize fee type from API response
    */
-  normalizeFeeType(feeType: string | number): number {
+  normalizeFeeType(feeType: unknown): number {
     if (typeof feeType === 'number') {
       return feeType;
     }
@@ -186,7 +204,7 @@ export class ContractFeeService {
       'none': CONTRACT_FEE_TYPE.NONE
     };
 
-    return typeMap[feeType] || CONTRACT_FEE_TYPE.NONE;
+    return typeMap[String(feeType).toUpperCase()] || CONTRACT_FEE_TYPE.FIXED;
   }
 
   /**
@@ -194,7 +212,7 @@ export class ContractFeeService {
    */
   async isFeeContractIdAllowed(contractId: ContractId, feeContractId: ContractId): Promise<boolean> {
     const feeInfo = await this.getContractFeeInfo(contractId);
-    return feeInfo.allowedFeeIds.includes(feeContractId);
+    return (feeInfo.allowedFeeIds as string[]).includes(feeContractId);
   }
 
   /**
@@ -207,8 +225,8 @@ export class ContractFeeService {
     const feeInfo = await this.getContractFeeInfo(contractId);
 
     // If fee contract ID is specified, validate it
-    if (feeContractId && !feeInfo.allowedFeeIds.includes(feeContractId)) {
-      throw new Error(`Fee contract ID ${feeContractId} is not allowed for contract ${contractId}. Allowed IDs: ${feeInfo.allowedFeeIds.join(', ')}`);
+    if (feeContractId && !(feeInfo.allowedFeeIds as string[]).includes(feeContractId)) {
+      throw new Error(`Fee contract ID ${feeContractId} is not allowed for contract ${contractId}. Allowed IDs: ${(feeInfo.allowedFeeIds as string[]).join(', ')}`);
     }
 
     // Calculate fee based on type
@@ -229,7 +247,7 @@ export class ContractFeeService {
         
         // OPTIMIZATION: If transaction and fee contract IDs are the same, skip USD conversion
         const txContractId = transactionContractId || contractId;
-        const feeContractIdToUse = feeContractId || feeInfo.allowedFeeIds[0];
+        const feeContractIdToUse = feeContractId || (feeInfo.allowedFeeIds as string[])[0];
         
         if (txContractId === feeContractIdToUse) {
           // Same currency - direct percentage calculation without USD conversion
@@ -250,7 +268,7 @@ export class ContractFeeService {
         // Currency equivalent fee - convert USD amount to fee contract ID
         calculatedFeeDecimal = await this.convertCurrencyEquivalentFee(
           feeAmountDecimal,
-          feeContractId || feeInfo.allowedFeeIds[0],
+          feeContractId || (feeInfo.allowedFeeIds as string[])[0],
           exchangeRates
         );
         break;
@@ -267,16 +285,16 @@ export class ContractFeeService {
       contractId: contractId,
       contractFeeType: feeInfo.feeType,
       contractFeeAmount: feeInfo.feeAmount,
-      feeContractId: feeContractId || feeInfo.allowedFeeIds[0],
-      allowedFeeIds: feeInfo.allowedFeeIds,
+      feeContractId: feeContractId || (feeInfo.allowedFeeIds as string[])[0],
+      allowedFeeIds: feeInfo.allowedFeeIds as string[],
       breakdown: {
         contractId: contractId,
         contractFeeType: feeInfo.feeType,
         contractFeeAmount: feeInfo.feeAmount,
         transactionAmount: transactionAmountDecimal.toString(),
         calculatedFee: calculatedFeeDecimal.toString(),
-        feeContractId: feeContractId || feeInfo.allowedFeeIds[0],
-        allowedFeeIds: feeInfo.allowedFeeIds,
+        feeContractId: feeContractId || (feeInfo.allowedFeeIds as string[])[0],
+        allowedFeeIds: feeInfo.allowedFeeIds as string[],
         transactionContractId: transactionContractId || contractId
       }
     };

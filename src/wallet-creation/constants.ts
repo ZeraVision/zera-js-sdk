@@ -125,12 +125,12 @@ export const ERROR_MESSAGES = {
 // WALLET-SPECIFIC VALIDATION FUNCTIONS
 // ============================================================================
 
-export function isValidMnemonicLength(length: any): length is MnemonicLength {
-  return MNEMONIC_LENGTHS.includes(length as MnemonicLength);
+export function isValidMnemonicLength(length: MnemonicLength): boolean {
+  return MNEMONIC_LENGTHS.includes(length);
 }
 
-export function validateSLIP0010Path(path: any): path is string {
-  if (!path || typeof path !== 'string') return false;
+export function validateSLIP0010Path(path: string): boolean {
+  if (!path) return false;
   if (!path.startsWith('m/')) return false;
   
   const parts = path.split('/');

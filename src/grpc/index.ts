@@ -1,6 +1,6 @@
 import { createGenericGRPCClient, makeGRPCCall } from './generic-grpc-client.js';
-import { createValidatorAPIClient } from './api/validator-api-client.js';
-import { createTransactionClient } from './transaction/transaction-client.js';
+import { createValidatorAPIClient, type ValidatorAPIClient } from './api/validator-api-client.js';
+import { createTransactionClient, type TransactionClient } from './transaction/transaction-client.js';
 
 /**
  * gRPC Infrastructure Module
@@ -34,14 +34,14 @@ export type { GRPCClientOptions, GRPCClient } from '../types/index.js';
 /**
  * Create a gRPC client for validator API
  */
-export function createValidatorClient(host: string = 'routing.zerascan.io', port: number = 50052): any {
+export function createValidatorClient(host: string = 'routing.zerascan.io', port: number = 50052): ValidatorAPIClient {
   return createValidatorAPIClient({ host, port });
 }
 
 /**
  * Create a gRPC client for transaction services
  */
-export function createTxnClient(host: string = 'routing.zerascan.io', port: number = 50052): any {
+export function createTxnClient(host: string = 'routing.zerascan.io', port: number = 50052): TransactionClient {
   return createTransactionClient({ host, port });
 }
 

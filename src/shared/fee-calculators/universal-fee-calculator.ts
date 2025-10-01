@@ -135,36 +135,45 @@ export type TransactionMessage =
 /**
  * Type guard to check if an object is a CoinTXN
  */
-function isCoinTXN(obj: any): obj is CoinTXN {
-  return obj && (obj.$typeName === 'zera_txn.CoinTXN' || (obj.base && obj.contractId));
+function isCoinTXN(obj: unknown): obj is CoinTXN {
+  return !!(obj && typeof obj === 'object' && (
+    (obj as Record<string, unknown>).$typeName === 'zera_txn.CoinTXN' || 
+    ((obj as Record<string, unknown>).base && (obj as Record<string, unknown>).contractId)
+  ));
 }
 
 /**
  * Type guard to check if an object is a MintTXN
  */
-function isMintTXN(obj: any): obj is MintTXN {
-  return obj && (obj.$typeName === 'zera_txn.MintTXN' || (obj.base && obj.mintTxn));
+function isMintTXN(obj: unknown): obj is MintTXN {
+  return !!(obj && typeof obj === 'object' && (
+    (obj as Record<string, unknown>).$typeName === 'zera_txn.MintTXN' || 
+    ((obj as Record<string, unknown>).base && (obj as Record<string, unknown>).mintTxn)
+  ));
 }
 
 /**
  * Type guard to check if an object is an InstrumentContract
  */
-function isInstrumentContract(obj: any): obj is InstrumentContract {
-  return obj && (obj.$typeName === 'zera_txn.InstrumentContract' || (obj.base && obj.instrumentContract));
+function isInstrumentContract(obj: unknown): obj is InstrumentContract {
+  return !!(obj && typeof obj === 'object' && (
+    (obj as Record<string, unknown>).$typeName === 'zera_txn.InstrumentContract' || 
+    ((obj as Record<string, unknown>).base && (obj as Record<string, unknown>).instrumentContract)
+  ));
 }
 
 /**
  * Type guard to check if an object has auth property (CoinTXN)
  */
-function hasAuthProperty(obj: any): obj is { auth: any } {
-  return obj && obj.auth;
+function hasAuthProperty(obj: unknown): obj is { auth: unknown } {
+  return !!(obj && typeof obj === 'object' && 'auth' in (obj as Record<string, unknown>));
 }
 
 /**
  * Type guard to check if an object has base property
  */
-function hasBaseProperty(obj: any): obj is { base: any } {
-  return obj && obj.base;
+function hasBaseProperty(obj: unknown): obj is { base: unknown } {
+  return !!(obj && typeof obj === 'object' && 'base' in (obj as Record<string, unknown>));
 }
 
 /**
@@ -382,12 +391,18 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): { keyT
   
   try {
     // Check if this is a CoinTXN (has auth field with publicKey array)
-    if (hasAuthProperty(protoObject) && protoObject.auth.publicKey && Array.isArray(protoObject.auth.publicKey)) {
+    if (hasAuthProperty(protoObject) && 
+        typeof protoObject.auth === 'object' && 
+        protoObject.auth !== null &&
+        'publicKey' in protoObject.auth && 
+        Array.isArray((protoObject.auth as Record<string, unknown>).publicKey)) {
       // CoinTXN: extract key types from TransferAuthentication.publicKey array
-      for (const publicKey of protoObject.auth.publicKey) {
-        if (publicKey.single) {
+      const authObj = protoObject.auth as Record<string, unknown>;
+      for (const publicKey of authObj.publicKey as unknown[]) {
+        if (typeof publicKey === 'object' && publicKey !== null && 'single' in publicKey) {
+          const publicKeyObj = publicKey as Record<string, unknown>;
           // Single key - convert bytes back to string identifier for key type detection
-          const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+          const publicKeyString = Buffer.from(publicKeyObj.single as Uint8Array).toString('utf8');
           
           // Check if this public key is restricted (starts with 'r_')
           if (publicKeyString.startsWith('r_')) {
@@ -396,15 +411,23 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): { keyT
           
           const keyType = extractKeyTypeFromIdentifier(publicKeyString);
           keyTypes.push(keyType);
-        } else if (publicKey.multi && publicKey.multi.publicKeys) {
-          throw new Error('multi signature wallet not yet supported in SDK'); // TODO
+        } else if (typeof publicKey === 'object' && publicKey !== null && 'multi' in publicKey) {
+          const publicKeyObj = publicKey as Record<string, unknown>;
+          if (publicKeyObj.multi && typeof publicKeyObj.multi === 'object' && publicKeyObj.multi !== null && 'publicKeys' in publicKeyObj.multi) {
+            throw new Error('multi signature wallet not yet supported in SDK'); // TODO
+          }
         }
       }
-    } else if (hasBaseProperty(protoObject) && protoObject.base.publicKey) {
+    } else if (hasBaseProperty(protoObject) && 
+               typeof protoObject.base === 'object' && 
+               protoObject.base !== null &&
+               'publicKey' in protoObject.base) {
       // Non-CoinTXN: extract key type from BaseTXN.public_key
-      const publicKey = protoObject.base.publicKey;
-      if (publicKey.single) {
-        const publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+      const baseObj = protoObject.base as Record<string, unknown>;
+      const publicKey = baseObj.publicKey;
+      if (typeof publicKey === 'object' && publicKey !== null && 'single' in publicKey) {
+        const publicKeyObj = publicKey as Record<string, unknown>;
+        const publicKeyString = Buffer.from(publicKeyObj.single as Uint8Array).toString('utf8');
         
         // Check if this public key is restricted (starts with 'r_')
         if (publicKeyString.startsWith('r_')) {
@@ -413,8 +436,11 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): { keyT
         
         const keyType = extractKeyTypeFromIdentifier(publicKeyString);
         keyTypes.push(keyType);
-      } else if (publicKey.multi && publicKey.multi.publicKeys) {
-        throw new Error('multi signature wallet not yet supported in SDK'); // TODO
+      } else if (typeof publicKey === 'object' && publicKey !== null && 'multi' in publicKey) {
+        const publicKeyObj = publicKey as Record<string, unknown>;
+        if (publicKeyObj.multi && typeof publicKeyObj.multi === 'object' && publicKeyObj.multi !== null && 'publicKeys' in publicKeyObj.multi) {
+          throw new Error('multi signature wallet not yet supported in SDK'); // TODO
+        }
       }
     }
   } catch (error) {
@@ -423,9 +449,15 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): { keyT
   
   // Throw error if no key types found
   if (keyTypes.length === 0) {
-    if (hasAuthProperty(protoObject) && protoObject.auth.publicKey) {
+    if (hasAuthProperty(protoObject) && 
+        typeof protoObject.auth === 'object' && 
+        protoObject.auth !== null &&
+        'publicKey' in protoObject.auth) {
       throw new Error('Failed to detect key types from CoinTXN transaction. Check that publicKey array contains valid key structures.');
-    } else if (hasBaseProperty(protoObject) && protoObject.base.publicKey) {
+    } else if (hasBaseProperty(protoObject) && 
+               typeof protoObject.base === 'object' && 
+               protoObject.base !== null &&
+               'publicKey' in protoObject.base) {
       throw new Error('Failed to detect key type from BaseTXN transaction. Check that publicKey contains valid key structure.');
     } else {
       throw new Error('Failed to detect key types from transaction. Transaction must have either auth.publicKey (CoinTXN) or base.publicKey (other types).');
@@ -443,12 +475,18 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
   
   try {
     // Check if this is a CoinTXN (has auth field with publicKey array)
-    if (hasAuthProperty(protoObject) && protoObject.auth.publicKey && Array.isArray(protoObject.auth.publicKey)) {
+    if (hasAuthProperty(protoObject) && 
+        typeof protoObject.auth === 'object' && 
+        protoObject.auth !== null &&
+        'publicKey' in protoObject.auth && 
+        Array.isArray((protoObject.auth as Record<string, unknown>).publicKey)) {
       // CoinTXN: extract hash types from TransferAuthentication.publicKey array
-      for (const publicKey of protoObject.auth.publicKey) {
-        if (publicKey.single) {
+      const authObj = protoObject.auth as Record<string, unknown>;
+      for (const publicKey of authObj.publicKey as unknown[]) {
+        if (typeof publicKey === 'object' && publicKey !== null && 'single' in publicKey) {
+          const publicKeyObj = publicKey as Record<string, unknown>;
           // Single key - convert bytes back to string identifier for hash type detection
-          let publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+          let publicKeyString = Buffer.from(publicKeyObj.single as Uint8Array).toString('utf8');
           
           // Remove 'r_' prefix if present to get clean hash types
           if (publicKeyString.startsWith('r_')) {
@@ -462,15 +500,23 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
             // If we can't extract hash types from this key, skip it
             console.warn(`Failed to extract hash types from key: ${error instanceof Error ? error.message : String(error)}`);
           }
-        } else if (publicKey.multi && publicKey.multi.publicKeys) {
-          throw new Error('multi signature wallet not yet supported in SDK');
+        } else if (typeof publicKey === 'object' && publicKey !== null && 'multi' in publicKey) {
+          const publicKeyObj = publicKey as Record<string, unknown>;
+          if (publicKeyObj.multi && typeof publicKeyObj.multi === 'object' && publicKeyObj.multi !== null && 'publicKeys' in publicKeyObj.multi) {
+            throw new Error('multi signature wallet not yet supported in SDK');
+          }
         }
       }
-    } else if (hasBaseProperty(protoObject) && protoObject.base.publicKey) {
+    } else if (hasBaseProperty(protoObject) && 
+               typeof protoObject.base === 'object' && 
+               protoObject.base !== null &&
+               'publicKey' in protoObject.base) {
       // Non-CoinTXN: extract hash types from BaseTXN.public_key
-      const publicKey = protoObject.base.publicKey;
-      if (publicKey.single) {
-        let publicKeyString = Buffer.from(publicKey.single).toString('utf8');
+      const baseObj = protoObject.base as Record<string, unknown>;
+      const publicKey = baseObj.publicKey;
+      if (typeof publicKey === 'object' && publicKey !== null && 'single' in publicKey) {
+        const publicKeyObj = publicKey as Record<string, unknown>;
+        let publicKeyString = Buffer.from(publicKeyObj.single as Uint8Array).toString('utf8');
         
         // Remove 'r_' prefix if present to get clean hash types
         if (publicKeyString.startsWith('r_')) {
@@ -484,8 +530,11 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
           // If we can't extract hash types from this key, skip it
           console.warn(`Failed to extract hash types from key: ${error instanceof Error ? error.message : String(error)}`);
         }
-      } else if (publicKey.multi && publicKey.multi.publicKeys) {
-        throw new Error('multi signature wallet not yet supported in SDK');
+      } else if (typeof publicKey === 'object' && publicKey !== null && 'multi' in publicKey) {
+        const publicKeyObj = publicKey as Record<string, unknown>;
+        if (publicKeyObj.multi && typeof publicKeyObj.multi === 'object' && publicKeyObj.multi !== null && 'publicKeys' in publicKeyObj.multi) {
+          throw new Error('multi signature wallet not yet supported in SDK');
+        }
       }
     }
   } catch (error) {
@@ -708,7 +757,7 @@ async function calculateContractFeeWithService(
     
     if (contractId && outputTransfers.length > 0) {
       // Calculate transaction amount only when needed for contract fee calculation
-      const outputAmounts = outputTransfers.map((o: any) => toSmallestUnits(o.amount, baseFeeId));
+      const outputAmounts = outputTransfers.map((o: { amount: string | number }) => toSmallestUnits(o.amount, baseFeeId));
       const transactionAmount = outputAmounts.reduce((sum: string, amount: string) => {
         return addAmounts(sum, amount).toString();
       }, '0');
@@ -998,7 +1047,7 @@ export class UniversalFeeCalculator {
   /**
    * Update fee constants
    */
-  static updateFeeConstants(newConstants: any) {
+  static updateFeeConstants(newConstants: Record<string, unknown>) {
     updateFeeConstants(newConstants);
   }
 

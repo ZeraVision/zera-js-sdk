@@ -61,10 +61,10 @@ export const SPECIAL_PREFIXES = {
 // VALIDATION FUNCTIONS
 // ============================================================================
 
-export function isValidKeyType(keyType: any): keyType is KeyType {
-  return VALID_KEY_TYPES.includes(keyType as KeyType);
+export function isValidKeyType(keyType: KeyType): boolean {
+  return VALID_KEY_TYPES.includes(keyType);
 }
 
-export function isValidHashType(hashType: any): hashType is HashType {
-  return VALID_HASH_TYPES.includes(hashType as HashType);
+export function isValidHashType(hashType: HashType): boolean {
+  return VALID_HASH_TYPES.includes(hashType);
 }

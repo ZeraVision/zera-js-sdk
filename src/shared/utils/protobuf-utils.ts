@@ -47,7 +47,7 @@ export function sanitizeProtobufObject<T = unknown>(
   }
   
   if (typeof obj === 'object') {
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     
     for (const [key, value] of Object.entries(obj)) {
       // Always preserve protobuf metadata fields (starting with $)
@@ -105,7 +105,7 @@ export function createSanitized(schema: any, data: any): any {
 /**
  * Sanitize object for serialization (BigInt conversion)
  */
-export function sanitizeForSerialization<T = unknown>(obj: T): T | undefined {
+export function sanitizeForSerialization<T = any>(obj: T): T | undefined {
   return sanitizeProtobufObject(obj, { convertBigInt: true });
 }
 

@@ -9,7 +9,7 @@ export interface UniversalGRPCServiceOptions {
   host?: string;
   port?: number;
   protocol?: string;
-  nodeOptions?: any;
+  nodeOptions?: Record<string, unknown>;
   endpoint?: string;
 }
 
@@ -20,11 +20,11 @@ export class UniversalGRPCService {
   public host: string;
   public port: number;
   public protocol: string;
-  public nodeOptions: any;
+  public nodeOptions: Record<string, unknown>;
   public endpoint?: string;
   
   // Lazy-loaded service class (created on first use)
-  private _serviceClass: any = null;
+  private _serviceClass: unknown = null;
 
   constructor(options: UniversalGRPCServiceOptions = {}) {
     this.host = options.host || 'routing.zerascan.io';

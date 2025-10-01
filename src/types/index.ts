@@ -310,9 +310,9 @@ export interface GRPCClientOptions {
  */
 export interface GRPCClient {
   /** The gRPC client instance */
-  client: any;
+  client: Record<string, unknown>;
   /** Proto definition */
-  proto: any;
+  proto: Record<string, unknown>;
   /** Service name */
   serviceName: string;
   /** Host */
@@ -393,8 +393,7 @@ export { isValidKeyType, isValidHashType, isValidMnemonicLength };
 /**
  * Type guard for contract ID validation
  */
-export function isValidContractId(value: any): value is ContractId {
-  if (typeof value !== 'string') return false;
+export function isValidContractId(contractId: ContractId): boolean {
   const contractIdRegex = /^\$[A-Za-z]+\+\d{4}$/;
-  return contractIdRegex.test(value);
+  return contractIdRegex.test(contractId);
 }

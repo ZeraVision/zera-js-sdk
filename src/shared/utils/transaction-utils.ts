@@ -29,6 +29,42 @@ export {
   VARIABLE_TYPE
 };
 
+// ============================================================================
+// TRANSACTION INTERFACES
+// ============================================================================
+
+/**
+ * Base transaction interface
+ */
+export interface BaseTransaction {
+  id: string;
+  type: string;
+  from: string;
+  to: string;
+  amount: number;
+  memo?: string;
+  fee?: number;
+  status: string;
+  timestamp: number;
+  createdAt: string;
+}
+
+/**
+ * Transaction with signature
+ */
+export interface SignedTransaction extends BaseTransaction {
+  signature: string;
+  signedAt: string;
+}
+
+/**
+ * Transaction with metadata
+ */
+export interface TransactionWithMetadata extends BaseTransaction {
+  updatedAt: string;
+  [key: string]: unknown;
+}
+
 /**
  * Transaction validation utilities
  */
@@ -296,7 +332,7 @@ export class TransactionBuilder {
     memo?: string;
     fee?: number;
     type?: string;
-  }): any {
+  }): BaseTransaction {
     const {
       from,
       to,
@@ -308,13 +344,13 @@ export class TransactionBuilder {
     
     return {
       id: this.generateTransactionId(),
-      type,
+      type: String(type),
       from,
       to,
       amount,
       memo,
       fee,
-      status: TXN_STATUS.OK,
+      status: String(TXN_STATUS.OK),
       timestamp: Date.now(),
       createdAt: new Date().toISOString()
     };
@@ -336,7 +372,7 @@ export class TransactionBuilder {
    * @param signature - Transaction signature
    * @returns Transaction with signature
    */
-  static addSignature(transaction: any, signature: string): any {
+  static addSignature(transaction: BaseTransaction, signature: string): SignedTransaction {
     return {
       ...transaction,
       signature,
@@ -351,7 +387,7 @@ export class TransactionBuilder {
    * @param metadata - Additional metadata
    * @returns Updated transaction
    */
-  static updateStatus(transaction: any, status: string, metadata: any = {}): any {
+  static updateStatus(transaction: BaseTransaction, status: string, metadata: Record<string, unknown> = {}): TransactionWithMetadata {
     return {
       ...transaction,
       status,
@@ -371,7 +407,7 @@ export class TransactionSerializer {
    * @param options - Serialization options
    * @returns Serialized transaction
    */
-  static serialize(transaction: any, options: {
+  static serialize(transaction: BaseTransaction, options: {
     format?: 'json' | 'base64';
     includeSignature?: boolean;
   } = {}): string {
@@ -380,7 +416,7 @@ export class TransactionSerializer {
     const serializable = { ...transaction };
     
     if (!includeSignature) {
-      delete serializable.signature;
+      delete (serializable as Record<string, unknown>).signature;
     }
     
     switch (format) {
@@ -401,10 +437,10 @@ export class TransactionSerializer {
    */
   static deserialize(data: string, options: {
     format?: 'json' | 'base64';
-  } = {}): any {
+  } = {}): BaseTransaction {
     const { format = 'json' } = options;
     
-    let parsed: any;
+    let parsed: unknown;
     
     switch (format) {
       case 'json':
@@ -417,7 +453,7 @@ export class TransactionSerializer {
         throw new Error(`Unsupported deserialization format: ${format}`);
     }
     
-    return parsed;
+    return parsed as BaseTransaction;
   }
 }
 

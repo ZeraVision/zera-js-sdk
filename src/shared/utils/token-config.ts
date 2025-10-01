@@ -47,7 +47,7 @@ export function addTokenConfig(contractId: ContractId, decimals: number): void {
     throw new Error('Decimals must be a non-negative integer');
   }
   
-  (TOKEN_DECIMALS as any)[contractId] = decimals;
+  (TOKEN_DECIMALS as Record<string, number>)[contractId] = decimals;
 }
 
 /**
@@ -102,11 +102,7 @@ export function getTokenName(contractId: ContractId): string {
 /**
  * Validate contract ID format
  */
-export function validateContractId(contractId: any): contractId is ContractId {
-  if (typeof contractId !== 'string') {
-    return false;
-  }
-  
+export function validateContractId(contractId: ContractId): boolean {
   // Contract ID format: $SYMBOL+XXXX
   const contractIdRegex = /^\$[A-Za-z]+\+\d{4}$/;
   return contractIdRegex.test(contractId);

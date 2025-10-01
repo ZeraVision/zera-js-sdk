@@ -7,7 +7,7 @@
  */
 
 import { Decimal } from '../../../shared/utils/amount-utils.js';
-import { getExchangeRate as getIndexerExchangeRate } from '../../zv-indexer/fee-info/service.js';
+// import { getExchangeRate as getIndexerExchangeRate } from '../../zv-indexer/fee-info/service.js'; // Removed - zv-indexer service deleted
 import { getTokenFeeInfo } from '../../validator/fee-info/index.js';
 import type { ContractId, AmountInput } from '../../../types/index.js';
 
@@ -133,15 +133,15 @@ export class RateHandler {
       }
     }
 
-    // Step 2: Try indexer if API key is set
-    if (process.env.INDEXER_API_KEY && false) { //! disabled for now, this is not set up as of creation
-      try {
-        const indexerRate = await getIndexerExchangeRate(contractId);
-        return this.applySafeguards(indexerRate, contractId);
-      } catch (error) {
-        console.warn(`ZV-Indexer failed for ${contractId}: ${(error as Error).message}`);
-      }
-    }
+    // Step 2: Try indexer if API key is set (disabled - zv-indexer service removed)
+    // if (process.env.INDEXER_API_KEY && false) { //! disabled for now, this is not set up as of creation
+    //   try {
+    //     const indexerRate = await getIndexerExchangeRate(contractId);
+    //     return this.applySafeguards(indexerRate, contractId);
+    //   } catch (error) {
+    //     console.warn(`ZV-Indexer failed for ${contractId}: ${(error as Error).message}`);
+    //   }
+    // }
 
     // Step 3: Try validator
     try {

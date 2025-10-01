@@ -5,10 +5,10 @@ import { ERROR_MESSAGES } from './constants.js';
  */
 export class WalletCreationError extends Error {
   public readonly code: string;
-  public readonly details: Record<string, any> | null;
+  public readonly details: Record<string, unknown> | null;
   public readonly timestamp: string;
 
-  constructor(message: string, code: string, details: Record<string, any> | null = null) {
+  constructor(message: string, code: string, details: Record<string, unknown> | null = null) {
     super(message);
     this.name = 'WalletCreationError';
     this.code = code;
@@ -21,7 +21,7 @@ export class WalletCreationError extends Error {
  * Error for invalid key types
  */
 export class InvalidKeyTypeError extends WalletCreationError {
-  constructor(keyType: any, supportedTypes: readonly string[] = ['ed25519', 'ed448']) {
+  constructor(keyType: string, supportedTypes: readonly string[] = ['ed25519', 'ed448']) {
     super(
       `${ERROR_MESSAGES.INVALID_KEY_TYPE} (received: ${keyType})`,
       'INVALID_KEY_TYPE',
@@ -35,7 +35,7 @@ export class InvalidKeyTypeError extends WalletCreationError {
  * Error for invalid hash types
  */
 export class InvalidHashTypeError extends WalletCreationError {
-  constructor(hashType: any, supportedTypes: readonly string[] = ['sha3-256', 'sha3-512', 'blake3']) {
+  constructor(hashType: string, supportedTypes: readonly string[] = ['sha3-256', 'sha3-512', 'blake3']) {
     super(
       `${ERROR_MESSAGES.INVALID_HASH_TYPE} (received: ${hashType})`,
       'INVALID_HASH_TYPE',
@@ -49,7 +49,7 @@ export class InvalidHashTypeError extends WalletCreationError {
  * Error for invalid mnemonic lengths
  */
 export class InvalidMnemonicLengthError extends WalletCreationError {
-  constructor(length: any, supportedLengths: readonly number[] = [12, 15, 18, 21, 24]) {
+  constructor(length: number, supportedLengths: readonly number[] = [12, 15, 18, 21, 24]) {
     super(
       `${ERROR_MESSAGES.INVALID_MNEMONIC_LENGTH} (received: ${length})`,
       'INVALID_MNEMONIC_LENGTH',
@@ -63,11 +63,11 @@ export class InvalidMnemonicLengthError extends WalletCreationError {
  * Error for invalid mnemonic phrases
  */
 export class InvalidMnemonicError extends WalletCreationError {
-  constructor(mnemonic: any, reason: string = 'Invalid BIP39 format') {
+  constructor(mnemonic: string, reason: string = 'Invalid BIP39 format') {
     super(
       `${ERROR_MESSAGES.INVALID_MNEMONIC}: ${reason}`,
       'INVALID_MNEMONIC',
-      { mnemonic: mnemonic ? `${mnemonic.substring(0, 20)}...` : 'undefined', reason }
+      { mnemonic: `${mnemonic.substring(0, 20)}...`, reason }
     );
     this.name = 'InvalidMnemonicError';
   }
@@ -77,7 +77,7 @@ export class InvalidMnemonicError extends WalletCreationError {
  * Error for invalid derivation paths
  */
 export class InvalidDerivationPathError extends WalletCreationError {
-  constructor(path: any, reason: string = 'Invalid format') {
+  constructor(path: string, reason: string = 'Invalid format') {
     super(
       `${ERROR_MESSAGES.INVALID_DERIVATION_PATH}: ${reason}`,
       'INVALID_DERIVATION_PATH',
@@ -91,7 +91,7 @@ export class InvalidDerivationPathError extends WalletCreationError {
  * Error for invalid HD wallet parameters
  */
 export class InvalidHDParameterError extends WalletCreationError {
-  constructor(parameter: string, value: any, reason: string) {
+  constructor(parameter: string, value: string | number, reason: string) {
     super(
       `Invalid HD parameter '${parameter}': ${reason}`,
       'INVALID_HD_PARAMETER',

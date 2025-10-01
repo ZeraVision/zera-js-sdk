@@ -15,7 +15,7 @@ import {
   MissingParameterError, InvalidKeyTypeError, InvalidHashTypeError, InvalidMnemonicLengthError
 } from './errors.js';
 import { validateHashTypes } from './hash-utils.js';
-import { Ed25519KeyPair, Ed448KeyPair, CryptoUtils } from './crypto-core.js';
+import { Ed25519KeyPair, Ed448KeyPair, CryptoUtils, SLIP0010HDWallet } from './crypto-core.js';
 import bs58 from 'bs58';
 import type { 
   WalletOptions, 
@@ -207,11 +207,11 @@ export class WalletFactory {
   /**
    * Generate key pair based on key type using @noble libraries
    */
-  private async generateKeyPair(hdNode: any, keyType: KeyType): Promise<Ed25519KeyPair | Ed448KeyPair> {
+  private async generateKeyPair(hdNode: SLIP0010HDWallet, keyType: KeyType): Promise<Ed25519KeyPair | Ed448KeyPair> {
     if (keyType === KEY_TYPE.ED25519) {
-      return Ed25519KeyPair.fromHDNode(hdNode);
+      return Ed25519KeyPair.fromHDNode(hdNode as any);
     } else if (keyType === KEY_TYPE.ED448) {
-      return Ed448KeyPair.fromHDNode(hdNode);
+      return Ed448KeyPair.fromHDNode(hdNode as any);
     } else {
       throw new InvalidKeyTypeError(keyType, VALID_KEY_TYPES);
     }

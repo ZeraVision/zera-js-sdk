@@ -11,6 +11,42 @@ import bs58 from 'bs58';
 import type { KeyType, HashType } from '../types/index.js';
 import { validateHashTypes } from './hash-utils.js';
 
+// ============================================================================
+// WALLET INTERFACES
+// ============================================================================
+
+/**
+ * Base wallet interface
+ */
+export interface BaseWallet {
+  type: string;
+  mnemonic: string;
+  privateKey: string;
+  address: string;
+  publicKey: string;
+  coinType: number;
+  symbol: string;
+  derivationPath: string;
+  keyType: KeyType;
+  hashTypes: HashType[];
+}
+
+/**
+ * Sanitized wallet interface for logging
+ */
+export interface SanitizedWallet {
+  type: string;
+  address: string;
+  publicKey: string | undefined;
+  coinType: number;
+  symbol: string;
+  derivationPath: string;
+  keyType: KeyType;
+  hashTypes: HashType[];
+  mnemonic: string;
+  privateKey: string;
+}
+
 /**
  * Generate ZERA public key identifier (human-readable format with type prefixes)
  * 
@@ -103,33 +139,7 @@ export function createBaseWallet(
 /**
  * Validate wallet object structure
  */
-export function validateWalletObject(wallet: any): wallet is {
-  type: string;
-  mnemonic: string;
-  privateKey: string;
-  address: string;
-  publicKey: string;
-  coinType: number;
-  symbol: string;
-  derivationPath: string;
-  keyType: KeyType;
-  hashTypes: HashType[];
-} {
-  if (!wallet || typeof wallet !== 'object') {
-    return false;
-  }
-
-  const requiredFields = [
-    'type', 'mnemonic', 'privateKey', 'address', 'publicKey',
-    'coinType', 'symbol', 'derivationPath', 'keyType', 'hashTypes'
-  ];
-
-  for (const field of requiredFields) {
-    if (!(field in wallet)) {
-      return false;
-    }
-  }
-
+export function validateWalletObject(wallet: BaseWallet): boolean {
   // Validate specific field types
   if (typeof wallet.type !== 'string') return false;
   if (typeof wallet.mnemonic !== 'string') return false;
@@ -148,11 +158,7 @@ export function validateWalletObject(wallet: any): wallet is {
 /**
  * Sanitize wallet object for safe logging (removes sensitive data)
  */
-export function sanitizeWalletForLogging(wallet: any): Record<string, any> {
-  if (!wallet || typeof wallet !== 'object') {
-    return {};
-  }
-
+export function sanitizeWalletForLogging(wallet: BaseWallet): SanitizedWallet {
   return {
     type: wallet.type,
     address: wallet.address,
@@ -171,7 +177,7 @@ export function sanitizeWalletForLogging(wallet: any): Record<string, any> {
 /**
  * Create wallet summary for display
  */
-export function createWalletSummary(wallet: any): string {
+export function createWalletSummary(wallet: BaseWallet): string {
   if (!validateWalletObject(wallet)) {
     return 'Invalid wallet object';
   }

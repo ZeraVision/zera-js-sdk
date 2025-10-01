@@ -40,7 +40,7 @@ export function createGenericGRPCClient(options: GRPCClientOptions): GRPCClient 
   const client = new ServiceClass(
     `${host}:${port}`,
     grpc.credentials.createInsecure()
-  );
+  ) as Record<string, unknown>;
 
   return {
     client,
@@ -79,7 +79,12 @@ export function makeGRPCCall<TRequest = unknown, TResponse = unknown>(
       }
     }
 
-    (client as any)[method](sanitizedRequest, (error: any, response: any) => {
+    const clientMethod = (client as Record<string, unknown>)[method] as (
+      request: unknown,
+      callback: (error: Error | null, response: TResponse) => void
+    ) => void;
+    
+    clientMethod(sanitizedRequest, (error: Error | null, response: TResponse) => {
       if (error) {
         reject(error);
       } else {
