@@ -54,7 +54,7 @@ import { UniversalFeeCalculator, type FeeCalculationOptions } from '../shared/fe
 import { createTransactionClient } from '../grpc/transaction/transaction-client.js';
 import bs58 from 'bs58';
 import { toSmallestUnits, validateAmountBalance, Decimal, toDecimal } from '../shared/utils/amount-utils.js';
-import { TESTING_GRPC_CONFIG } from '../shared/utils/testing-defaults/grpc-config.js';
+import { TESTING_GRPC_CONFIG } from '../shared/utils/testing-defaults/index.js';
 import type { 
   CoinTXNInput, 
   CoinTXNOutput, 

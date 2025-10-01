@@ -104,9 +104,9 @@ export class ContractFeeService {
    */
   async fetchContractFeeFromAPI(contractId: ContractId): Promise<ContractFeeConfig | null> {
     try {
-      // TODO: Replace with actual API call when implemented
-      // For now, this is a placeholder that always returns null
-      // The API will be called from the API folder later
+      // NOTE: This method is intentionally unimplemented as contract fee data
+      // is currently retrieved via the validator API in the fee calculation flow.
+      // This placeholder exists for future direct contract fee API integration.
       
       console.log(`[PLACEHOLDER] Would fetch contract fee from API for: ${contractId}`);
       

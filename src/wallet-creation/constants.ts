@@ -153,16 +153,3 @@ export function validateSLIP0010Path(path: string): boolean {
     return false;
   }
 }
-
-// ============================================================================
-// LEGACY COMPATIBILITY (DEPRECATED)
-// ============================================================================
-
-/** @deprecated Use SLIP0010_DERIVATION_PATH instead */
-export const DERIVATION_PATH = SLIP0010_DERIVATION_PATH;
-
-/** @deprecated Use VALID_KEY_TYPES instead */
-export const SUPPORTED_KEY_TYPES = VALID_KEY_TYPES;
-
-/** @deprecated Use KEY_TYPE_PREFIXES instead */
-export const KEY_TYPES = KEY_TYPE_PREFIXES;

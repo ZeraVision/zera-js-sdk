@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/keys.test';
+import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/keys.test.js';
 import { create } from '@bufbuild/protobuf';
 import { NonceResponseSchema } from '../../../../../proto/generated/api_pb.js';
 

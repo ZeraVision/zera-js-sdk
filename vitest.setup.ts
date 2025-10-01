@@ -36,24 +36,34 @@ vi.mock('./src/grpc/generic-grpc-client.js', () => ({
     }
     
     // Return a mock client that throws network errors for specific hosts
-    if (options.host === 'invalid-host') {
+    if (options.host === 'invalid-host' || options.host === 'test-failure-host') {
       return {
         client: {
           Nonce: vi.fn().mockRejectedValue(new NetworkError('Connection failed', {
             operation: 'Nonce',
             module: 'grpc',
-            details: { host: 'invalid-host', port: 9999 }
+            details: { host: options.host, port: options.port }
           })),
           TokenFeeInfo: vi.fn().mockRejectedValue(new NetworkError('Connection failed', {
             operation: 'TokenFeeInfo',
             module: 'grpc',
-            details: { host: 'invalid-host', port: 9999 }
+            details: { host: options.host, port: options.port }
+          })),
+          GetTokenFeeInfo: vi.fn().mockRejectedValue(new NetworkError('Connection failed', {
+            operation: 'GetTokenFeeInfo',
+            module: 'grpc',
+            details: { host: options.host, port: options.port }
+          })),
+          submitCoinTransaction: vi.fn().mockRejectedValue(new NetworkError('Connection failed', {
+            operation: 'submitCoinTransaction',
+            module: 'grpc',
+            details: { host: options.host, port: options.port }
           }))
         },
         proto: {},
-        host: options.host,
-        port: options.port,
-        serviceName: options.serviceName
+        host: options.host || 'localhost',
+        port: options.port || 50052,
+        serviceName: options.serviceName || 'APIService'
       };
     }
     
@@ -72,12 +82,14 @@ vi.mock('./src/grpc/generic-grpc-client.js', () => ({
           }))
         },
         proto: {},
-        host: options.host,
-        port: options.port,
-        serviceName: options.serviceName
+        host: options.host || 'localhost',
+        port: options.port || 50052,
+        serviceName: options.serviceName || 'APIService'
       };
     }
     
+    // Default behavior: return successful responses for business logic tests
+    // gRPC infrastructure tests will override this with specific error scenarios
     return {
       client: {
         Nonce: vi.fn().mockResolvedValue({ nonce: 0 }),
@@ -96,7 +108,8 @@ vi.mock('./src/grpc/generic-grpc-client.js', () => ({
               }
             }
           ]
-        })
+        }),
+        submitCoinTransaction: vi.fn().mockResolvedValue({ success: true })
       },
       proto: {},
       host: options.host,

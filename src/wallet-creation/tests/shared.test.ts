@@ -8,6 +8,7 @@ import { validateAddress } from '../../shared/crypto/address-utils.js';
 import { HASH_TYPE, isValidKeyType } from '../constants.js';
 import { validateMnemonic } from 'bip39';
 import { validateHashTypes } from '../hash-utils.js';
+import { TEST_WALLET_ADDRESSES } from '../../test-utils/keys.test.js';
 
 /**
  * Test 1: Mnemonic validation
@@ -62,7 +63,7 @@ async function testAddressValidation(): Promise<void> {
   console.log('🏠 Test 4: Address Validation');
   
   // Test valid ZERA address format (base58-encoded hashed public key)
-  const validAddress = '5KJvsngHeMby884zrh6A5u6b4SqzZzAb'; // Example base58 string
+  const validAddress = TEST_WALLET_ADDRESSES.alice;
   const invalidAddress1 = 'invalid-address';
   const invalidAddress2 = '';
   const invalidAddress3 = null;

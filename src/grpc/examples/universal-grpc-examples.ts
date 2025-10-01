@@ -1,91 +1,85 @@
 /**
- * Universal gRPC Service Architecture Examples
+ * gRPC Client Creation Patterns
  * 
- * This demonstrates the new clean, service-based architecture for gRPC operations.
- * Shows usage of the restructured src/grpc organization.
+ * This demonstrates different patterns for creating and configuring gRPC clients.
+ * Focuses on infrastructure patterns rather than business logic.
  */
+
+import { 
+  createGenericGRPCClient,
+  createTypedGRPCClient
+} from '../generic-grpc-client.js';
+import { 
+  createValidatorAPIClient
+} from '../api/validator-api-client.js';
+import { 
+  createTransactionClient
+} from '../transaction/transaction-client.js';
+import { TESTING_GRPC_CONFIG } from '../../shared/utils/testing-defaults/index.js';
 
 /**
- * Universal gRPC Service Architecture Examples
- * 
- * This demonstrates the clean, service-based architecture for gRPC operations.
- * Shows usage of the restructured src/grpc organization.
+ * Example 1: Generic gRPC Client Creation
  */
-
-import { getNonce, getNonces } from '../../api/validator/nonce/index.js';
-import Decimal from 'decimal.js';
-import { createTestingGRPCConfig } from '../../shared/utils/testing-defaults/index.js';
-
-/**
- * Example 1: Using Functional Nonce Service
- */
-export async function exampleFunctionalNonceService() {
-  console.log('🔗 Example 1: Functional Nonce Service');
+export async function exampleGenericGRPCClient() {
+  console.log('🔧 Example 1: Generic gRPC Client Creation');
   
-  const addresses = [
-    '4Sj3Lzf5rKdgPaYHKSMJPduDcMf7PRtk4BDh2YrV7aJ59bAw65i6UcUnnLGpfMjM8vyGiRHqeZnvCf4ZMrCGjJJL',
-    '5KJvsngHeMby884zrh6A5u6b4SqzZzAb'
-  ];
-
-  const options = createTestingGRPCConfig({
-    host: 'localhost',
-    port: 50053
-  });
-
   try {
-    // Get nonces with Decimal precision and +1 increment
-    const nonces = await getNonces(addresses, options);
-    
-    console.log('✅ Functional nonces from validator:');
-    nonces.forEach((nonce, index) => {
-      console.log(`  Address ${index + 1}: ${nonce.toString()} (Decimal)`);
+    // Create a generic gRPC client for any proto service
+    const genericClient = createGenericGRPCClient({
+      protoFile: 'proto/api.proto',
+      packageName: 'zera_api',
+      serviceName: 'APIService',
+      host: TESTING_GRPC_CONFIG.host,
+      port: 50053
     });
     
-    return nonces;
+    console.log('✅ Generic gRPC client created:');
+    console.log(`  Host: ${genericClient.host}`);
+    console.log(`  Port: ${genericClient.port}`);
+    console.log(`  Service: ${genericClient.serviceName}`);
+    console.log(`  Available methods: ${Object.keys(genericClient.client).join(', ')}`);
+    
+    return genericClient;
   } catch (error) {
-    console.error('❌ Error with functional nonce service:', (error as Error).message);
+    console.error('❌ Error creating generic gRPC client:', (error as Error).message);
     throw error;
   }
 }
 
 /**
- * Example 2: Service Architecture Overview
+ * Example 2: Pre-configured Service Clients
  */
-export async function exampleServiceArchitecture() {
-  console.log('🏗️ Example 2: Service Architecture Overview');
-  
-  console.log('📁 Clean src/grpc Structure:');
-  console.log('  src/grpc/');
-  console.log('  ├── base/');
-  console.log('  │   └── universal-grpc-service.ts      # Base class');
-  console.log('  ├── api/');
-  console.log('  │   └── validator-api-client.ts        # Port 50053 base');
-  console.log('  ├── transaction/');
-  console.log('  │   └── transaction-client.ts          # Port 50052');
-  console.log('  └── examples/');
-  console.log('      └── universal-grpc-examples.ts     # This file');
-  
-  console.log('\n🔗 Service Hierarchy:');
-  console.log('  UniversalGRPCService (base)');
-  console.log('  ├── ValidatorAPIClient (50053)');
-  console.log('  └── TransactionClient (50052)');
-  
-  return true;
-}
-
-// Run examples if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  console.log('🚀 Running Universal gRPC Service Examples\n');
+export async function examplePreConfiguredClients() {
+  console.log('🔧 Example 2: Pre-configured Service Clients');
   
   try {
-    await exampleFunctionalNonceService();
-    console.log('\n' + '='.repeat(50) + '\n');
+    // Create validator API client (pre-configured for validator operations)
+    const validatorClient = createValidatorAPIClient({
+      host: TESTING_GRPC_CONFIG.host,
+      port: 50053,
+      timeout: 10000
+    });
     
-    await exampleServiceArchitecture();
+    console.log('✅ Validator API client created:');
+    console.log(`  Host: ${validatorClient.host}`);
+    console.log(`  Port: ${validatorClient.port}`);
+    console.log(`  Service: ${validatorClient.serviceName}`);
     
-    console.log('\n✅ All examples completed successfully!');
+    // Create transaction client (pre-configured for transaction operations)
+    const transactionClient = createTransactionClient({
+      host: TESTING_GRPC_CONFIG.host,
+      port: 50052,
+      timeout: 15000
+    });
+    
+    console.log('✅ Transaction client created:');
+    console.log(`  Host: ${transactionClient.host}`);
+    console.log(`  Port: ${transactionClient.port}`);
+    console.log(`  Service: ${transactionClient.serviceName}`);
+    
+    return { validatorClient, transactionClient };
   } catch (error) {
-    console.error('\n❌ Examples failed:', (error as Error).message);
-    process.exit(1);
+    console.error('❌ Error creating pre-configured clients:', (error as Error).message);
+    throw error;
   }
 }

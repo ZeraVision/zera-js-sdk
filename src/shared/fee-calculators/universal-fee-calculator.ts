@@ -414,7 +414,7 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): { keyT
         } else if (typeof publicKey === 'object' && publicKey !== null && 'multi' in publicKey) {
           const publicKeyObj = publicKey as Record<string, unknown>;
           if (publicKeyObj.multi && typeof publicKeyObj.multi === 'object' && publicKeyObj.multi !== null && 'publicKeys' in publicKeyObj.multi) {
-            throw new Error('multi signature wallet not yet supported in SDK'); // TODO
+            throw new Error('Multi-signature wallets are not yet supported in the SDK');
           }
         }
       }
@@ -1085,7 +1085,7 @@ export class UniversalFeeCalculator {
     });
 
     // Transform the response to match the expected return type
-    return response.tokens.map(token => ({
+    return response.tokens.map((token: any) => ({
       contractId: token.contractId,
       rate: toDecimal(token.rate),
       authorized: token.authorized,

@@ -27,7 +27,19 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@types/*": ["./src/types/*"],
+      "@wallet/*": ["./src/wallet-creation/*"],
+      "@coin-txn/*": ["./src/coin-txn/*"],
+      "@grpc/*": ["./src/grpc/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@api/*": ["./src/api/*"],
+      "@test-utils/*": ["./src/test-utils/*"],
+      "@proto/*": ["./proto/*"]
+    }
   },
   "include": [
     "src/**/*",

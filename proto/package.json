@@ -8,7 +8,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "node build.js",
+    "build": "node build.ts",
     "build:js": "protoc --js_out=./generated --js_opt=import_style=es6 *.proto",
     "build:ts": "protoc --js_out=./generated --ts_out=./generated *.proto",
     "build:grpc": "protoc --js_out=./generated --grpc-web_out=./generated --plugin=protoc-gen-grpc-web=./node_modules/.bin/protoc-gen-grpc-web *.proto",

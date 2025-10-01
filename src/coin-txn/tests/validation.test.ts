@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { 
   InputValidator
 } from '../../shared/utils/validation.js';
+import { TEST_WALLET_ADDRESSES } from '../../test-utils/keys.test.js';
 
 describe('Transaction Validation Tests', () => {
   describe('Amount Validation', () => {
@@ -46,8 +47,8 @@ describe('Transaction Validation Tests', () => {
   describe('Address Validation', () => {
     it('should validate valid Base58 addresses', () => {
       const validAddresses = [
-        '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy', // Bitcoin-style address
-        'DdRqB9K2Fk2CgWjY4Q7vL8pN3mK6hG9sT2' // Another valid Base58 address
+        TEST_WALLET_ADDRESSES.alice,
+        TEST_WALLET_ADDRESSES.bob
       ];
 
       validAddresses.forEach(address => {

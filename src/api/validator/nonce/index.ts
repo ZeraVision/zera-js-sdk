@@ -4,4 +4,4 @@
  * This provides convenient access to all nonce-related functionality.
  */
 
-export { getNonces } from './service.js';
+export { getNonce, getNonces } from './service.js';

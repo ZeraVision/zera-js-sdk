@@ -1,6 +1,6 @@
 import { assert } from '../../test-utils/index.js';
 import { 
-  SUPPORTED_KEY_TYPES, 
+  VALID_KEY_TYPES, 
   ZERA_TYPE,
   ZERA_TYPE_HEX,
   ZERA_SYMBOL,
@@ -9,13 +9,13 @@ import {
 } from '../constants.js';
 
 /**
- * Test 1: SUPPORTED_KEY_TYPES
+ * Test 1: VALID_KEY_TYPES
  */
-async function testSupportedKeyTypes(): Promise<void> {
-  assert.ok(Array.isArray(SUPPORTED_KEY_TYPES), 'SUPPORTED_KEY_TYPES should be an array');
-  assert.ok(SUPPORTED_KEY_TYPES.includes('ed25519'), 'SUPPORTED_KEY_TYPES should include ed25519');
-  assert.ok(SUPPORTED_KEY_TYPES.includes('ed448'), 'SUPPORTED_KEY_TYPES should include ed448');
-  assert.equal(SUPPORTED_KEY_TYPES.length, 2, 'SUPPORTED_KEY_TYPES should have 2 elements');
+async function testValidKeyTypes(): Promise<void> {
+  assert.ok(Array.isArray(VALID_KEY_TYPES), 'VALID_KEY_TYPES should be an array');
+  assert.ok(VALID_KEY_TYPES.includes('ed25519'), 'VALID_KEY_TYPES should include ed25519');
+  assert.ok(VALID_KEY_TYPES.includes('ed448'), 'VALID_KEY_TYPES should include ed448');
+  assert.equal(VALID_KEY_TYPES.length, 2, 'VALID_KEY_TYPES should have 2 elements');
 }
 
 /**
@@ -43,8 +43,8 @@ async function runAllConstantsTests(): Promise<void> {
   console.log('🧪 Testing Constants Module');
   
   try {
-    // Test 1: SUPPORTED_KEY_TYPES
-    await testSupportedKeyTypes();
+    // Test 1: VALID_KEY_TYPES
+    await testValidKeyTypes();
     
     // Test 2: ZERA Network constants
     await testZeraNetworkConstants();
@@ -61,7 +61,7 @@ async function runAllConstantsTests(): Promise<void> {
 
 // Export individual test functions for selective testing
 export {
-  testSupportedKeyTypes,
+  testValidKeyTypes,
   testZeraNetworkConstants,
   testDerivationPath
 };

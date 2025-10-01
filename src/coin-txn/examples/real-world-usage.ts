@@ -15,7 +15,7 @@ import {
   TEST_WALLET_ADDRESSES
 } from '../../test-utils/index.js';
 import type { CoinTXNInput, CoinTXNOutput, FeeConfig} from '../../types/index.js';
-import { TESTING_GRPC_CONFIG } from '../../shared/utils/testing-defaults/grpc-config.js';
+import { TESTING_GRPC_CONFIG } from '../../shared/utils/testing-defaults/index.js';
 
 /**
  * Example 1: Simple Transfer
