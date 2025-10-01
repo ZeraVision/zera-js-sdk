@@ -20,29 +20,42 @@ export interface TransactionClient extends GRPCClient {
 }
 
 /**
+ * Transaction Client Class
+ */
+class TransactionClientImpl implements TransactionClient {
+  public client: any;
+  public proto: Record<string, unknown>;
+  public host: string;
+  public port: number;
+  public serviceName: string;
+
+  constructor(options: GRPCConfig = {}) {
+    const grpcClient = createGenericGRPCClient({
+      protoFile: 'proto/txn.proto',
+      packageName: 'zera_txn',
+      serviceName: 'TXNService',
+      host: options.host || 'routing.zerascan.io',
+      port: options.port || 50052
+    });
+
+    this.client = grpcClient.client;
+    this.proto = grpcClient.proto;
+    this.host = grpcClient.host;
+    this.port = grpcClient.port;
+    this.serviceName = 'TXNService';
+  }
+
+  /**
+   * Submit a coin transaction
+   */
+  async submitCoinTransaction(coinTxn: CoinTXN): Promise<{ success: boolean; hash?: string }> {
+    return await makeGRPCCall(this.client, 'Coin', coinTxn);
+  }
+}
+
+/**
  * Create a pre-configured transaction client
  */
 export function createTransactionClient(options: GRPCConfig = {}): TransactionClient {
-  const client = createGenericGRPCClient({
-    protoFile: 'proto/txn.proto',
-    packageName: 'zera_txn',
-    serviceName: 'TXNService',
-    host: options.host || 'routing.zerascan.io',
-    port: options.port || 50052
-  });
-
-  return {
-    client: client.client,
-    proto: client.proto,
-    host: client.host,
-    port: client.port,
-    serviceName: 'TXNService',
-    
-    /**
-     * Submit a coin transaction
-     */
-    async submitCoinTransaction(coinTxn: CoinTXN): Promise<{ success: boolean; hash?: string }> {
-      return await makeGRPCCall(this.client, 'Coin', coinTxn);
-    }
-  };
+  return new TransactionClientImpl(options);
 }

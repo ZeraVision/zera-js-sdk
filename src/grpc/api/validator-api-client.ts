@@ -28,43 +28,56 @@ export interface ValidatorAPIClient extends GRPCClient {
 }
 
 /**
+ * Validator API Client Class
+ */
+class ValidatorAPIClientImpl implements ValidatorAPIClient {
+  public client: any;
+  public proto: Record<string, unknown>;
+  public host: string;
+  public port: number;
+  public serviceName: string;
+
+  constructor(options: GRPCConfig = {}) {
+    const grpcClient = createGenericGRPCClient({
+      protoFile: 'proto/api.proto',
+      packageName: 'zera_api',
+      serviceName: 'APIService',
+      host: options.host || 'routing.zerascan.io',
+      port: options.port || 50053
+    });
+
+    this.client = grpcClient.client;
+    this.proto = grpcClient.proto;
+    this.host = grpcClient.host;
+    this.port = grpcClient.port;
+    this.serviceName = 'APIService';
+  }
+
+  /**
+   * Get nonce for an address
+   */
+  async getNonce(address: string): Promise<NonceResponse> {
+    const request = create(NonceRequestSchema, {
+      walletAddress: bs58.decode(address), // Convert base58 to bytes
+      encoded: false // Decode on local side for marginally faster processing
+    });
+    return await makeGRPCCall(this.client, 'Nonce', request);
+  }
+
+  /**
+   * Get comprehensive token fee information
+   */
+  async getTokenFeeInfo(request: { contractIds: string[] }): Promise<TokenFeeInfoResponse> {
+    const protoRequest = create(TokenFeeInfoRequestSchema, {
+      contractIds: request.contractIds
+    });
+    return await makeGRPCCall(this.client, 'GetTokenFeeInfo', protoRequest);
+  }
+}
+
+/**
  * Create a pre-configured validator API client
  */
 export function createValidatorAPIClient(options: GRPCConfig = {}): ValidatorAPIClient {
-  const client = createGenericGRPCClient({
-    protoFile: 'proto/api.proto',
-    packageName: 'zera_api',
-    serviceName: 'APIService',
-    host: options.host || 'routing.zerascan.io',
-    port: options.port || 50053
-  });
-
-  return {
-    client: client.client,
-    proto: client.proto,
-    host: client.host,
-    port: client.port,
-    serviceName: 'APIService',
-    
-    /**
-     * Get nonce for an address
-     */
-    async getNonce(address: string): Promise<NonceResponse> {
-      const request = create(NonceRequestSchema, {
-        walletAddress: bs58.decode(address), // Convert base58 to bytes
-        encoded: false // Decode on local side for marginally faster processing
-      });
-      return await makeGRPCCall(this.client, 'Nonce', request);
-    },
-
-    /**
-     * Get comprehensive token fee information
-     */
-    async getTokenFeeInfo(request: { contractIds: string[] }): Promise<TokenFeeInfoResponse> {
-      const protoRequest = create(TokenFeeInfoRequestSchema, {
-        contractIds: request.contractIds
-      });
-      return await makeGRPCCall(this.client, 'GetTokenFeeInfo', protoRequest);
-    }
-  };
+  return new ValidatorAPIClientImpl(options);
 }

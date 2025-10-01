@@ -310,7 +310,7 @@ export interface GRPCClientOptions {
  */
 export interface GRPCClient {
   /** The gRPC client instance */
-  client: Record<string, unknown>;
+  client: any;
   /** Proto definition */
   proto: Record<string, unknown>;
   /** Service name */

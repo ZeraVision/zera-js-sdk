@@ -34,16 +34,25 @@ export function createGenericGRPCClient(options: GRPCClientOptions): GRPCClient 
 
   // Get the package and service
   const proto = grpc.loadPackageDefinition(packageDefinition)[packageName] as Record<string, unknown>;
+  
+  if (!proto) {
+    throw new Error(`Package '${packageName}' not found in proto definition. Available packages: ${Object.keys(grpc.loadPackageDefinition(packageDefinition)).join(', ')}`);
+  }
+  
   const ServiceClass = proto[serviceName] as new (...args: unknown[]) => unknown;
+  
+  if (!ServiceClass) {
+    throw new Error(`Service '${serviceName}' not found in package '${packageName}'. Available services: ${Object.keys(proto).join(', ')}`);
+  }
 
   // Create the gRPC client
   const client = new ServiceClass(
     `${host}:${port}`,
     grpc.credentials.createInsecure()
-  ) as Record<string, unknown>;
+  ) as any;
 
   return {
-    client,
+    client: client as any,
     proto,
     serviceName,
     host,
@@ -55,7 +64,7 @@ export function createGenericGRPCClient(options: GRPCClientOptions): GRPCClient 
  * Generic gRPC call wrapper
  */
 export function makeGRPCCall<TRequest = unknown, TResponse = unknown>(
-  client: Record<string, unknown>, 
+  client: any, 
   method: string, 
   request: TRequest
 ): Promise<TResponse> {
@@ -79,12 +88,19 @@ export function makeGRPCCall<TRequest = unknown, TResponse = unknown>(
       }
     }
 
-    const clientMethod = (client as Record<string, unknown>)[method] as (
+    const clientMethod = client[method] as (
       request: unknown,
       callback: (error: Error | null, response: TResponse) => void
     ) => void;
     
-    clientMethod(sanitizedRequest, (error: Error | null, response: TResponse) => {
+    if (!clientMethod) {
+      reject(new Error(`Method '${method}' not found on client. Available methods: ${Object.keys(client).join(', ')}. Client type: ${typeof client}, Client constructor: ${client?.constructor?.name}`));
+      return;
+    }
+    
+    // Bind the method to the client to ensure proper 'this' context
+    const boundMethod = clientMethod.bind(client);
+    boundMethod(sanitizedRequest, (error: Error | null, response: TResponse) => {
       if (error) {
         reject(error);
       } else {
