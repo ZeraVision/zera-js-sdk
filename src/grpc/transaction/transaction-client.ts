@@ -7,6 +7,7 @@
 
 import { createGenericGRPCClient, makeGRPCCall } from '../generic-grpc-client.js';
 import type { GRPCConfig, GRPCClient } from '../../types/index.js';
+import type { CoinTXN } from '../../../proto/generated/txn_pb.js';
 
 /**
  * Transaction client interface
@@ -15,7 +16,7 @@ export interface TransactionClient extends GRPCClient {
   /**
    * Submit a coin transaction
    */
-  submitCoinTransaction(coinTxn: any): Promise<{ success: boolean; hash?: string }>;
+  submitCoinTransaction(coinTxn: CoinTXN): Promise<{ success: boolean; hash?: string }>;
 }
 
 /**
@@ -40,7 +41,7 @@ export function createTransactionClient(options: GRPCConfig = {}): TransactionCl
     /**
      * Submit a coin transaction
      */
-    async submitCoinTransaction(coinTxn: any): Promise<{ success: boolean; hash?: string }> {
+    async submitCoinTransaction(coinTxn: CoinTXN): Promise<{ success: boolean; hash?: string }> {
       return await makeGRPCCall(this.client, 'Coin', coinTxn);
     }
   };

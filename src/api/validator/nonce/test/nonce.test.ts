@@ -6,6 +6,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/keys.test';
+import { create } from '@bufbuild/protobuf';
+import { NonceResponseSchema } from '../../../../../proto/generated/api_pb.js';
 
 // Mock the gRPC dependencies at the top level
 vi.mock('@grpc/grpc-js', () => ({
@@ -14,12 +16,13 @@ vi.mock('@grpc/grpc-js', () => ({
   },
   Client: vi.fn().mockImplementation(() => ({
     Nonce: vi.fn((request, callback) => {
-      // Check if address is empty and simulate error
+      // Check if request is a NonceRequest proto object and address is valid
       if (!request.walletAddress || request.walletAddress.length === 0) {
         callback(new Error('Invalid address'), null);
       } else {
-        // Simulate successful gRPC call
-        callback(null, { nonce: '100' });
+        // Simulate successful gRPC call with NonceResponse proto object
+        const response = create(NonceResponseSchema, { nonce: 100n });
+        callback(null, response);
       }
     })
   })),
@@ -27,12 +30,13 @@ vi.mock('@grpc/grpc-js', () => ({
     zera_api: {
       APIService: vi.fn().mockImplementation(() => ({
         Nonce: vi.fn((request, callback) => {
-          // Check if address is empty and simulate error
+          // Check if request is a NonceRequest proto object and address is valid
           if (!request.walletAddress || request.walletAddress.length === 0) {
             callback(new Error('Invalid address'), null);
           } else {
-            // Simulate successful gRPC call
-            callback(null, { nonce: '100' });
+            // Simulate successful gRPC call with NonceResponse proto object
+            const response = create(NonceResponseSchema, { nonce: 100n });
+            callback(null, response);
           }
         })
       }))
@@ -45,36 +49,32 @@ vi.mock('@grpc/proto-loader', () => ({
   load: vi.fn(() => Promise.resolve({}))
 }));
 
-// Mock the entire gRPC module to avoid import issues
-vi.mock('../../../grpc/generic-grpc-client.js', () => ({
-  createGenericGRPCClient: vi.fn(() => ({
-    client: {
-      Nonce: vi.fn((request, callback) => {
-        // Simulate successful gRPC call
-        callback(null, { nonce: '100' });
-      })
-    },
-    proto: {
-      zera_api: {
-        APIService: {
-          Nonce: vi.fn()
-        }
+// Mock the validator API client
+vi.mock('../../../grpc/api/validator-api-client.js', () => ({
+  createValidatorAPIClient: vi.fn(() => ({
+    getNonce: vi.fn((address) => {
+      // Check if address is empty and simulate error
+      if (!address || address.length === 0) {
+        return Promise.reject(new Error('Invalid address'));
       }
-    },
-    host: 'test-host',
-    port: 1234
-  })),
-  makeGRPCCall: vi.fn((client, method, request) => {
-    // Simulate the gRPC call
-    return new Promise((resolve) => {
-      if (method === 'Nonce') {
-        resolve({ nonce: '100' });
-      } else {
-        resolve({});
+      
+      // Check for invalid address format
+      if (address === 'invalid-address') {
+        return Promise.reject(new Error('Invalid address format'));
       }
-    });
-  })
+      
+      // Simulate network error for specific host
+      if (address === TEST_WALLET_ADDRESSES.charlie) {
+        return Promise.reject(new Error('Network error'));
+      }
+      
+      // Simulate successful gRPC call with NonceResponse proto object
+      const response = create(NonceResponseSchema, { nonce: 100n });
+      return Promise.resolve(response);
+    })
+  }))
 }));
+
 
 
 // Import after mocking
@@ -129,7 +129,7 @@ describe('Validator Nonce Service', () => {
   describe('Error Handling', () => {
     it('should handle network errors gracefully', async () => {
       // Test network error simulation
-      await expect(getNonce('A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb', { 
+      await expect(getNonce(TEST_WALLET_ADDRESSES.charlie, { 
         host: 'invalid-host',
         port: 99999
       })).rejects.toThrow();
@@ -139,7 +139,7 @@ describe('Validator Nonce Service', () => {
       // Test timeout - this may pass if the request completes quickly
       // but should not throw unexpected errors
       try {
-        await getNonce('A_c_5KJvsngHeMby884zrh6A5u6b4SqzZzAb');
+        await getNonce(TEST_WALLET_ADDRESSES.charlie);
         // If it succeeds, that's also valid
         expect(true).toBe(true);
       } catch (error) {

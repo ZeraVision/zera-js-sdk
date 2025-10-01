@@ -8,14 +8,18 @@
 import Decimal from 'decimal.js';
 import { createValidatorAPIClient } from '../../../grpc/api/validator-api-client.js';
 import type { GRPCConfig } from '../../../types/index.js';
+import type { NonceResponse } from '../../../../proto/generated/api_pb.js';
 
 /**
  * Get a single nonce for an address
  */
 export async function getNonce(address: string, options: GRPCConfig = {}): Promise<Decimal> {
   try {
+    // Create validator API client
     const client = createValidatorAPIClient(options);
-    const response = await client.getNonce(address);
+    
+    // Make gRPC call using the client's getNonce method
+    const response: NonceResponse = await client.getNonce(address);
 
     // Address likely doesn't exist, default to 1
     if (!response.nonce) {
