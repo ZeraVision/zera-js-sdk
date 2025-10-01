@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { 
   createBaseWallet, 
   validateWalletObject,
@@ -6,153 +7,163 @@ import {
 } from '../shared.js';
 import { validateAddress } from '../../shared/crypto/address-utils.js';
 import { HASH_TYPE, isValidKeyType } from '../constants.js';
-import { validateMnemonic } from 'bip39';
+import { validateMnemonicPhrase } from '../hd-utils.js';
 import { validateHashTypes } from '../hash-utils.js';
 import { TEST_WALLET_ADDRESSES } from '../../test-utils/keys.test.js';
 
-/**
- * Test 1: Mnemonic validation
- */
-async function testMnemonicValidation(): Promise<void> {
-  console.log('🔑 Test 1: Mnemonic Validation');
-  const validMnemonic = 'abandon ability able about above absent absorb abstract absurd abuse access accident';
-  const invalidMnemonic = 'invalid mnemonic phrase';
-  
-  console.log('Valid mnemonic:', validateMnemonic(validMnemonic));
-  console.log('Invalid mnemonic:', validateMnemonic(invalidMnemonic));
-  console.log('');
-}
+describe('Shared Utilities', () => {
+  describe('Mnemonic validation', () => {
+    it('should validate valid mnemonic', () => {
+      const validMnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+      expect(validateMnemonicPhrase(validMnemonic)).toBe(true);
+    });
 
-/**
- * Test 2: Key type validation
- */
-async function testKeyTypeValidation(): Promise<void> {
-  console.log('🔐 Test 2: Key Type Validation');
-  console.log('ed25519 valid:', isValidKeyType('ed25519'));
-  console.log('ed448 valid:', isValidKeyType('ed448'));
-  console.log('invalid type valid:', isValidKeyType('invalid'));
-  console.log('');
-}
+    it('should reject invalid mnemonic', () => {
+      const invalidMnemonic = 'invalid mnemonic phrase';
+      expect(validateMnemonicPhrase(invalidMnemonic)).toBe(false);
+    });
+  });
 
-/**
- * Test 3: Create base wallet
- */
-async function testCreateBaseWallet(): Promise<void> {
-  console.log('💼 Test 3: Create Base Wallet');
-  const validMnemonic = 'abandon ability able about above absent absorb abstract absurd abuse access accident';
-  const baseWallet = createBaseWallet(
-    'hd', // type
-    validMnemonic, // mnemonic
-    'private-key-hex', // privateKey
-    'zera-address', // address
-    'public-key-hex', // publicKey
-    1110, // coinType
-    'ZRA', // symbol
-    'm/44\'/1110\'/0\'/0\'/0\'', // derivationPath
-    'ed25519', // keyType
-    [HASH_TYPE.SHA3_256] // hashTypes
-  );
-  console.log('Base wallet created:', JSON.stringify(baseWallet, null, 2));
-  console.log('');
-}
+  describe('Key type validation', () => {
+    it('should validate ed25519', () => {
+      expect(isValidKeyType('ed25519')).toBe(true);
+    });
 
-/**
- * Test 4: Address validation
- */
-async function testAddressValidation(): Promise<void> {
-  console.log('🏠 Test 4: Address Validation');
-  
-  // Test valid ZERA address format (base58-encoded hashed public key)
-  const validAddress = TEST_WALLET_ADDRESSES.alice;
-  const invalidAddress1 = 'invalid-address';
-  const invalidAddress2 = '';
-  const invalidAddress3 = null;
-  
-  console.log('Valid address validation:', validateAddress(validAddress));
-  console.log('Invalid address validation (invalid format):', validateAddress(invalidAddress1));
-  console.log('Invalid address validation (empty string):', validateAddress(invalidAddress2));
-  // @ts-expect-error: Intentionally testing invalid input for validation
-  console.log('Invalid address validation (null):', validateAddress(invalidAddress3 as any));
-  console.log('');
-}
+    it('should validate ed448', () => {
+      expect(isValidKeyType('ed448')).toBe(true);
+    });
 
-/**
- * Test 5: Parameter validation
- */
-async function testParameterValidation(): Promise<void> {
-  console.log('✅ Test 5: Parameter Validation');
-  const validMnemonic = 'abandon ability able about above absent absorb abstract absurd abuse access accident';
-  
-  try {
-    validateHashTypes(['sha3_256']);
-    console.log('Valid hash types passed validation');
-  } catch (error) {
-    console.log('Unexpected error:', (error as Error).message);
-  }
-  
-  try {
-    validateHashTypes([]);
-    console.log('Empty hash types should fail');
-  } catch (error) {
-    console.log('Expected error caught:', (error as Error).message);
-  }
-  
-  try {
-    // @ts-expect-error: Intentionally testing invalid input for validation
-    validateHashTypes(['invalid'] as any);
-    console.log('Invalid hash type should fail');
-  } catch (error) {
-    console.log('Expected error caught:', (error as Error).message);
-  }
-  console.log('');
-}
+    it('should reject invalid type', () => {
+      expect(isValidKeyType('invalid')).toBe(false);
+    });
+  });
 
-/**
- * Main test runner that executes all tests in sequence
- */
-async function runAllSharedTests(): Promise<void> {
-  console.log('🧪 Testing Shared Utilities Module\n');
-  
-  try {
-    // Test 1: Mnemonic validation
-    await testMnemonicValidation();
-    
-    // Test 2: Key type validation
-    await testKeyTypeValidation();
-    
-    // Test 3: Create base wallet
-    await testCreateBaseWallet();
-    
-    // Test 4: Address validation
-    await testAddressValidation();
-    
-    // Test 5: Parameter validation
-    await testParameterValidation();
-    
-    console.log('🎉 Shared utilities tests completed successfully!');
-    
-  } catch (error) {
-    console.error('❌ Shared utilities test failed:', (error as Error).message);
-    console.error((error as Error).stack);
-    throw error;
-  }
-}
+  describe('Create base wallet', () => {
+    it('should create a valid base wallet', () => {
+      const validMnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+      const baseWallet = createBaseWallet(
+        'hd', // type
+        validMnemonic, // mnemonic
+        'private-key-hex', // privateKey
+        'zera-address', // address
+        'public-key-hex', // publicKey
+        1110, // coinType
+        'ZRA', // symbol
+        'm/44\'/1110\'/0\'/0\'/0\'', // derivationPath
+        'ed25519' as const, // keyType
+        [HASH_TYPE.SHA3_256] // hashTypes
+      );
 
-// Export individual test functions for selective testing
-export {
-  testMnemonicValidation,
-  testKeyTypeValidation,
-  testCreateBaseWallet,
-  testAddressValidation,
-  testParameterValidation
-};
+      expect(baseWallet.type).toBe('hd');
+      expect(baseWallet.mnemonic).toBe(validMnemonic);
+      expect(baseWallet.privateKey).toBe('private-key-hex');
+      expect(baseWallet.address).toBe('zera-address');
+      expect(baseWallet.publicKey).toBe('public-key-hex');
+      expect(baseWallet.coinType).toBe(1110);
+      expect(baseWallet.symbol).toBe('ZRA');
+      expect(baseWallet.derivationPath).toBe('m/44\'/1110\'/0\'/0\'/0\'');
+      expect(baseWallet.keyType).toBe('ed25519');
+      expect(Array.isArray(baseWallet.hashTypes)).toBe(true);
+    });
+  });
 
-// Export the main test function
-export default async function test(): Promise<void> {
-  return runAllSharedTests();
-}
+  describe('Address validation', () => {
+    it('should validate valid ZERA address format', () => {
+      const validAddress = TEST_WALLET_ADDRESSES.alice;
+      expect(validateAddress(validAddress)).toBe(true);
+    });
 
-// Also export as named function for compatibility
-export async function testSharedExport(): Promise<void> {
-  return runAllSharedTests();
-}
+    it('should reject invalid addresses', () => {
+      expect(validateAddress('invalid-address')).toBe(false);
+      expect(validateAddress('')).toBe(false);
+    });
+  });
+
+  describe('Wallet object validation', () => {
+    it('should validate a complete wallet object', () => {
+      const validWallet = {
+        type: 'hd',
+        mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+        privateKey: 'private-key',
+        address: TEST_WALLET_ADDRESSES.alice,
+        publicKey: 'public-key',
+        coinType: 1110,
+        symbol: 'ZRA',
+        name: 'ZERA',
+        derivationPath: 'm/44\'/1110\'/0\'/0\'/0\'',
+        keyType: 'ed25519' as const,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        publicKeyPackage: 'A_a_publicKeyIdentifier'
+      };
+
+      const validation = validateWalletObject(validWallet);
+      expect(validation).toBe(true);
+    });
+
+    it('should reject incomplete wallet object', () => {
+      const invalidWallet = {
+        type: 'hd',
+        mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
+        // Missing required fields
+      } as any;
+
+      const validation = validateWalletObject(invalidWallet);
+      expect(validation).toBe(false);
+    });
+  });
+
+  describe('Wallet sanitization', () => {
+    it('should sanitize wallet for logging', () => {
+      const wallet = {
+        type: 'hd',
+        mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+        privateKey: 'private-key',
+        address: TEST_WALLET_ADDRESSES.alice,
+        publicKey: 'public-key',
+        coinType: 1110,
+        symbol: 'ZRA',
+        name: 'ZERA',
+        derivationPath: 'm/44\'/1110\'/0\'/0\'/0\'',
+        keyType: 'ed25519' as const,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        publicKeyPackage: 'A_a_publicKeyIdentifier'
+      };
+
+      const sanitized = sanitizeWalletForLogging(wallet);
+      
+      expect(sanitized.privateKey).toBe('[REDACTED]');
+      expect(sanitized.mnemonic).toBe('[REDACTED]');
+      expect(sanitized.address).toBe(wallet.address); // Address should remain
+      expect(sanitized.publicKey).toBe('public-key...'); // Public key should be truncated
+    });
+  });
+
+  describe('Wallet summary', () => {
+    it('should create wallet summary', () => {
+      const wallet = {
+        type: 'hd',
+        mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+        privateKey: 'private-key',
+        address: TEST_WALLET_ADDRESSES.alice,
+        publicKey: 'public-key',
+        coinType: 1110,
+        symbol: 'ZRA',
+        name: 'ZERA',
+        derivationPath: 'm/44\'/1110\'/0\'/0\'/0\'',
+        keyType: 'ed25519' as const,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        publicKeyPackage: 'A_a_publicKeyIdentifier'
+      };
+
+      const summary = createWalletSummary(wallet);
+      
+      expect(typeof summary).toBe('string');
+      expect(summary).toContain('Wallet Summary:');
+      expect(summary).toContain('Type: hd');
+      expect(summary).toContain(TEST_WALLET_ADDRESSES.alice);
+      expect(summary).toContain('Key Type: ed25519');
+      expect(summary).toContain('Symbol: ZRA');
+      expect(summary).toContain('m/44\'/1110\'/0\'/0\'/0\'');
+    });
+  });
+});

@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import {
   KEY_TYPE,
   HASH_TYPE,
@@ -9,73 +10,77 @@ import {
   isValidMnemonicLength
 } from '../constants.js';
 
-export function testEnumConstants(): void {
-  console.log('🧪 Testing enum constants...');
-  
-  console.log('📋 Constants:');
-  console.log('   KEY_TYPE.ED25519:', KEY_TYPE.ED25519);
-  console.log('   KEY_TYPE.ED448:', KEY_TYPE.ED448);
-  console.log('   HASH_TYPE.SHA3_256:', HASH_TYPE.SHA3_256);
-  console.log('   HASH_TYPE.BLAKE3:', HASH_TYPE.BLAKE3);
-  console.log('   VALID_KEY_TYPES:', VALID_KEY_TYPES);
-  console.log('   VALID_HASH_TYPES:', VALID_HASH_TYPES);
-  console.log('   MNEMONIC_LENGTHS:', MNEMONIC_LENGTHS);
-  
-  // Verify constants are arrays
-  if (!Array.isArray(VALID_KEY_TYPES)) throw new Error('VALID_KEY_TYPES should be an array');
-  if (!Array.isArray(VALID_HASH_TYPES)) throw new Error('VALID_HASH_TYPES should be an array');
-  if (!Array.isArray(MNEMONIC_LENGTHS)) throw new Error('MNEMONIC_LENGTHS should be an array');
-  
-  console.log('✅ All enum constants are properly defined');
-}
+describe('Enum Constants', () => {
+  describe('Constants', () => {
+    it('should have correct KEY_TYPE values', () => {
+      expect(KEY_TYPE.ED25519).toBe('ed25519');
+      expect(KEY_TYPE.ED448).toBe('ed448');
+    });
 
-export function testValidationFunctions(): void {
-  console.log('🧪 Testing validation functions...');
-  
-  console.log('✅ Validation Tests:');
-  console.log('   isValidKeyType(KEY_TYPE.ED25519):', isValidKeyType(KEY_TYPE.ED25519));
-  console.log('   isValidKeyType("ed25519"):', isValidKeyType("ed25519"));
-  console.log('   isValidKeyType("invalid"):', isValidKeyType("invalid"));
-  console.log('   isValidHashType(HASH_TYPE.BLAKE3):', isValidHashType(HASH_TYPE.BLAKE3));
-  console.log('   isValidHashType("blake3"):', isValidHashType("blake3"));
-  console.log('   isValidMnemonicLength(12):', isValidMnemonicLength(12));
-  console.log('   isValidMnemonicLength(13):', isValidMnemonicLength(13));
-  
-  // Test validation logic
-  if (!isValidKeyType(KEY_TYPE.ED25519)) throw new Error('ED25519 should be valid');
-  if (!isValidKeyType(KEY_TYPE.ED448)) throw new Error('ED448 should be valid');
-  if (isValidKeyType("invalid")) throw new Error('Invalid key type should not be valid');
-  
-  if (!isValidHashType(HASH_TYPE.SHA3_256)) throw new Error('SHA3_256 should be valid');
-  if (!isValidHashType(HASH_TYPE.BLAKE3)) throw new Error('BLAKE3 should be valid');
-  if (isValidHashType("invalid-hash")) throw new Error('Invalid hash type should not be valid');
-  
-  if (!isValidMnemonicLength(12)) throw new Error('12 should be valid mnemonic length');
-  if (!isValidMnemonicLength(24)) throw new Error('24 should be valid mnemonic length');
-  if (isValidMnemonicLength(13)) throw new Error('13 should not be valid mnemonic length');
-  
-  console.log('✅ All validation functions work correctly');
-}
+    it('should have correct HASH_TYPE values', () => {
+      expect(HASH_TYPE.SHA3_256).toBe('sha3-256');
+      expect(HASH_TYPE.BLAKE3).toBe('blake3');
+    });
 
-export function testEnumSystem(): void {
-  console.log('🧪 Testing complete enum system...');
-  
-  // Test that all constants are accessible
-  const allConstants = {
-    keyTypes: VALID_KEY_TYPES,
-    hashTypes: VALID_HASH_TYPES,
-    mnemonicLengths: MNEMONIC_LENGTHS
-  };
-  
-  console.log('📊 Enum System Summary:');
-  console.log('   Supported Key Types:', allConstants.keyTypes.length);
-  console.log('   Supported Hash Types:', allConstants.hashTypes.length);
-  console.log('   Supported Mnemonic Lengths:', allConstants.mnemonicLengths.length);
-  
-  // Verify we have the expected number of each
-  if (allConstants.keyTypes.length !== 2) throw new Error('Expected 2 key types');
-  if (allConstants.hashTypes.length !== 3) throw new Error('Expected 3 hash types');
-  if (allConstants.mnemonicLengths.length !== 5) throw new Error('Expected 5 mnemonic lengths');
-  
-  console.log('🎉 Enum system is working correctly!');
-}
+    it('should have VALID_KEY_TYPES as array', () => {
+      expect(Array.isArray(VALID_KEY_TYPES)).toBe(true);
+    });
+
+    it('should have VALID_HASH_TYPES as array', () => {
+      expect(Array.isArray(VALID_HASH_TYPES)).toBe(true);
+    });
+
+    it('should have MNEMONIC_LENGTHS as array', () => {
+      expect(Array.isArray(MNEMONIC_LENGTHS)).toBe(true);
+    });
+  });
+
+  describe('Validation Functions', () => {
+    it('should validate key types correctly', () => {
+      expect(isValidKeyType(KEY_TYPE.ED25519)).toBe(true);
+      expect(isValidKeyType('ed25519')).toBe(true);
+      expect(isValidKeyType(KEY_TYPE.ED448)).toBe(true);
+      expect(isValidKeyType('ed448')).toBe(true);
+      expect(isValidKeyType('invalid')).toBe(false);
+    });
+
+    it('should validate hash types correctly', () => {
+      expect(isValidHashType(HASH_TYPE.BLAKE3)).toBe(true);
+      expect(isValidHashType('blake3')).toBe(true);
+      expect(isValidHashType(HASH_TYPE.SHA3_256)).toBe(true);
+      expect(isValidHashType('sha3-256')).toBe(true);
+      expect(isValidHashType('invalid-hash')).toBe(false);
+    });
+
+    it('should validate mnemonic lengths correctly', () => {
+      expect(isValidMnemonicLength(12)).toBe(true);
+      expect(isValidMnemonicLength(24)).toBe(true);
+      expect(isValidMnemonicLength(13)).toBe(false);
+    });
+  });
+
+  describe('Enum System', () => {
+    it('should have expected number of key types', () => {
+      expect(VALID_KEY_TYPES.length).toBe(2);
+    });
+
+    it('should have expected number of hash types', () => {
+      expect(VALID_HASH_TYPES.length).toBe(3);
+    });
+
+    it('should have expected number of mnemonic lengths', () => {
+      expect(MNEMONIC_LENGTHS.length).toBe(5);
+    });
+
+    it('should include all expected key types', () => {
+      expect(VALID_KEY_TYPES).toContain('ed25519');
+      expect(VALID_KEY_TYPES).toContain('ed448');
+    });
+
+    it('should include all expected hash types', () => {
+      expect(VALID_HASH_TYPES).toContain('sha3-256');
+      expect(VALID_HASH_TYPES).toContain('sha3-512');
+      expect(VALID_HASH_TYPES).toContain('blake3');
+    });
+  });
+});

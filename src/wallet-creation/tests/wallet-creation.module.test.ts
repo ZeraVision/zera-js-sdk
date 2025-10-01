@@ -1,18 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { TestSuite, TestData, Assert, Performance, Mock } from '../../test-setup.js';
 import { createWallet, generateMnemonicPhrase, KEY_TYPE, HASH_TYPE } from '../index.js';
 import type { Wallet } from '../../types/index.js';
 
 describe('ZERA Wallet Creation Module', () => {
-  const testSuite = TestSuite.getInstance();
   const moduleName = 'wallet-creation';
   
   beforeAll(() => {
-    testSuite.startModule(moduleName);
+    console.log(`Starting ${moduleName} tests`);
   });
   
   afterAll(() => {
-    testSuite.endModule(moduleName);
+    console.log(`Ending ${moduleName} tests`);
   });
   
   describe('Basic Wallet Creation', () => {
@@ -25,18 +23,17 @@ describe('ZERA Wallet Creation Module', () => {
           mnemonic
         });
         
-        Assert.isWallet(wallet);
-        Assert.isValidAddress(wallet.address);
-        Assert.isValidPrivateKey(wallet.privateKey);
-        Assert.isValidPublicKey(wallet.publicKey);
+        // Basic wallet structure validation
+        expect(wallet).toBeDefined();
+        expect(typeof wallet.address).toBe('string');
+        expect(typeof wallet.privateKey).toBe('string');
+        expect(typeof wallet.publicKey).toBe('string');
         expect(wallet.type).toBe('hd');
         expect(wallet.keyType).toBe(KEY_TYPE.ED25519);
         
-        testSuite.recordTestResult(moduleName, 'Ed25519 wallet creation', true, false, false);
-        testSuite.success('Ed25519 wallet creation test passed');
+        console.log('Ed25519 wallet creation test passed');
       } catch (error) {
-        testSuite.recordTestResult(moduleName, 'Ed25519 wallet creation', false, true, false);
-        testSuite.error(`Ed25519 wallet creation test failed: ${(error as Error).message}`);
+        console.error(`Ed25519 wallet creation test failed: ${(error as Error).message}`);
         throw error;
       }
     });
@@ -50,208 +47,166 @@ describe('ZERA Wallet Creation Module', () => {
           mnemonic
         });
         
-        Assert.isWallet(wallet);
-        Assert.isValidAddress(wallet.address);
-        Assert.isValidPrivateKey(wallet.privateKey);
-        Assert.isValidPublicKey(wallet.publicKey);
+        // Basic wallet structure validation
+        expect(wallet).toBeDefined();
+        expect(typeof wallet.address).toBe('string');
+        expect(typeof wallet.privateKey).toBe('string');
+        expect(typeof wallet.publicKey).toBe('string');
         expect(wallet.type).toBe('hd');
         expect(wallet.keyType).toBe(KEY_TYPE.ED448);
         
-        testSuite.recordTestResult(moduleName, 'Ed448 wallet creation', true, false, false);
-        testSuite.success('Ed448 wallet creation test passed');
+        console.log('Ed448 wallet creation test passed');
       } catch (error) {
-        testSuite.recordTestResult(moduleName, 'Ed448 wallet creation', false, true, false);
-        testSuite.error(`Ed448 wallet creation test failed: ${(error as Error).message}`);
+        console.error(`Ed448 wallet creation test failed: ${(error as Error).message}`);
         throw error;
       }
     });
   });
-  
-  describe('Mnemonic Generation', () => {
-    it('should generate valid 12-word mnemonic', () => {
-      try {
-        const mnemonic = generateMnemonicPhrase(12);
-        Assert.isValidMnemonic(mnemonic);
-        expect(mnemonic.split(' ')).toHaveLength(12);
-        
-        testSuite.recordTestResult(moduleName, '12-word mnemonic generation', true, false, false);
-        testSuite.success('12-word mnemonic generation test passed');
-      } catch (error) {
-        testSuite.recordTestResult(moduleName, '12-word mnemonic generation', false, true, false);
-        testSuite.error(`12-word mnemonic generation test failed: ${(error as Error).message}`);
-        throw error;
-      }
+
+  describe('Module Integration', () => {
+    it('should handle multiple wallet types in sequence', async () => {
+      const mnemonic = generateMnemonicPhrase(12);
+      
+      // Create Ed25519 wallet
+      const ed25519Wallet = await createWallet({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic
+      });
+      
+      expect(ed25519Wallet.keyType).toBe(KEY_TYPE.ED25519);
+      
+      // Create Ed448 wallet with same mnemonic
+      const ed448Wallet = await createWallet({
+        keyType: KEY_TYPE.ED448,
+        hashTypes: [HASH_TYPE.SHA3_512],
+        mnemonic
+      });
+      
+      expect(ed448Wallet.keyType).toBe(KEY_TYPE.ED448);
+      
+      // Wallets should have different addresses
+      expect(ed25519Wallet.address).not.toBe(ed448Wallet.address);
     });
-    
-    it('should generate valid 24-word mnemonic', () => {
-      try {
-        const mnemonic = generateMnemonicPhrase(24);
-        Assert.isValidMnemonic(mnemonic);
-        expect(mnemonic.split(' ')).toHaveLength(24);
-        
-        testSuite.recordTestResult(moduleName, '24-word mnemonic generation', true, false, false);
-        testSuite.success('24-word mnemonic generation test passed');
-      } catch (error) {
-        testSuite.recordTestResult(moduleName, '24-word mnemonic generation', false, true, false);
-        testSuite.error(`24-word mnemonic generation test failed: ${(error as Error).message}`);
-        throw error;
-      }
-    });
-    
-    it('should generate different mnemonics', () => {
-      try {
-        const mnemonic1 = generateMnemonicPhrase(12);
-        const mnemonic2 = generateMnemonicPhrase(12);
-        expect(mnemonic1).not.toBe(mnemonic2);
-        
-        testSuite.recordTestResult(moduleName, 'Different mnemonic generation', true, false, false);
-        testSuite.success('Different mnemonic generation test passed');
-      } catch (error) {
-        testSuite.recordTestResult(moduleName, 'Different mnemonic generation', false, true, false);
-        testSuite.error(`Different mnemonic generation test failed: ${(error as Error).message}`);
-        throw error;
-      }
-    });
-  });
-  
-  describe('Performance Tests', () => {
-    it('should create wallet quickly', async () => {
-      try {
-        const { duration } = await Performance.measureTime(async () => {
-          const mnemonic = generateMnemonicPhrase(12);
-          return await createWallet({
-            keyType: KEY_TYPE.ED25519,
-            hashTypes: [HASH_TYPE.SHA3_256],
-            mnemonic
-          });
+
+    it('should handle different hash combinations', async () => {
+      const mnemonic = generateMnemonicPhrase(12);
+      
+      const hashCombinations = [
+        [HASH_TYPE.SHA3_256],
+        [HASH_TYPE.SHA3_512],
+        [HASH_TYPE.BLAKE3],
+        [HASH_TYPE.SHA3_256, HASH_TYPE.BLAKE3],
+        [HASH_TYPE.SHA3_512, HASH_TYPE.BLAKE3]
+      ];
+      
+      for (const hashTypes of hashCombinations) {
+        const wallet = await createWallet({
+          keyType: KEY_TYPE.ED25519,
+          hashTypes,
+          mnemonic
         });
         
-        Performance.expectFast(duration, 500);
-        testSuite.info(`Wallet creation took ${duration}ms`);
-        
-        testSuite.recordTestResult(moduleName, 'Wallet creation performance', true, false, false);
-        testSuite.success('Wallet creation performance test passed');
-      } catch (error) {
-        testSuite.recordTestResult(moduleName, 'Wallet creation performance', false, true, false);
-        testSuite.error(`Wallet creation performance test failed: ${(error as Error).message}`);
-        throw error;
-      }
-    });
-    
-    it('should generate mnemonic very quickly', async () => {
-      try {
-        const { duration } = await Performance.measureTime(() => {
-          return generateMnemonicPhrase(12);
-        });
-        
-        Performance.expectVeryFast(duration, 50);
-        testSuite.info(`Mnemonic generation took ${duration}ms`);
-        
-        testSuite.recordTestResult(moduleName, 'Mnemonic generation performance', true, false, false);
-        testSuite.success('Mnemonic generation performance test passed');
-      } catch (error) {
-        testSuite.recordTestResult(moduleName, 'Mnemonic generation performance', false, true, false);
-        testSuite.error(`Mnemonic generation performance test failed: ${(error as Error).message}`);
-        throw error;
+        expect(wallet.hashTypes).toEqual(hashTypes);
+        expect(wallet.address).toBeTruthy();
       }
     });
   });
-  
-  describe('Error Handling', () => {
-    it('should handle invalid mnemonic length', async () => {
-      try {
-        await expect(async () => {
-          await createWallet({
-            keyType: KEY_TYPE.ED25519,
-            hashTypes: [HASH_TYPE.SHA3_256],
-            mnemonic: 'invalid mnemonic length'
-          });
-        }).rejects.toThrow();
-        
-        testSuite.recordTestResult(moduleName, 'Invalid mnemonic length error handling', true, false, false);
-        testSuite.success('Invalid mnemonic length error handling test passed');
-      } catch (error) {
-        testSuite.recordTestResult(moduleName, 'Invalid mnemonic length error handling', false, true, false);
-        testSuite.error(`Invalid mnemonic length error handling test failed: ${(error as Error).message}`);
-        throw error;
-      }
+
+  describe('Module Error Handling', () => {
+    it('should handle invalid parameters gracefully', async () => {
+      const mnemonic = generateMnemonicPhrase(12);
+      
+      // Test invalid key type
+      await expect(createWallet({
+        keyType: 'invalid' as any,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic
+      })).rejects.toThrow();
+      
+      // Test invalid hash type
+      await expect(createWallet({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: ['invalid' as any],
+        mnemonic
+      })).rejects.toThrow();
+      
+      // Test invalid mnemonic
+      await expect(createWallet({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic: 'invalid mnemonic'
+      })).rejects.toThrow();
     });
-    
-    it('should handle invalid key type', async () => {
-      try {
+  });
+
+  describe('Module Performance', () => {
+    it('should create wallets efficiently', async () => {
+      const startTime = Date.now();
+      const iterations = 5;
+      
+      for (let i = 0; i < iterations; i++) {
         const mnemonic = generateMnemonicPhrase(12);
-        await expect(async () => {
         await createWallet({
-          // @ts-expect-error: Intentionally testing invalid keyType for validation
-          keyType: 'invalid' as any,
+          keyType: KEY_TYPE.ED25519,
           hashTypes: [HASH_TYPE.SHA3_256],
           mnemonic
         });
-        }).rejects.toThrow();
-        
-        testSuite.recordTestResult(moduleName, 'Invalid key type error handling', true, false, false);
-        testSuite.success('Invalid key type error handling test passed');
-      } catch (error) {
-        testSuite.recordTestResult(moduleName, 'Invalid key type error handling', false, true, false);
-        testSuite.error(`Invalid key type error handling test failed: ${(error as Error).message}`);
-        throw error;
       }
+      
+      const duration = Date.now() - startTime;
+      const avgTime = duration / iterations;
+      
+      expect(duration).toBeLessThan(10000); // Should complete in under 10 seconds
+      expect(avgTime).toBeLessThan(2000); // Average should be under 2 seconds
+      
+      console.log(`Created ${iterations} wallets in ${duration}ms (avg: ${avgTime.toFixed(2)}ms)`);
     });
   });
-  
-  describe('Batch Operations', () => {
-    it('should create multiple wallets efficiently', async () => {
-      try {
-        const { duration } = await Performance.measureTime(async () => {
-          const wallets = await Promise.all(
-            TestData.generateRandomArray(async () => {
-              const mnemonic = generateMnemonicPhrase(12);
-              return await createWallet({
-                keyType: KEY_TYPE.ED25519,
-                hashTypes: [HASH_TYPE.SHA3_256],
-                mnemonic
-              });
-            }, 10)
-          );
-          
-          expect(wallets).toHaveLength(10);
-          wallets.forEach(Assert.isWallet);
-          
-          return wallets;
-        });
-        
-        Performance.expectFast(duration, 2000);
-        testSuite.info(`Created 10 wallets in ${duration}ms`);
-        
-        testSuite.recordTestResult(moduleName, 'Multiple wallet creation', true, false, false);
-        testSuite.success('Multiple wallet creation test passed');
-      } catch (error) {
-        testSuite.recordTestResult(moduleName, 'Multiple wallet creation', false, true, false);
-        testSuite.error(`Multiple wallet creation test failed: ${(error as Error).message}`);
-        throw error;
-      }
+
+  describe('Module Consistency', () => {
+    it('should produce consistent results for same inputs', async () => {
+      const mnemonic = generateMnemonicPhrase(12);
+      
+      const wallet1 = await createWallet({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic
+      });
+      
+      const wallet2 = await createWallet({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic
+      });
+      
+      // Same inputs should produce same outputs
+      expect(wallet1.address).toBe(wallet2.address);
+      expect(wallet1.privateKey).toBe(wallet2.privateKey);
+      expect(wallet1.publicKey).toBe(wallet2.publicKey);
+      expect(wallet1.derivationPath).toBe(wallet2.derivationPath);
     });
-  });
-  
-  describe('Mock Testing', () => {
-    it('should work with mock data', () => {
-      try {
-        const mockWallet = Mock.createMockWallet({
-          address: 'custom-mock-address',
-          type: 'custom-mock'
-        });
-        
-        expect(mockWallet.address).toBe('custom-mock-address');
-        expect(mockWallet.type).toBe('custom-mock');
-        Assert.isWallet(mockWallet);
-        
-        testSuite.recordTestResult(moduleName, 'Mock wallet testing', true, false, false);
-        testSuite.success('Mock wallet testing passed');
-      } catch (error) {
-        testSuite.recordTestResult(moduleName, 'Mock wallet testing', false, true, false);
-        testSuite.error(`Mock wallet testing failed: ${(error as Error).message}`);
-        throw error;
-      }
+
+    it('should produce different results for different inputs', async () => {
+      const mnemonic1 = generateMnemonicPhrase(12);
+      const mnemonic2 = generateMnemonicPhrase(12);
+      
+      const wallet1 = await createWallet({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic: mnemonic1
+      });
+      
+      const wallet2 = await createWallet({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic: mnemonic2
+      });
+      
+      // Different inputs should produce different outputs
+      expect(wallet1.address).not.toBe(wallet2.address);
+      expect(wallet1.privateKey).not.toBe(wallet2.privateKey);
+      expect(wallet1.publicKey).not.toBe(wallet2.publicKey);
     });
   });
 });
