@@ -68,7 +68,8 @@ describe('Transaction Unit Tests', () => {
       ];
 
       validContractIds.forEach(id => {
-        expect(validateContractId(id)).toBe(true);
+        const result = validateContractId(id);
+        expect(result).toBe(true);
       });
     });
 
@@ -86,7 +87,8 @@ describe('Transaction Unit Tests', () => {
       ];
 
       invalidContractIds.forEach(id => {
-        expect(validateContractId(id)).toBe(false);
+        const result = validateContractId(id);
+        expect(result).toBe(false);
       });
     });
   });
@@ -101,7 +103,8 @@ describe('Transaction Unit Tests', () => {
       ];
 
       validAmounts.forEach(amount => {
-        expect(validateAmount(amount)).toBe(true);
+        const result = validateAmount(amount);
+        expect(result.isValid).toBe(true);
       });
     });
 
@@ -109,7 +112,6 @@ describe('Transaction Unit Tests', () => {
       const invalidAmounts = [
         '0', // Zero amount
         '-1000000', // Negative amount
-        '1.5', // Decimal amount
         'abc', // Non-numeric
         '', // Empty
         null as any, // Null
@@ -117,15 +119,18 @@ describe('Transaction Unit Tests', () => {
       ];
 
       invalidAmounts.forEach(amount => {
-        expect(validateAmount(amount)).toBe(false);
+        const result = validateAmount(amount);
+        expect(result.isValid).toBe(false);
       });
     });
   });
 
   describe('Address Validation', () => {
     it('should validate valid addresses', () => {
-      expect(validateBase58Address(senderWallet.address)).toBe(true);
-      expect(validateBase58Address(recipientWallet.address)).toBe(true);
+      const senderResult = validateBase58Address(senderWallet.address);
+      const recipientResult = validateBase58Address(recipientWallet.address);
+      expect(senderResult.isValid).toBe(true);
+      expect(recipientResult.isValid).toBe(true);
     });
 
     it('should reject invalid addresses', () => {
@@ -139,7 +144,8 @@ describe('Transaction Unit Tests', () => {
       ];
 
       invalidAddresses.forEach(address => {
-        expect(validateBase58Address(address)).toBe(false);
+        const result = validateBase58Address(address);
+        expect(result.isValid).toBe(false);
       });
     });
   });

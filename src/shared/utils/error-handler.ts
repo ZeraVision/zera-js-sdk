@@ -201,7 +201,7 @@ export const createErrorContext = (
 ): ErrorContext => ({
   operation,
   module,
-  details,
+  details: details || {},
   timestamp: new Date().toISOString()
 });
 

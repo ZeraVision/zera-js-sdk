@@ -219,6 +219,10 @@ export function getHashTypesFromPublicKey(publicKeyIdentifier: string): HashType
   // Skip key type prefix
   if (remaining.startsWith(KEY_TYPE_PREFIXES[KEY_TYPE.ED25519]) || remaining.startsWith(KEY_TYPE_PREFIXES[KEY_TYPE.ED448])) {
     remaining = remaining.substring(2);
+    // Skip the separator underscore if present
+    if (remaining.startsWith('_')) {
+      remaining = remaining.substring(1);
+    }
   } else {
     throw new Error(`Invalid public key identifier: missing key type prefix (${KEY_TYPE_PREFIXES[KEY_TYPE.ED25519]} or ${KEY_TYPE_PREFIXES[KEY_TYPE.ED448]})`);
   }
@@ -237,6 +241,11 @@ export function getHashTypesFromPublicKey(publicKeyIdentifier: string): HashType
     } else if (remaining.startsWith(HASH_TYPE_PREFIXES[HASH_TYPE.BLAKE3])) {
       hashTypes.push(HASH_TYPE.BLAKE3);
       remaining = remaining.substring(2);
+    }
+    
+    // Skip separator underscore if present
+    if (remaining.startsWith('_')) {
+      remaining = remaining.substring(1);
     }
   }
 

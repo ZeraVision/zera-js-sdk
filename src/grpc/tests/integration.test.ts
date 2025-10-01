@@ -341,7 +341,7 @@ describe('gRPC Integration Tests', () => {
       const result = await benchmark.benchmark(
         'Multiple gRPC Client Creation',
         () => {
-          const clients = [];
+          const clients: any[] = [];
           for (let i = 0; i < 10; i++) {
             const client = createValidatorAPIClient({
               host: config.network.defaultHost,
@@ -463,7 +463,7 @@ describe('gRPC Integration Tests', () => {
       const initialMemory = process.memoryUsage().heapUsed;
 
       // Create many clients
-      const clients = [];
+      const clients: any[] = [];
       for (let i = 0; i < 100; i++) {
         const client = createValidatorAPIClient({
           host: config.network.defaultHost,

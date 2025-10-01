@@ -345,11 +345,16 @@ export class ConfigManager {
         network: {
           defaultHost: 'localhost',
           defaultPort: 50052,
-          connectionTimeout: 10000
+          defaultProtocol: 'http',
+          connectionTimeout: 10000,
+          maxRetries: 3,
+          retryDelay: 1000
         },
         performance: {
           enableMonitoring: true,
-          monitoringInterval: 30000
+          monitoringInterval: 30000,
+          cacheTimeout: 300000,
+          maxCacheSize: 1000
         }
       },
       staging: {
@@ -358,11 +363,16 @@ export class ConfigManager {
         network: {
           defaultHost: 'staging.zerascan.io',
           defaultPort: 50052,
-          connectionTimeout: 20000
+          defaultProtocol: 'https',
+          connectionTimeout: 20000,
+          maxRetries: 3,
+          retryDelay: 1000
         },
         performance: {
           enableMonitoring: true,
-          monitoringInterval: 60000
+          monitoringInterval: 60000,
+          cacheTimeout: 300000,
+          maxCacheSize: 1000
         }
       },
       production: {
@@ -371,15 +381,22 @@ export class ConfigManager {
         network: {
           defaultHost: 'routing.zerascan.io',
           defaultPort: 50052,
-          connectionTimeout: 30000
+          defaultProtocol: 'https',
+          connectionTimeout: 30000,
+          maxRetries: 3,
+          retryDelay: 1000
         },
         security: {
           useSecureConnections: true,
-          validateCertificates: true
+          validateCertificates: true,
+          protectPrivateKeys: true,
+          memoryClearTimeout: 5000
         },
         performance: {
           enableMonitoring: false,
-          monitoringInterval: 300000
+          monitoringInterval: 300000,
+          cacheTimeout: 600000,
+          maxCacheSize: 5000
         }
       },
       test: {
@@ -388,11 +405,16 @@ export class ConfigManager {
         network: {
           defaultHost: 'localhost',
           defaultPort: 50052,
-          connectionTimeout: 5000
+          defaultProtocol: 'http',
+          connectionTimeout: 5000,
+          maxRetries: 1,
+          retryDelay: 100
         },
         performance: {
           enableMonitoring: false,
-          cacheTimeout: 1000
+          monitoringInterval: 10000,
+          cacheTimeout: 1000,
+          maxCacheSize: 100
         }
       }
     };

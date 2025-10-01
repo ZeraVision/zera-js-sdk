@@ -80,8 +80,23 @@ vi.mock('./src/grpc/generic-grpc-client.js', () => ({
     
     return {
       client: {
-        Nonce: vi.fn(),
-        TokenFeeInfo: vi.fn()
+        Nonce: vi.fn().mockResolvedValue({ nonce: 0 }),
+        TokenFeeInfo: vi.fn().mockResolvedValue({}),
+        GetTokenFeeInfo: vi.fn().mockResolvedValue({
+          tokens: [
+            {
+              contractId: '$ZRA+0000',
+              rate: '1000000000000000000', // 1e18 scale
+              authorized: true,
+              denomination: '1000000000', // 1e9 (9 decimal places)
+              contractFees: {
+                fee: '1000000', // 0.001 ZRA in smallest units
+                burn: '500000', // 0.0005 ZRA in smallest units
+                validator: '500000' // 0.0005 ZRA in smallest units
+              }
+            }
+          ]
+        })
       },
       proto: {},
       host: options.host,

@@ -15,12 +15,6 @@ export type GRPCMethod<TRequest = unknown, TResponse = unknown> = (
   callback: (error: grpc.ServiceError | null, response: TResponse) => void
 ) => void;
 
-/**
- * gRPC client interface with typed methods
- */
-export interface TypedGRPCClient {
-  [methodName: string]: GRPCMethod;
-}
 
 /**
  * gRPC service definition
@@ -66,7 +60,7 @@ export interface TypedGRPCClientOptions {
  */
 export interface TypedGRPCClient {
   /** The typed gRPC client instance */
-  client: TypedGRPCClient;
+  client: Record<string, GRPCMethod>;
   /** Proto definition */
   proto: GRPCPackageDefinition;
   /** Service name */
@@ -77,6 +71,8 @@ export interface TypedGRPCClient {
   port: number;
   /** Service definition */
   serviceDefinition: GRPCServiceDefinition;
+  /** Index signature for method access */
+  [key: string]: GRPCMethod | Record<string, GRPCMethod> | GRPCPackageDefinition | string | number | GRPCServiceDefinition;
 }
 
 /**

@@ -552,6 +552,10 @@ export async function sendCoinTXN(coinTxn: CoinTXN, grpcConfig: GRPCConfig = {})
       Buffer.from(coinTxn.base.hash).toString('hex') : 
       'Transaction sent successfully (no hash available)';
   } catch (error) {
+    // Preserve the original error type for proper error handling
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error(`Failed to submit coin transaction: ${(error as Error).message}`);
   }
 }

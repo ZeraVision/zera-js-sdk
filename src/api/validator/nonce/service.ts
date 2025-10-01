@@ -14,6 +14,11 @@ import type { NonceResponse } from '../../../../proto/generated/api_pb.js';
  * Get a single nonce for an address
  */
 export async function getNonce(address: string, options: GRPCConfig = {}): Promise<Decimal> {
+  // Input validation
+  if (!address || typeof address !== 'string' || address.trim() === '') {
+    throw new Error('Address must be a non-empty string');
+  }
+  
   try {
     // Create validator API client
     const client = createValidatorAPIClient(options);

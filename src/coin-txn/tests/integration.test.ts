@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { 
   createCoinTXN, 
-  validateContractId,
+  sendCoinTXN,
   type CoinTXNInput,
   type CoinTXNOutput,
   type FeeConfig
@@ -19,6 +19,7 @@ import {
   KEY_TYPE,
   HASH_TYPE
 } from '../../wallet-creation/index.js';
+import { NetworkError } from '../../types/index.js';
 import { 
   validateAmount,
   validateBase58Address,
@@ -214,11 +215,11 @@ describe('Transaction Integration Tests', () => {
 
   describe('Input Validation', () => {
     it('should validate contract ID format', () => {
-      const validContractId = validateContractId('$ZRA+0000');
-      expect(validContractId).toBe(true);
+      const validContractId = validateContractIdUtil('$ZRA+0000');
+      expect(validContractId.isValid).toBe(true);
 
-      const invalidContractId = validateContractId('invalid-contract-id');
-      expect(invalidContractId).toBe(false);
+      const invalidContractId = validateContractIdUtil('invalid-contract-id');
+      expect(invalidContractId.isValid).toBe(false);
     });
 
     it('should validate transaction amounts', () => {

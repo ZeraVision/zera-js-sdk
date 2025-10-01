@@ -118,9 +118,9 @@ export class PerformanceBenchmark {
     }
 
     const result = this.calculateStats(name, times, {
-      memoryBefore,
-      memoryAfter,
-      metadata
+      memoryBefore: memoryBefore || 0,
+      memoryAfter: memoryAfter || 0,
+      metadata: metadata || {}
     });
 
     this.results.push(result);
@@ -192,7 +192,7 @@ export class PerformanceBenchmark {
         minTime: 0,
         maxTime: 0,
         standardDeviation: 0,
-        metadata: options.metadata
+        metadata: options.metadata || {}
       };
     }
 
@@ -216,7 +216,7 @@ export class PerformanceBenchmark {
       minTime,
       maxTime,
       standardDeviation,
-      metadata: options.metadata
+      metadata: options.metadata || {}
     };
 
     // Add memory usage if available
@@ -371,11 +371,11 @@ export class MemoryTracker {
       const measurement = this.measurements[i];
       const prevMeasurement = i > 0 ? this.measurements[i - 1] : null;
 
-      report += `${measurement.name}: ${measurement.memory} bytes`;
+      report += `${measurement?.name}: ${measurement?.memory} bytes`;
       
       if (prevMeasurement) {
-        const delta = measurement.memory - prevMeasurement.memory;
-        const percentage = (delta / prevMeasurement.memory) * 100;
+        const delta = (measurement?.memory || 0) - (prevMeasurement?.memory || 0);
+        const percentage = (delta / (prevMeasurement?.memory || 1)) * 100;
         report += ` (${delta > 0 ? '+' : ''}${delta} bytes, ${percentage.toFixed(2)}%)`;
       }
       

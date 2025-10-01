@@ -31,7 +31,7 @@ export interface ValidationResult<T = unknown> {
   /** Error message if validation failed */
   error?: string;
   /** Additional validation details */
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown> | undefined;
 }
 
 /**
@@ -692,9 +692,9 @@ export class InputValidator {
     
     for (let i = 0; i < validations.length; i++) {
       try {
-        const result = validations[i]();
-        if (!result.isValid) {
-          errors.push(`Validation ${i}: ${result.error}`);
+        const result = validations[i]?.();
+        if (!result?.isValid) {
+          errors.push(`Validation ${i}: ${result?.error}`);
         } else {
           results.push(result.value);
         }
