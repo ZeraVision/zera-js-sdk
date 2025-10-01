@@ -26,12 +26,25 @@ export default defineConfig({
   
   // Define external dependencies that should not be bundled
   define: {
-    global: 'globalThis'
+    global: 'globalThis',
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'test')
   },
   
   // Optimize dependencies
   optimizeDeps: {
     include: ['@grpc/grpc-js', '@grpc/proto-loader']
+  },
+  
+  // Server configuration for Node.js modules
+  server: {
+    deps: {
+      external: []
+    }
+  },
+  
+  // Define external dependencies that should not be bundled
+  ssr: {
+    noExternal: ['@grpc/grpc-js', '@grpc/proto-loader']
   },
   
   // Test dependency configuration for Node.js modules
@@ -114,7 +127,14 @@ export default defineConfig({
     
     // Dependency configuration for Node.js modules
     deps: {
-      external: ['@grpc/grpc-js', '@grpc/proto-loader']
+      external: []
+    },
+    
+    // Node.js compatibility for gRPC
+    environmentOptions: {
+      node: {
+        experimentalSpecifierResolution: 'node'
+      }
     }
   }
 });

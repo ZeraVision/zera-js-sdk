@@ -73,6 +73,75 @@ export function isError<T, E>(result: Result<T, E>): result is { success: false;
   return !result.success;
 }
 
+// Enhanced error handling utilities
+export function unwrapResult<T, E>(result: Result<T, E>): T {
+  if (result.success) {
+    return result.data;
+  }
+  throw result.error;
+}
+
+export function unwrapResultOr<T, E>(result: Result<T, E>, defaultValue: T): T {
+  if (result.success) {
+    return result.data;
+  }
+  return defaultValue;
+}
+
+export function mapResult<T, U, E>(
+  result: Result<T, E>,
+  mapper: (data: T) => U
+): Result<U, E> {
+  if (result.success) {
+    return createSuccess(mapper(result.data));
+  }
+  return result;
+}
+
+export function mapError<T, E, F>(
+  result: Result<T, E>,
+  mapper: (error: E) => F
+): Result<T, F> {
+  if (result.success) {
+    return result;
+  }
+  return createError(mapper(result.error));
+}
+
+// Async result utilities
+export async function asyncMapResult<T, U, E>(
+  result: AsyncResult<T, E>,
+  mapper: (data: T) => Promise<U>
+): Promise<Result<U, E>> {
+  const resolved = await result;
+  if (resolved.success) {
+    try {
+      const mapped = await mapper(resolved.data);
+      return createSuccess(mapped);
+    } catch (error) {
+      return createError(error as E);
+    }
+  }
+  return resolved;
+}
+
+// Error context utilities
+export function withContext<T, E extends Error>(
+  result: Result<T, E>,
+  context: string
+): Result<T, E> {
+  if (result.success) {
+    return result;
+  }
+  
+  const error = result.error;
+  if (error instanceof Error) {
+    error.message = `${context}: ${error.message}`;
+  }
+  
+  return result;
+}
+
 // ============================================================================
 // ENUMS AND CONSTANTS
 // ============================================================================

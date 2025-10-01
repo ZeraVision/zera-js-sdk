@@ -27,9 +27,29 @@ import type {
 } from '../types/index.js';
 
 /**
- * Unified wallet creation factory
- * Supports all key types and hash type combinations with HD wallet functionality
- * Full SLIP-0010 compliance using @noble libraries
+ * Unified wallet creation factory for the ZERA Network.
+ * 
+ * This factory provides comprehensive wallet creation functionality with support for:
+ * - Multiple key types (Ed25519, Ed448)
+ * - Multiple hash algorithms (SHA3-256, SHA3-512, BLAKE3)
+ * - HD wallet derivation with SLIP-0010 compliance
+ * - BIP39 mnemonic phrase generation
+ * - Secure memory management
+ * 
+ * @class WalletFactory
+ * @version 1.0.0
+ * @author ZERA Vision
+ * @since 1.0.0
+ * 
+ * @example
+ * ```typescript
+ * const factory = new WalletFactory();
+ * const wallet = await factory.createWallet({
+ *   keyType: 'ed25519',
+ *   hashTypes: ['sha3_256'],
+ *   mnemonic: 'your mnemonic phrase here'
+ * });
+ * ```
  */
 export class WalletFactory {
   private readonly coinType: number;
@@ -43,7 +63,40 @@ export class WalletFactory {
   }
 
   /**
-   * Create a new wallet with specified parameters
+   * Creates a new wallet with the specified parameters.
+   * 
+   * This method generates a complete wallet including:
+   * - HD wallet derivation using SLIP-0010
+   * - Key pair generation using @noble libraries
+   * - Address generation with specified hash types
+   * - Extended key information for HD wallet functionality
+   * - Secure memory management
+   * 
+   * @param options - Wallet creation options including key type, hash types, and mnemonic
+   * @returns Promise that resolves to a complete Wallet object
+   * 
+   * @example
+   * ```typescript
+   * const wallet = await factory.createWallet({
+   *   keyType: 'ed25519',
+   *   hashTypes: ['sha3_256', 'blake3'],
+   *   mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+   *   passphrase: 'optional-passphrase',
+   *   hdOptions: {
+   *     accountIndex: 0,
+   *     changeIndex: 0,
+   *     addressIndex: 0
+   *   }
+   * });
+   * ```
+   * 
+   * @throws {MissingParameterError} When required parameters are missing
+   * @throws {InvalidKeyTypeError} When key type is not supported
+   * @throws {InvalidHashTypeError} When hash types are not supported
+   * @throws {InvalidMnemonicError} When mnemonic phrase is invalid
+   * @throws {CryptographicError} When cryptographic operations fail
+   * 
+   * @since 1.0.0
    */
   async createWallet(options: WalletOptions): Promise<Wallet> {
     const {

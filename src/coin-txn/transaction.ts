@@ -1,5 +1,30 @@
 /**
  * Transaction Module - CoinTXN
+ * 
+ * This module provides comprehensive functionality for creating and managing
+ * CoinTXN transactions on the ZERA Network. It handles transaction creation,
+ * signing, validation, and submission with full type safety and error handling.
+ * 
+ * @module CoinTXN
+ * @version 1.0.0
+ * @author ZERA Vision
+ * @since 1.0.0
+ * 
+ * @example
+ * ```typescript
+ * import { createCoinTXN, sendCoinTXN } from '@zera/sdk';
+ * 
+ * // Create a transaction
+ * const transaction = await createCoinTXN(
+ *   inputs,
+ *   outputs,
+ *   '$ZRA+0000',
+ *   feeConfig
+ * );
+ * 
+ * // Send the transaction
+ * const txHash = await sendCoinTXN(transaction);
+ * ```
  */
 
 import {
@@ -40,9 +65,24 @@ import type {
 } from '../types/index.js';
 
 /**
- * Validate contractID format
- * ContractID should follow the format: $[letters]+[4 digits]
- * Examples: $ZRA+0000, $BTC+1234, $ETH+9999
+ * Validates contract ID format according to ZERA Network standards.
+ * 
+ * Contract IDs must follow the format: $[letters]+[4 digits]
+ * This ensures consistency across the network and prevents invalid contract references.
+ * 
+ * @param contractId - The contract ID to validate
+ * @returns `true` if the contract ID format is valid, `false` otherwise
+ * 
+ * @example
+ * ```typescript
+ * validateContractId('$ZRA+0000'); // true
+ * validateContractId('$BTC+1234'); // true
+ * validateContractId('invalid');   // false
+ * validateContractId('$ZRA+00');   // false (missing digits)
+ * ```
+ * 
+ * @throws {ValidationError} When contract ID format is invalid
+ * @since 1.0.0
  */
 export function validateContractId(contractId: ContractId): boolean {
   // Regex: $ followed by one or more letters, then + followed by exactly 4 digits
@@ -231,8 +271,54 @@ function createBaseTransaction(baseFeeId: string, baseFee: AmountInput, baseMemo
 }
 
 /**
- * Create a CoinTXN with inputs and outputs using exact decimal arithmetic
- * Uses automatic fee calculation by default unless fee amounts are explicitly provided
+ * Creates a CoinTXN transaction with inputs and outputs using exact decimal arithmetic.
+ * 
+ * This function handles the complete transaction creation process including:
+ * - Input validation and processing
+ * - Output validation and processing
+ * - Nonce retrieval from the network
+ * - Automatic fee calculation (if not provided)
+ * - Transaction signing
+ * - Hash generation
+ * 
+ * @param inputs - Array of transaction inputs containing private keys, amounts, and fee percentages
+ * @param outputs - Array of transaction outputs containing recipient addresses and amounts
+ * @param contractId - The contract ID for the transaction (e.g., '$ZRA+0000')
+ * @param feeConfig - Optional fee configuration. If not provided, fees will be calculated automatically
+ * @param baseMemo - Optional memo for the transaction
+ * @param grpcConfig - Optional gRPC configuration for network communication
+ * @returns Promise that resolves to a complete CoinTXN ready for submission
+ * 
+ * @example
+ * ```typescript
+ * const inputs: CoinTXNInput[] = [{
+ *   privateKey: 'your-private-key',
+ *   publicKey: 'your-public-key',
+ *   amount: '10.5',
+ *   feePercent: '100'
+ * }];
+ * 
+ * const outputs: CoinTXNOutput[] = [{
+ *   to: 'recipient-address',
+ *   amount: '10.0',
+ *   memo: 'Payment for services'
+ * }];
+ * 
+ * const transaction = await createCoinTXN(
+ *   inputs,
+ *   outputs,
+ *   '$ZRA+0000',
+ *   { baseFeeId: '$ZRA+0000' },
+ *   'Transaction memo'
+ * );
+ * ```
+ * 
+ * @throws {ValidationError} When inputs, outputs, or contract ID are invalid
+ * @throws {NetworkError} When network communication fails
+ * @throws {CryptoError} When cryptographic operations fail
+ * @throws {TransactionError} When transaction creation fails
+ * 
+ * @since 1.0.0
  */
 export async function createCoinTXN(
   inputs: CoinTXNInput[], 
@@ -434,7 +520,27 @@ export async function createCoinTXN(
 }
 
 /**
- * Send a CoinTXN via gRPC using Connect client
+ * Sends a CoinTXN transaction to the ZERA Network via gRPC.
+ * 
+ * This function submits a completed transaction to the network for processing.
+ * The transaction must be properly signed and have a valid hash before submission.
+ * 
+ * @param coinTxn - The complete CoinTXN transaction to submit
+ * @param grpcConfig - Optional gRPC configuration for network communication
+ * @returns Promise that resolves to the transaction hash on successful submission
+ * 
+ * @example
+ * ```typescript
+ * const transaction = await createCoinTXN(inputs, outputs, '$ZRA+0000');
+ * const txHash = await sendCoinTXN(transaction);
+ * console.log('Transaction submitted:', txHash);
+ * ```
+ * 
+ * @throws {NetworkError} When network communication fails
+ * @throws {TransactionError} When transaction submission fails
+ * @throws {ValidationError} When transaction is invalid or incomplete
+ * 
+ * @since 1.0.0
  */
 export async function sendCoinTXN(coinTxn: CoinTXN, grpcConfig: GRPCConfig = {}): Promise<string> {
   try {
