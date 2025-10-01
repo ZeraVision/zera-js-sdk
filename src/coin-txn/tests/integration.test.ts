@@ -13,22 +13,18 @@ import {
   type CoinTXNOutput,
   type FeeConfig
 } from '../index.js';
+import type { CoinTXN } from '../../../proto/generated/txn_pb.js';
 import { 
-  createWallet, 
-  generateMnemonicPhrase,
-  KEY_TYPE,
-  HASH_TYPE
-} from '../../wallet-creation/index.js';
-import { NetworkError } from '../../types/index.js';
+  ED25519_TEST_KEYS,
+  TEST_WALLET_ADDRESSES
+} from '../../test-utils/index.js';
 import { 
   validateAmount,
   validateBase58Address,
   validateContractId as validateContractIdUtil
 } from '../../shared/utils/validation.js';
 import { 
-  ErrorHandler,
-  createTransactionError,
-  transactionErrorContext
+  ErrorHandler
 } from '../../shared/utils/error-handler.js';
 import { 
   benchmark,
@@ -40,53 +36,25 @@ import {
 } from '../../shared/config/index.js';
 
 describe('Transaction Integration Tests', () => {
-  let senderWallet: any;
-  let recipientWallet: any;
   let contractId: string;
 
   beforeEach(async () => {
     // Set test environment
     setEnvironment('test');
-
-    // Create test wallets
-    const senderMnemonic = generateMnemonicPhrase(12);
-    senderWallet = await createWallet({
-      keyType: KEY_TYPE.ED25519,
-      hashTypes: [HASH_TYPE.SHA3_256],
-      mnemonic: senderMnemonic
-    });
-
-    const recipientMnemonic = generateMnemonicPhrase(12);
-    recipientWallet = await createWallet({
-      keyType: KEY_TYPE.ED25519,
-      hashTypes: [HASH_TYPE.SHA3_256],
-      mnemonic: recipientMnemonic
-    });
-
     contractId = '$ZRA+0000';
-  });
-
-  afterEach(() => {
-    // Clean up wallets
-    if (senderWallet) {
-      senderWallet.secureClear();
-    }
-    if (recipientWallet) {
-      recipientWallet.secureClear();
-    }
   });
 
   describe('Basic Transaction Creation', () => {
     it('should create a basic transaction', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '100'
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0',
         memo: 'Test transaction'
       }];
@@ -112,31 +80,16 @@ describe('Transaction Integration Tests', () => {
     });
 
     it('should create a transaction with multiple inputs and outputs', async () => {
-      // Create additional wallets for multiple inputs/outputs
-      const additionalSenderMnemonic = generateMnemonicPhrase(12);
-      const additionalSender = await createWallet({
-        keyType: KEY_TYPE.ED25519,
-        hashTypes: [HASH_TYPE.SHA3_256],
-        mnemonic: additionalSenderMnemonic
-      });
-
-      const additionalRecipientMnemonic = generateMnemonicPhrase(12);
-      const additionalRecipient = await createWallet({
-        keyType: KEY_TYPE.ED25519,
-        hashTypes: [HASH_TYPE.SHA3_256],
-        mnemonic: additionalRecipientMnemonic
-      });
-
       const inputs: CoinTXNInput[] = [
         {
-          privateKey: senderWallet.privateKey,
-          publicKey: senderWallet.publicKey,
+          privateKey: ED25519_TEST_KEYS.alice.privateKey,
+          publicKey: ED25519_TEST_KEYS.alice.publicKey,
           amount: '5.0',
           feePercent: '50'
         },
         {
-          privateKey: additionalSender.privateKey,
-          publicKey: additionalSender.publicKey,
+          privateKey: ED25519_TEST_KEYS.bob.privateKey,
+          publicKey: ED25519_TEST_KEYS.bob.publicKey,
           amount: '5.0',
           feePercent: '50'
         }
@@ -144,12 +97,12 @@ describe('Transaction Integration Tests', () => {
 
       const outputs: CoinTXNOutput[] = [
         {
-          to: recipientWallet.address,
+          to: TEST_WALLET_ADDRESSES.charlie,
           amount: '7.0',
           memo: 'Primary recipient'
         },
         {
-          to: additionalRecipient.address,
+          to: TEST_WALLET_ADDRESSES.bob,
           amount: '3.0',
           memo: 'Secondary recipient'
         }
@@ -171,22 +124,18 @@ describe('Transaction Integration Tests', () => {
       expect(transaction.outputTransfers).toHaveLength(2);
       expect(transaction.auth?.publicKey).toHaveLength(2);
       expect(transaction.auth?.signature).toHaveLength(2);
-
-      // Clean up additional wallets
-      additionalSender.secureClear();
-      additionalRecipient.secureClear();
     });
 
     it('should create a transaction with custom fees', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '100'
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0',
         memo: 'Custom fee transaction'
       }];
@@ -237,9 +186,9 @@ describe('Transaction Integration Tests', () => {
     });
 
     it('should validate wallet addresses', () => {
-      const validAddress = validateBase58Address(senderWallet.address);
+      const validAddress = validateBase58Address(ED25519_TEST_KEYS.alice.address);
       expect(validAddress.isValid).toBe(true);
-      expect(validAddress.value).toBe(senderWallet.address);
+      expect(validAddress.value).toBe(ED25519_TEST_KEYS.alice.address);
 
       const invalidAddress = validateBase58Address('invalid-address');
       expect(invalidAddress.isValid).toBe(false);
@@ -250,14 +199,14 @@ describe('Transaction Integration Tests', () => {
   describe('Error Handling', () => {
     it('should handle invalid contract ID', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '100'
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0'
       }];
 
@@ -272,7 +221,7 @@ describe('Transaction Integration Tests', () => {
 
     it('should handle invalid inputs array', async () => {
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0'
       }];
 
@@ -287,8 +236,8 @@ describe('Transaction Integration Tests', () => {
 
     it('should handle invalid outputs array', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '100'
       }];
@@ -304,14 +253,14 @@ describe('Transaction Integration Tests', () => {
 
     it('should handle invalid amounts', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '-10.5', // Negative amount
         feePercent: '100'
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0'
       }];
 
@@ -326,14 +275,14 @@ describe('Transaction Integration Tests', () => {
 
     it('should handle invalid fee percentages', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '50' // Should be 100% for single input
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0'
       }];
 
@@ -350,14 +299,14 @@ describe('Transaction Integration Tests', () => {
   describe('Performance', () => {
     it('should create transactions within reasonable time', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '100'
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0',
         memo: 'Performance test transaction'
       }];
@@ -391,14 +340,14 @@ describe('Transaction Integration Tests', () => {
       const benchmark = new PerformanceBenchmark();
 
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '100'
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0',
         memo: 'Batch transaction'
       }];
@@ -410,7 +359,7 @@ describe('Transaction Integration Tests', () => {
       const result = await benchmark.benchmark(
         'Batch Transaction Creation',
         async () => {
-          const transactions = [];
+          const transactions: CoinTXN[] = [];
           for (let i = 0; i < 5; i++) {
             const transaction = await createCoinTXN(
               inputs,
@@ -437,14 +386,14 @@ describe('Transaction Integration Tests', () => {
   describe('Transaction Signing', () => {
     it('should sign transactions correctly', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '100'
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0',
         memo: 'Signed transaction'
       }];
@@ -469,31 +418,23 @@ describe('Transaction Integration Tests', () => {
     });
 
     it('should sign multiple input transactions correctly', async () => {
-      // Create additional sender
-      const additionalSenderMnemonic = generateMnemonicPhrase(12);
-      const additionalSender = await createWallet({
-        keyType: KEY_TYPE.ED25519,
-        hashTypes: [HASH_TYPE.SHA3_256],
-        mnemonic: additionalSenderMnemonic
-      });
-
       const inputs: CoinTXNInput[] = [
         {
-          privateKey: senderWallet.privateKey,
-          publicKey: senderWallet.publicKey,
+          privateKey: ED25519_TEST_KEYS.alice.privateKey,
+          publicKey: ED25519_TEST_KEYS.alice.publicKey,
           amount: '5.0',
           feePercent: '50'
         },
         {
-          privateKey: additionalSender.privateKey,
-          publicKey: additionalSender.publicKey,
+          privateKey: ED25519_TEST_KEYS.bob.privateKey,
+          publicKey: ED25519_TEST_KEYS.bob.publicKey,
           amount: '5.0',
           feePercent: '50'
         }
       ];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.charlie,
         amount: '10.0',
         memo: 'Multi-signed transaction'
       }];
@@ -513,23 +454,20 @@ describe('Transaction Integration Tests', () => {
       expect(transaction.auth?.signature).toHaveLength(2);
       expect(transaction.auth?.publicKey).toHaveLength(2);
       expect(transaction.base?.hash).toBeDefined();
-
-      // Clean up
-      additionalSender.secureClear();
     });
   });
 
   describe('Configuration Integration', () => {
     it('should work with different environments', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '100'
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0',
         memo: 'Environment test transaction'
       }];
@@ -571,14 +509,14 @@ describe('Transaction Integration Tests', () => {
   describe('Transaction Submission', () => {
     it('should handle transaction submission errors gracefully', async () => {
       const inputs: CoinTXNInput[] = [{
-        privateKey: senderWallet.privateKey,
-        publicKey: senderWallet.publicKey,
+        privateKey: ED25519_TEST_KEYS.alice.privateKey,
+        publicKey: ED25519_TEST_KEYS.alice.publicKey,
         amount: '10.5',
         feePercent: '100'
       }];
 
       const outputs: CoinTXNOutput[] = [{
-        to: recipientWallet.address,
+        to: TEST_WALLET_ADDRESSES.bob,
         amount: '10.0',
         memo: 'Submission test transaction'
       }];

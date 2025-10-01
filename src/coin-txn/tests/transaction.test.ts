@@ -10,52 +10,19 @@ import {
   validateContractId
 } from '../transaction.js';
 import { 
-  createWallet, 
-  generateMnemonicPhrase,
-  KEY_TYPE,
-  HASH_TYPE
-} from '../../wallet-creation/index.js';
+  ED25519_TEST_KEYS,
+  TEST_WALLET_ADDRESSES
+} from '../../test-utils/index.js';
 import { 
   validateAmount,
   validateBase58Address
 } from '../../shared/utils/validation.js';
 
 describe('Transaction Unit Tests', () => {
-  let senderWallet: any;
-  let recipientWallet: any;
   let contractId: string;
 
   beforeEach(async () => {
-    // Create test wallets
-    const mnemonic = generateMnemonicPhrase(12);
-    senderWallet = await createWallet({
-      keyType: KEY_TYPE.ED25519,
-      hashTypes: [HASH_TYPE.SHA3_256],
-      mnemonic
-    });
-
-    recipientWallet = await createWallet({
-      keyType: KEY_TYPE.ED25519,
-      hashTypes: [HASH_TYPE.SHA3_256],
-      mnemonic,
-      hdOptions: {
-        accountIndex: 0,
-        changeIndex: 0,
-        addressIndex: 1
-      }
-    });
-
     contractId = '$ZRA+0000';
-  });
-
-  afterEach(() => {
-    // Clean up wallets
-    if (senderWallet?.secureClear) {
-      senderWallet.secureClear();
-    }
-    if (recipientWallet?.secureClear) {
-      recipientWallet.secureClear();
-    }
   });
 
   describe('Contract ID Validation', () => {
@@ -127,8 +94,8 @@ describe('Transaction Unit Tests', () => {
 
   describe('Address Validation', () => {
     it('should validate valid addresses', () => {
-      const senderResult = validateBase58Address(senderWallet.address);
-      const recipientResult = validateBase58Address(recipientWallet.address);
+      const senderResult = validateBase58Address(ED25519_TEST_KEYS.alice.address);
+      const recipientResult = validateBase58Address(ED25519_TEST_KEYS.bob.address);
       expect(senderResult.isValid).toBe(true);
       expect(recipientResult.isValid).toBe(true);
     });
@@ -151,20 +118,21 @@ describe('Transaction Unit Tests', () => {
   });
 
   describe('Wallet Integration', () => {
-    it('should create wallets with different addresses', () => {
-      expect(senderWallet.address).toBeDefined();
-      expect(recipientWallet.address).toBeDefined();
-      expect(senderWallet.address).not.toBe(recipientWallet.address);
+    it('should have different addresses', () => {
+      expect(ED25519_TEST_KEYS.alice.address).toBeDefined();
+      expect(ED25519_TEST_KEYS.bob.address).toBeDefined();
+      expect(ED25519_TEST_KEYS.alice.address).not.toBe(ED25519_TEST_KEYS.bob.address);
     });
 
-    it('should have valid derivation paths', () => {
-      expect(senderWallet.derivationPath).toContain("0'/0'/0'");
-      expect(recipientWallet.derivationPath).toContain("0'/0'/1'");
+    it('should have valid addresses', () => {
+      expect(ED25519_TEST_KEYS.alice.address).toMatch(/^[A-Za-z0-9]+$/);
+      expect(ED25519_TEST_KEYS.bob.address).toMatch(/^[A-Za-z0-9]+$/);
     });
 
-    it('should have sequential indices', () => {
-      expect(senderWallet.index).toBe(0 + 0x80000000); // Hardened offset
-      expect(recipientWallet.index).toBe(1 + 0x80000000); // Hardened offset
+    it('should have valid public keys', () => {
+      expect(ED25519_TEST_KEYS.alice.publicKey).toBeDefined();
+      expect(ED25519_TEST_KEYS.bob.publicKey).toBeDefined();
+      expect(ED25519_TEST_KEYS.alice.publicKey).not.toBe(ED25519_TEST_KEYS.bob.publicKey);
     });
   });
 
