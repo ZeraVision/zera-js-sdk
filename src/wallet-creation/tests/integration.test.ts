@@ -15,8 +15,6 @@ import {
   HASH_TYPE
 } from '../index.js';
 import { 
-  validateContractId,
-  validateAmount,
   validateBase58Address,
   validateBase58Key,
   validateKeyType,
@@ -24,13 +22,7 @@ import {
   validateMnemonic
 } from '../../shared/utils/validation.js';
 import { 
-  ErrorHandler,
-  createValidationError,
-  walletErrorContext
-} from '../../shared/utils/error-handler.js';
-import { 
-  benchmark,
-  PerformanceBenchmark
+  benchmark
 } from '../../shared/utils/performance-benchmark.js';
 import { 
   getConfig,

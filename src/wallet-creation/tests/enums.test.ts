@@ -41,7 +41,7 @@ describe('Enum Constants', () => {
       expect(isValidKeyType('ed25519')).toBe(true);
       expect(isValidKeyType(KEY_TYPE.ED448)).toBe(true);
       expect(isValidKeyType('ed448')).toBe(true);
-      expect(isValidKeyType('invalid')).toBe(false);
+      expect(isValidKeyType('invalid' as any)).toBe(false);
     });
 
     it('should validate hash types correctly', () => {
@@ -49,13 +49,17 @@ describe('Enum Constants', () => {
       expect(isValidHashType('blake3')).toBe(true);
       expect(isValidHashType(HASH_TYPE.SHA3_256)).toBe(true);
       expect(isValidHashType('sha3-256')).toBe(true);
-      expect(isValidHashType('invalid-hash')).toBe(false);
+      expect(isValidHashType('invalid-hash' as any)).toBe(false);
     });
 
     it('should validate mnemonic lengths correctly', () => {
       expect(isValidMnemonicLength(12)).toBe(true);
+      expect(isValidMnemonicLength(15)).toBe(true);
+      expect(isValidMnemonicLength(18)).toBe(true);
+      expect(isValidMnemonicLength(21)).toBe(true);
       expect(isValidMnemonicLength(24)).toBe(true);
-      expect(isValidMnemonicLength(13)).toBe(false);
+      // Test with a number that's not in the valid range
+      expect(isValidMnemonicLength(13 as any)).toBe(false);
     });
   });
 

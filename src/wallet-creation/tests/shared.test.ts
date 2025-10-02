@@ -8,7 +8,6 @@ import {
 import { validateAddress } from '../../shared/crypto/address-utils.js';
 import { HASH_TYPE, isValidKeyType } from '../constants.js';
 import { validateMnemonicPhrase } from '../hd-utils.js';
-import { validateHashTypes } from '../hash-utils.js';
 import { TEST_WALLET_ADDRESSES } from '../../test-utils/keys.test.js';
 
 describe('Shared Utilities', () => {
@@ -34,7 +33,7 @@ describe('Shared Utilities', () => {
     });
 
     it('should reject invalid type', () => {
-      expect(isValidKeyType('invalid')).toBe(false);
+      expect(isValidKeyType('invalid' as any)).toBe(false);
     });
   });
 

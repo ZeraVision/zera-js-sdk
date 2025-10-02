@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createWallet, generateMnemonicPhrase, KEY_TYPE, HASH_TYPE } from '../index.js';
-import type { Wallet } from '../../types/index.js';
+import { createWallet, generateMnemonicPhrase, buildDerivationPath, deriveMultipleWallets, KEY_TYPE, HASH_TYPE } from '../index.js';
 
 describe('ZERA Wallet Creation', () => {
   beforeAll(() => {
@@ -212,6 +211,147 @@ describe('ZERA Wallet Creation', () => {
       });
       
       expect(wallet1.publicKeyPackage).not.toBe(wallet2.publicKeyPackage);
+    });
+  });
+
+  describe('Derivation Path Building', () => {
+    it('should build default derivation path', () => {
+      const path = buildDerivationPath();
+      expect(typeof path).toBe('string');
+      expect(path).toMatch(/^m\/44'/);
+      expect(path).toContain('1110\'');
+      expect(path).toMatch(/0'\/0'\/0'$/);
+    });
+
+    it('should build custom derivation path', () => {
+      const path = buildDerivationPath({ accountIndex: 1, changeIndex: 1, addressIndex: 5 });
+      expect(typeof path).toBe('string');
+      expect(path).toMatch(/^m\/44'/);
+      expect(path).toContain('1110\'');
+      expect(path).toContain('1\'');
+      expect(path).toMatch(/1'\/1'\/5'$/);
+    });
+  });
+
+  describe('Multiple Wallet Derivation', () => {
+    it('should derive multiple wallets from the same mnemonic', async () => {
+      const mnemonic = generateMnemonicPhrase(12);
+      const wallets = await deriveMultipleWallets({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic,
+        count: 5
+      });
+
+      expect(wallets).toHaveLength(5);
+
+      // All wallets should have different addresses
+      const addresses = wallets.map(w => w.address);
+      const uniqueAddresses = new Set(addresses);
+      expect(uniqueAddresses.size).toBe(5);
+
+      // All wallets should have different derivation paths
+      const derivationPaths = wallets.map(w => w.derivationPath);
+      const uniquePaths = new Set(derivationPaths);
+      expect(uniquePaths.size).toBe(5);
+
+      // All wallets should share the same mnemonic
+      wallets.forEach(wallet => {
+        expect(wallet.mnemonic).toBe(mnemonic);
+        expect(wallet.keyType).toBe(KEY_TYPE.ED25519);
+        expect(wallet.hashTypes).toContain(HASH_TYPE.SHA3_256);
+      });
+
+      // Clean up
+      wallets.forEach(wallet => wallet.secureClear());
+    });
+
+    it('should derive wallets with sequential address indices', async () => {
+      const mnemonic = generateMnemonicPhrase(12);
+      const wallets = await deriveMultipleWallets({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic,
+        count: 3,
+        hdOptions: {
+          accountIndex: 0,
+          changeIndex: 0,
+          addressIndex: 10
+        }
+      });
+
+      expect(wallets).toHaveLength(3);
+
+      // The indices include the hardened offset (0x80000000 = 2147483648)
+      expect(wallets[0]?.index).toBe(10 + 0x80000000);
+      expect(wallets[1]?.index).toBe(11 + 0x80000000);
+      expect(wallets[2]?.index).toBe(12 + 0x80000000);
+
+      // Clean up
+      wallets.forEach(wallet => wallet.secureClear());
+    });
+
+    it('should derive wallets with different key types', async () => {
+      const mnemonic = generateMnemonicPhrase(12);
+      
+      const ed25519Wallets = await deriveMultipleWallets({
+        keyType: KEY_TYPE.ED25519,
+        hashTypes: [HASH_TYPE.SHA3_256],
+        mnemonic,
+        count: 2
+      });
+
+      const ed448Wallets = await deriveMultipleWallets({
+        keyType: KEY_TYPE.ED448,
+        hashTypes: [HASH_TYPE.SHA3_512],
+        mnemonic,
+        count: 2
+      });
+
+      // ED25519 wallets should have different addresses than ED448 wallets
+      const ed25519Addresses = ed25519Wallets.map(w => w.address);
+      const ed448Addresses = ed448Wallets.map(w => w.address);
+      
+      ed25519Addresses.forEach(ed25519Addr => {
+        ed448Addresses.forEach(ed448Addr => {
+          expect(ed25519Addr).not.toBe(ed448Addr);
+        });
+      });
+
+      // Clean up
+      [...ed25519Wallets, ...ed448Wallets].forEach(wallet => wallet.secureClear());
+    });
+  });
+
+  describe('Mnemonic Phrase Generation', () => {
+    it('should generate 12-word mnemonic', () => {
+      const mnemonic = generateMnemonicPhrase(12);
+      const words = mnemonic.split(' ');
+      expect(words.length).toBe(12);
+    });
+
+    it('should generate 15-word mnemonic', () => {
+      const mnemonic = generateMnemonicPhrase(15);
+      const words = mnemonic.split(' ');
+      expect(words.length).toBe(15);
+    });
+
+    it('should generate 18-word mnemonic', () => {
+      const mnemonic = generateMnemonicPhrase(18);
+      const words = mnemonic.split(' ');
+      expect(words.length).toBe(18);
+    });
+
+    it('should generate 21-word mnemonic', () => {
+      const mnemonic = generateMnemonicPhrase(21);
+      const words = mnemonic.split(' ');
+      expect(words.length).toBe(21);
+    });
+
+    it('should generate 24-word mnemonic', () => {
+      const mnemonic = generateMnemonicPhrase(24);
+      const words = mnemonic.split(' ');
+      expect(words.length).toBe(24);
     });
   });
 
