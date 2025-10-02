@@ -87,7 +87,7 @@ async function demonstrateBasicUsage() {
     });
     console.log(`   Derived ${ed448HdWallets.length} ED448 wallets from same mnemonic`);
     console.log(`   All unique addresses: ${new Set(ed448HdWallets.map(w => w.address)).size === 3}`);
-    console.log(`   Note: ED448 addresses are different from ED25519 addresses`);
+    console.log('   Note: ED448 addresses are different from ED25519 addresses');
     console.log('');
 
     // Example 6: ED448 wallet (higher security)
@@ -100,7 +100,7 @@ async function demonstrateBasicUsage() {
     console.log(`   Address: ${ed448Wallet.address.substring(0, 20)}...`);
     console.log(`   Key Type: ${ed448Wallet.keyType}`);
     console.log(`   Hash Types: ${ed448Wallet.hashTypes.join(', ')}`);
-    console.log(`   Note: ED448 provides higher security than ED25519`);
+    console.log('   Note: ED448 provides higher security than ED25519');
     console.log('');
 
     console.log('✅ All basic examples completed!');

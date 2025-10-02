@@ -4,9 +4,11 @@
  * This module provides utilities for working with ZERA addresses and public key identifiers.
  */
 
-import { KEY_TYPE, HASH_TYPE, KEY_TYPE_PREFIXES, HASH_TYPE_PREFIXES, SPECIAL_PREFIXES, isValidKeyType, isValidHashType } from './constants.js';
-import { createHashChain } from '../../wallet-creation/hash-utils.js';
 import bs58 from 'bs58';
+
+import { createHashChain } from '../../wallet-creation/hash-utils.js';
+
+import { KEY_TYPE, HASH_TYPE, KEY_TYPE_PREFIXES, HASH_TYPE_PREFIXES, SPECIAL_PREFIXES, isValidKeyType, isValidHashType } from './constants.js';
 import type { KeyType, HashType } from './constants.js';
 
 /**
@@ -123,7 +125,7 @@ export function validateAddress(address: string): boolean {
     }
 
     return true;
-  } catch (error) {
+  } catch {
     // Invalid base58 encoding
     return false;
   }
@@ -136,7 +138,7 @@ export function isValidPublicKeyIdentifier(publicKeyIdentifier: string): boolean
   try {
     generateAddressFromPublicKey(publicKeyIdentifier);
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

@@ -5,9 +5,9 @@
  * Minimal wrapper around the generic gRPC client.
  */
 
-import { createGenericGRPCClient, makeGRPCCall } from '../generic-grpc-client.js';
-import type { GRPCConfig, GRPCClient } from '../../types/index.js';
 import type { CoinTXN } from '../../../proto/generated/txn_pb.js';
+import type { GRPCConfig, GRPCClient } from '../../types/index.js';
+import { createGenericGRPCClient, makeGRPCCall } from '../generic-grpc-client.js';
 
 /**
  * Transaction client interface
@@ -23,7 +23,7 @@ export interface TransactionClient extends GRPCClient {
  * Transaction Client Class
  */
 class TransactionClientImpl implements TransactionClient {
-  public client: any;
+  public client: unknown;
   public proto: Record<string, unknown>;
   public host: string;
   public port: number;
@@ -49,7 +49,7 @@ class TransactionClientImpl implements TransactionClient {
    * Submit a coin transaction
    */
   async submitCoinTransaction(coinTxn: CoinTXN): Promise<{ success: boolean; hash?: string }> {
-    return await makeGRPCCall(this.client, 'Coin', coinTxn);
+    return makeGRPCCall(this.client as Record<string, unknown>, 'Coin', coinTxn);
   }
 }
 

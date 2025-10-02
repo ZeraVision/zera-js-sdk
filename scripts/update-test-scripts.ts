@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
-import { glob } from 'glob';
-import { fileURLToPath } from 'url';
-import { dirname, relative, join } from 'path';
 import { readFileSync, writeFileSync } from 'fs';
+import { dirname, relative, join } from 'path';
+import { fileURLToPath } from 'url';
+
 import chalk from 'chalk';
+import { glob } from 'glob';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,7 +24,7 @@ async function discoverModules(): Promise<string[]> {
       'proto/'            // proto/ (special case)
     ];
     
-    let allModules: string[] = [];
+    const allModules: string[] = [];
     
     for (const pattern of patterns) {
       const dirs = await glob(pattern, {
@@ -47,8 +48,8 @@ async function discoverModules(): Promise<string[]> {
         return 'proto';
       } else {
         // Extract module name from src\module-name (Windows) or src/module-name (Unix)
-        const parts = dir.split(/[\/\\]/);
-        return parts[1]!; // Get the module name part
+        const parts = dir.split(/[/\\]/);
+        return parts[1] || 'unknown'; // Get the module name part
       }
     });
     

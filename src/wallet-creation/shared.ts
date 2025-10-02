@@ -1,14 +1,13 @@
+import bs58 from 'bs58';
+
+import type { KeyType, HashType } from '../types/index.js';
+
 import { 
-  KEY_TYPE, 
-  HASH_TYPE, 
   KEY_TYPE_PREFIXES, 
   HASH_TYPE_PREFIXES,
   isValidKeyType,
   isValidHashType
 } from './constants.js';
-import { CryptoUtils } from './crypto-core.js';
-import bs58 from 'bs58';
-import type { KeyType, HashType } from '../types/index.js';
 import { validateHashTypes } from './hash-utils.js';
 
 // ============================================================================

@@ -14,15 +14,32 @@
 
 // Import wallet creation functionality
 export { 
-  createWallet, 
-  generateMnemonicPhrase, 
-  deriveMultipleWallets,
+  WalletFactory,
+  generateZeraPublicKeyIdentifier,
+  createBaseWallet,
+  generateZeraAddress,
+  CryptoUtils,
   KEY_TYPE,
   HASH_TYPE,
+  VALID_KEY_TYPES,
+  VALID_HASH_TYPES,
+  KEY_TYPE_PREFIXES,
+  HASH_TYPE_PREFIXES,
+  isValidKeyType,
+  isValidHashType,
+  ZERA_TYPE,
+  ZERA_TYPE_HEX,
+  ZERA_SYMBOL,
+  ZERA_NAME,
+  SLIP0010_DERIVATION_PATH,
+  MNEMONIC_LENGTHS,
   type WalletOptions,
   type Wallet,
   type HDOptions,
-  type WalletFactory
+  type MultipleWalletOptions,
+  type KeyType,
+  type HashType,
+  type MnemonicLength
 } from './src/wallet-creation/index.js';
 
 // Import CoinTXN functionality

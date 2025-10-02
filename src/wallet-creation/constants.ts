@@ -149,7 +149,7 @@ export function validateSLIP0010Path(path: string): boolean {
     if (parseInt(parts[2]?.slice(0, -1) || '0') !== ZERA_TYPE) return false;
     
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

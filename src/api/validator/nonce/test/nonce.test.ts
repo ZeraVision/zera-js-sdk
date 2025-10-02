@@ -4,10 +4,12 @@
  * This provides tests for the validator nonce service using Vitest.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/keys.test.js';
 import { create } from '@bufbuild/protobuf';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { NonceResponseSchema } from '../../../../../proto/generated/api_pb.js';
+import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/keys.test.js';
+import { getNonce, getNonces } from '../service.js';
 
 // Mock the validator API client
 vi.mock('../../../grpc/api/validator-api-client.js', () => ({
@@ -74,9 +76,6 @@ vi.mock('@grpc/proto-loader', () => ({
   loadSync: vi.fn(() => ({})),
   load: vi.fn(() => Promise.resolve({}))
 }));
-
-// Import after mocking
-import { getNonce, getNonces } from '../service.js';
 
 describe('Validator Nonce Service', () => {
   describe('Basic Functionality', () => {

@@ -6,17 +6,18 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import { 
-  validateContractId
-} from '../transaction.js';
+  validateAmount,
+  validateBase58Address
+} from '../../shared/utils/validation.js';
 import { 
   ED25519_TEST_KEYS,
   TEST_WALLET_ADDRESSES
 } from '../../test-utils/index.js';
 import { 
-  validateAmount,
-  validateBase58Address
-} from '../../shared/utils/validation.js';
+  validateContractId
+} from '../transaction.js';
 
 describe('Transaction Unit Tests', () => {
   let contractId: string;

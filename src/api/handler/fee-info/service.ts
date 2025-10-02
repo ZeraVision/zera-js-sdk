@@ -8,8 +8,8 @@
 
 import { Decimal } from '../../../shared/utils/amount-utils.js';
 // import { getExchangeRate as getIndexerExchangeRate } from '../../zv-indexer/fee-info/service.js'; // Removed - zv-indexer service deleted
-import { getTokenFeeInfo } from '../../validator/fee-info/index.js';
 import type { ContractId, AmountInput } from '../../../types/index.js';
+import { getTokenFeeInfo } from '../../validator/fee-info/index.js';
 
 /**
  * Rate source information
@@ -78,10 +78,10 @@ export class RateHandler {
     this.cache = new Map();
     this.cacheTimeout = options.cacheTimeout || 3000; // 3 seconds default
     this.fallbackRates = options.fallbackRates || {
-      '$ZRA+0000': '0.10',
+      '$ZRA+0000': '0.10'
     };
     this.minimumRates = options.minimumRates || {
-      '$ZRA+0000': '0.10',  // Minimum $0.10 per ZRA for fee evaluation (network enforced safeguard)
+      '$ZRA+0000': '0.10'  // Minimum $0.10 per ZRA for fee evaluation (network enforced safeguard)
     };
     this.enableSafeguards = options.enableSafeguards !== false; // Default to true
   }
@@ -104,8 +104,8 @@ export class RateHandler {
 
     // Check cache first
     if (useCache && this.cache.has(contractId)) {
-      const cached = this.cache.get(contractId)!;
-      if (Date.now() - cached.timestamp < this.cacheTimeout) {
+      const cached = this.cache.get(contractId);
+      if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
         return this.applySafeguards(cached.rate, contractId);
       }
     }
@@ -127,8 +127,8 @@ export class RateHandler {
   async getExchangeRate(contractId: ContractId, useCache: boolean = true): Promise<Decimal> {
     // Step 1: Check cache first
     if (useCache && this.cache.has(contractId)) {
-      const cached = this.cache.get(contractId)!;
-      if (Date.now() - cached.timestamp < this.cacheTimeout) {
+      const cached = this.cache.get(contractId);
+      if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
         return this.applySafeguards(cached.rate, contractId);
       }
     }
@@ -174,14 +174,14 @@ export class RateHandler {
     // Enhanced error message with detailed fallback information
     let sourceDescription: string;
     switch (fallbackInfo.source) {
-      case 'exact_match':
-        sourceDescription = `exact match for ${fallbackInfo.sourceKey}`;
-        break;
-      case 'symbol_match':
-        sourceDescription = `symbol match using ${fallbackInfo.sourceKey}`;
-        break;
-      default:
-        sourceDescription = 'unknown source';
+    case 'exact_match':
+      sourceDescription = `exact match for ${fallbackInfo.sourceKey}`;
+      break;
+    case 'symbol_match':
+      sourceDescription = `symbol match using ${fallbackInfo.sourceKey}`;
+      break;
+    default:
+      sourceDescription = 'unknown source';
     }
     
     const errorMessage = `All rate sources failed for "${contractId}". Using fallback rate: ${fallbackRateDecimal.toString()} USD per ${contractId} (source: ${sourceDescription})`;

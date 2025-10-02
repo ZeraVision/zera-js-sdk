@@ -4,13 +4,9 @@
  * Uses proper USD-based, size-dependent calculation
  */
 
-import { KEY_TYPE, HASH_TYPE } from '../crypto/constants.js';
-import { 
-  TRANSACTION_TYPE, 
-  CONTRACT_FEE_TYPE
-} from '../protobuf/index.js';
-import { toBinary } from '@bufbuild/protobuf';
-import type {
+// import { toBinary } from '@bufbuild/protobuf'; // Using instance method instead
+
+import {
   CoinTXN,
   MintTXN,
   ItemizedMintTXN,
@@ -38,50 +34,24 @@ import type {
   ProposalResult,
   RequiredVersion
 } from '../../../proto/generated/txn_pb.js';
-import {
-  CoinTXNSchema,
-  MintTXNSchema,
-  ItemizedMintTXNSchema,
-  InstrumentContractSchema,
-  GovernanceVoteSchema,
-  GovernanceProposalSchema,
-  SmartContractTXNSchema,
-  SmartContractExecuteTXNSchema,
-  SmartContractInstantiateTXNSchema,
-  SelfCurrencyEquivSchema,
-  AuthorizedCurrencyEquivSchema,
-  ExpenseRatioTXNSchema,
-  NFTTXNSchema,
-  ContractUpdateTXNSchema,
-  FoundationTXNSchema,
-  DelegatedTXNSchema,
-  QuashTXNSchema,
-  FastQuorumTXNSchema,
-  RevokeTXNSchema,
-  ComplianceTXNSchema,
-  BurnSBTTXNSchema,
-  AllowanceTXNSchema,
-  ValidatorRegistrationSchema,
-  ValidatorHeartbeatSchema,
-  ProposalResultSchema,
-  RequiredVersionSchema
-} from '../../../proto/generated/txn_pb.js';
+// import { getExchangeRate } from '../../api/handler/fee-info/service.js'; // No longer needed - using ExchangeRateService
+import { getTokenFeeInfo } from '../../api/validator/fee-info/index.js';
+import type { 
+  AmountInput
+} from '../../types/index.js';
+import { getHashTypesFromPublicKey, getKeyTypeFromPublicKey } from '../crypto/address-utils.js';
+import { KEY_TYPE } from '../crypto/constants.js';
+import { 
+  TRANSACTION_TYPE
+} from '../protobuf/index.js';
 import { 
   toDecimal, 
-  toAmountString, 
   toSmallestUnits,
   addAmounts, 
-  multiplyAmounts, 
-  divideAmounts, 
-  calculatePercentage,
   Decimal 
 } from '../utils/amount-utils.js';
-import { getExchangeRate } from '../../api/handler/fee-info/service.js';
-import { getTokenFeeInfo } from '../../api/validator/fee-info/index.js';
-import { contractFeeService } from './contract-fee-service.js';
-import { getDenominationFallback, getDecimalPlacesFromDenomination } from './denomination-fallback.js';
-import { sanitizeForSerialization } from '../utils/protobuf-utils.js';
-import { getKeyTypeFromPublicKey, getHashTypesFromPublicKey } from '../crypto/address-utils.js';
+// import { sanitizeForSerialization } from '../utils/protobuf-utils.js'; // Not used anymore
+
 import { 
   HASH_SIZE, 
   PROTOBUF_HASH_OVERHEAD,
@@ -92,14 +62,11 @@ import {
   getSignatureSize,
   getPerByteFeeConstant,
   getKeyFee,
-  getHashFee,
-  extractKeyTypeFromIdentifier
+  getHashFee
 } from './base-fee-constants.js';
-import type { 
-  KeyType, 
-  HashType, 
-  AmountInput
-} from '../../types/index.js';
+import { contractFeeService } from './contract-fee-service.js';
+import { getDenominationFallback, getDecimalPlacesFromDenomination } from './denomination-fallback.js';
+import { ExchangeRateService } from './exchange-rate-service.js';
 
 /**
  * Union type of all possible transaction types
@@ -265,8 +232,8 @@ export interface InterfaceFeeResult {
 function extractTransactionTypeFromProtoObject(protoObject: TransactionMessage): number {
   try {
     // First check if this is a direct transaction object (not wrapped)
-    if (protoObject.$typeName) {
-      const typeName = protoObject.$typeName;
+    if ((protoObject as unknown as Record<string, unknown>).$typeName) {
+      const typeName = (protoObject as unknown as Record<string, unknown>).$typeName;
       if (typeName === 'zera_txn.CoinTXN') {
         return TRANSACTION_TYPE.COIN_TYPE;
       } else if (typeName === 'zera_txn.MintTXN') {
@@ -409,7 +376,7 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): { keyT
             isRestricted = true;
           }
           
-          const keyType = extractKeyTypeFromIdentifier(publicKeyString);
+          const keyType = getKeyTypeFromPublicKey(publicKeyString);
           keyTypes.push(keyType);
         } else if (typeof publicKey === 'object' && publicKey !== null && 'multi' in publicKey) {
           const publicKeyObj = publicKey as Record<string, unknown>;
@@ -423,7 +390,7 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): { keyT
                protoObject.base !== null &&
                'publicKey' in protoObject.base) {
       // Non-CoinTXN: extract key type from BaseTXN.public_key
-      const baseObj = protoObject.base as Record<string, unknown>;
+      const baseObj = protoObject.base as unknown as Record<string, unknown>;
       const publicKey = baseObj.publicKey;
       if (typeof publicKey === 'object' && publicKey !== null && 'single' in publicKey) {
         const publicKeyObj = publicKey as Record<string, unknown>;
@@ -434,7 +401,7 @@ function extractKeyTypesFromTransaction(protoObject: TransactionMessage): { keyT
           isRestricted = true;
         }
         
-        const keyType = extractKeyTypeFromIdentifier(publicKeyString);
+        const keyType = getKeyTypeFromPublicKey(publicKeyString);
         keyTypes.push(keyType);
       } else if (typeof publicKey === 'object' && publicKey !== null && 'multi' in publicKey) {
         const publicKeyObj = publicKey as Record<string, unknown>;
@@ -496,9 +463,9 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
           try {
             const keyHashTypes = getHashTypesFromPublicKey(publicKeyString);
             hashTypes.push(...keyHashTypes);
-          } catch (error) {
+          } catch {
             // If we can't extract hash types from this key, skip it
-            console.warn(`Failed to extract hash types from key: ${error instanceof Error ? error.message : String(error)}`);
+            // console.warn(`Failed to extract hash types from key: ${error instanceof Error ? error.message : String(error)}`);
           }
         } else if (typeof publicKey === 'object' && publicKey !== null && 'multi' in publicKey) {
           const publicKeyObj = publicKey as Record<string, unknown>;
@@ -512,7 +479,7 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
                protoObject.base !== null &&
                'publicKey' in protoObject.base) {
       // Non-CoinTXN: extract hash types from BaseTXN.public_key
-      const baseObj = protoObject.base as Record<string, unknown>;
+      const baseObj = protoObject.base as unknown as Record<string, unknown>;
       const publicKey = baseObj.publicKey;
       if (typeof publicKey === 'object' && publicKey !== null && 'single' in publicKey) {
         const publicKeyObj = publicKey as Record<string, unknown>;
@@ -526,9 +493,9 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
         try {
           const keyHashTypes = getHashTypesFromPublicKey(publicKeyString);
           hashTypes.push(...keyHashTypes);
-        } catch (error) {
+        } catch {
           // If we can't extract hash types from this key, skip it
-          console.warn(`Failed to extract hash types from key: ${error instanceof Error ? error.message : String(error)}`);
+          // console.warn(`Failed to extract hash types from key: ${error instanceof Error ? error.message : String(error)}`);
         }
       } else if (typeof publicKey === 'object' && publicKey !== null && 'multi' in publicKey) {
         const publicKeyObj = publicKey as Record<string, unknown>;
@@ -548,7 +515,7 @@ function extractHashTypesFromTransaction(protoObject: TransactionMessage): strin
 /**
  * Detect key type from public key identifier string
  */
-function detectKeyTypeFromIdentifier(keyIdentifier: string): string | null {
+function _detectKeyTypeFromIdentifier(keyIdentifier: string): string | null {
   try {
     const firstUnderscoreIndex = keyIdentifier.indexOf('_');
     
@@ -564,8 +531,8 @@ function detectKeyTypeFromIdentifier(keyIdentifier: string): string | null {
     }
   
     throw new Error(`Failed to detect key type from identifier: ${keyIdentifier}`);
-  } catch (error) {
-    console.error(`Error detecting key type from identifier: ${error instanceof Error ? error.message : String(error)}`);
+  } catch {
+    // console.error(`Error detecting key type from identifier: ${error instanceof Error ? error.message : String(error)}`);
     return null;
   }
 }
@@ -573,10 +540,10 @@ function detectKeyTypeFromIdentifier(keyIdentifier: string): string | null {
 /**
  * Detect key type from raw public key bytes
  */
-function detectKeyTypeFromBytes(keyBytes: Uint8Array): string | null {
+function _detectKeyTypeFromBytes(keyBytes: Uint8Array): string | null {
   try {    
     // Convert bytes to string to find the first underscore
-    const keyString = new TextDecoder('utf-8').decode(keyBytes);
+    const keyString = Buffer.from(keyBytes).toString('utf-8');
     const firstUnderscoreIndex = keyString.indexOf('_');
     
     if (firstUnderscoreIndex > 0) {
@@ -602,79 +569,71 @@ function detectKeyTypeFromBytes(keyBytes: Uint8Array): string | null {
 /**
  * Get the protobuf schema for a transaction type
  */
-function getSchemaForTransactionType(transactionType: number) {
+function _getSchemaForTransactionType(transactionType: number) {
   switch (transactionType) {
-    case TRANSACTION_TYPE.COIN_TYPE:
-      return CoinTXNSchema;
-    case TRANSACTION_TYPE.MINT_TYPE:
-      return MintTXNSchema;
-    case TRANSACTION_TYPE.ITEM_MINT_TYPE:
-      return ItemizedMintTXNSchema;
-    case TRANSACTION_TYPE.CONTRACT_TXN_TYPE:
-      return InstrumentContractSchema;
-    case TRANSACTION_TYPE.VOTE_TYPE:
-      return GovernanceVoteSchema;
-    case TRANSACTION_TYPE.PROPOSAL_TYPE:
-      return GovernanceProposalSchema;
-    case TRANSACTION_TYPE.SMART_CONTRACT_TYPE:
-      return SmartContractTXNSchema;
-    case TRANSACTION_TYPE.SMART_CONTRACT_EXECUTE_TYPE:
-      return SmartContractExecuteTXNSchema;
-    case TRANSACTION_TYPE.SMART_CONTRACT_INSTANTIATE_TYPE:
-      return SmartContractInstantiateTXNSchema;
-    case TRANSACTION_TYPE.SELF_CURRENCY_EQUIV_TYPE:
-      return SelfCurrencyEquivSchema;
-    case TRANSACTION_TYPE.AUTHORIZED_CURRENCY_EQUIV_TYPE:
-      return AuthorizedCurrencyEquivSchema;
-    case TRANSACTION_TYPE.EXPENSE_RATIO_TYPE:
-      return ExpenseRatioTXNSchema;
-    case TRANSACTION_TYPE.NFT_TYPE:
-      return NFTTXNSchema;
-    case TRANSACTION_TYPE.UPDATE_CONTRACT_TYPE:
-      return ContractUpdateTXNSchema;
-    case TRANSACTION_TYPE.FOUNDATION_TYPE:
-      return FoundationTXNSchema;
-    case TRANSACTION_TYPE.DELEGATED_VOTING_TYPE:
-      return DelegatedTXNSchema;
-    case TRANSACTION_TYPE.QUASH_TYPE:
-      return QuashTXNSchema;
-    case TRANSACTION_TYPE.FAST_QUORUM_TYPE:
-      return FastQuorumTXNSchema;
-    case TRANSACTION_TYPE.REVOKE_TYPE:
-      return RevokeTXNSchema;
-    case TRANSACTION_TYPE.COMPLIANCE_TYPE:
-      return ComplianceTXNSchema;
-    case TRANSACTION_TYPE.SBT_BURN_TYPE:
-      return BurnSBTTXNSchema;
-    case TRANSACTION_TYPE.ALLOWANCE_TYPE:
-      return AllowanceTXNSchema;
-    case TRANSACTION_TYPE.VALIDATOR_REGISTRATION_TYPE:
-      return ValidatorRegistrationSchema;
-    case TRANSACTION_TYPE.VALIDATOR_HEARTBEAT_TYPE:
-      return ValidatorHeartbeatSchema;
-    case TRANSACTION_TYPE.PROPOSAL_RESULT_TYPE:
-      return ProposalResultSchema;
-    case TRANSACTION_TYPE.REQUIRED_VERSION:
-      return RequiredVersionSchema;
-    default:
-      throw new Error(`Unknown transaction type: ${transactionType}`);
+  case TRANSACTION_TYPE.COIN_TYPE:
+    return CoinTXN;
+  case TRANSACTION_TYPE.MINT_TYPE:
+    return MintTXN;
+  case TRANSACTION_TYPE.ITEM_MINT_TYPE:
+    return ItemizedMintTXN;
+  case TRANSACTION_TYPE.CONTRACT_TXN_TYPE:
+    return InstrumentContract;
+  case TRANSACTION_TYPE.VOTE_TYPE:
+    return GovernanceVote;
+  case TRANSACTION_TYPE.PROPOSAL_TYPE:
+    return GovernanceProposal;
+  case TRANSACTION_TYPE.SMART_CONTRACT_TYPE:
+    return SmartContractTXN;
+  case TRANSACTION_TYPE.SMART_CONTRACT_EXECUTE_TYPE:
+    return SmartContractExecuteTXN;
+  case TRANSACTION_TYPE.SMART_CONTRACT_INSTANTIATE_TYPE:
+    return SmartContractInstantiateTXN;
+  case TRANSACTION_TYPE.SELF_CURRENCY_EQUIV_TYPE:
+    return SelfCurrencyEquiv;
+  case TRANSACTION_TYPE.AUTHORIZED_CURRENCY_EQUIV_TYPE:
+    return AuthorizedCurrencyEquiv;
+  case TRANSACTION_TYPE.EXPENSE_RATIO_TYPE:
+    return ExpenseRatioTXN;
+  case TRANSACTION_TYPE.NFT_TYPE:
+    return NFTTXN;
+  case TRANSACTION_TYPE.UPDATE_CONTRACT_TYPE:
+    return ContractUpdateTXN;
+  case TRANSACTION_TYPE.FOUNDATION_TYPE:
+    return FoundationTXN;
+  case TRANSACTION_TYPE.DELEGATED_VOTING_TYPE:
+    return DelegatedTXN;
+  case TRANSACTION_TYPE.QUASH_TYPE:
+    return QuashTXN;
+  case TRANSACTION_TYPE.FAST_QUORUM_TYPE:
+    return FastQuorumTXN;
+  case TRANSACTION_TYPE.REVOKE_TYPE:
+    return RevokeTXN;
+  case TRANSACTION_TYPE.COMPLIANCE_TYPE:
+    return ComplianceTXN;
+  case TRANSACTION_TYPE.SBT_BURN_TYPE:
+    return BurnSBTTXN;
+  case TRANSACTION_TYPE.ALLOWANCE_TYPE:
+    return AllowanceTXN;
+  case TRANSACTION_TYPE.VALIDATOR_REGISTRATION_TYPE:
+    return ValidatorRegistration;
+  case TRANSACTION_TYPE.VALIDATOR_HEARTBEAT_TYPE:
+    return ValidatorHeartbeat;
+  case TRANSACTION_TYPE.PROPOSAL_RESULT_TYPE:
+    return ProposalResult;
+  case TRANSACTION_TYPE.REQUIRED_VERSION:
+    return RequiredVersion;
+  default:
+    throw new Error(`Unknown transaction type: ${transactionType}`);
   }
 }
 
 /**
  * Calculate protobuf size using proper @bufbuild/protobuf toBinary function
  */
-function calculateProtobufSize(protoObject: TransactionMessage, transactionType: number): number {
-  const schema = getSchemaForTransactionType(transactionType);
-  
-  // Sanitize the proto object to convert BigInt values to strings
-  const sanitizedProtoObject = sanitizeForSerialization(protoObject);
-  
-  if (!sanitizedProtoObject) {
-    throw new Error('Failed to sanitize protobuf object');
-  }
-  
-  const binary = toBinary(schema, sanitizedProtoObject);
+function calculateProtobufSize(protoObject: TransactionMessage, _transactionType: number): number {
+  // Use the original proto object directly - sanitization breaks the protobuf structure
+  const binary = protoObject.toBinary();
   
   // Check if binary is valid
   if (!binary) {
@@ -718,7 +677,7 @@ function calculateTotalTransactionSize(protoObject: TransactionMessage): number 
   // ! May not be root cause, but it's a workaround for the issue with negligible real-world effect - Raise a PR to fix this issue if solution is found.
   // ! Problem seems when there is a single ED448 key the size calculation is short by 1 byte.
   // ! Issue should be non present if using suggested buffer overhead values to account for potential changing ACE values.
-  if (keyTypes.length == 1 && keyTypes[0] === KEY_TYPE.ED448) {
+  if (keyTypes.length === 1 && keyTypes[0] === KEY_TYPE.ED448) {
     signatureSize += 1;
   }
     
@@ -795,8 +754,8 @@ function calculateInterfaceFeeWithDetails(
   return {
     fee: feeDecimal.toString(),
     feeDecimal: feeDecimal,
-    interfaceFeeId: interfaceFeeId!,
-    interfaceAddress: interfaceAddress!
+    interfaceFeeId: interfaceFeeId,
+    interfaceAddress: interfaceAddress || ''
   };
 }
 
@@ -823,7 +782,7 @@ async function calculateNetworkFee(
   const hashTypes = extractHashTypesFromTransaction(protoObject);
 
   // Calculate initial base network fee: transaction size * per-byte fee
-  let baseNetworkFeeEquiv = toDecimal(transactionSize).mul(toDecimal(perByteFeeConstant));
+  const baseNetworkFeeEquiv = toDecimal(transactionSize).mul(toDecimal(perByteFeeConstant));
   
   // Calculate key fees
   let totalKeyFees = new Decimal(0);
@@ -842,13 +801,13 @@ async function calculateNetworkFee(
   }
   
   // Calculate initial total network fee: base fee + key fees + hash fees
-  let totalNetworkFeeEquiv = baseNetworkFeeEquiv.add(totalKeyFees).add(totalHashFees);
+  const totalNetworkFeeEquiv = baseNetworkFeeEquiv.add(totalKeyFees).add(totalHashFees);
   
   // Get exchange rate for base fee
   const exchangeRate = exchangeRates.get(baseFeeId) || new Decimal(1);
 
   // Use precise division with proper rounding for base fees
-  let totalNetworkFee = totalNetworkFeeEquiv.div(exchangeRate);
+  const totalNetworkFee = totalNetworkFeeEquiv.div(exchangeRate);
   
   // Get token fee info to determine precision from denomination
   const tokenFeeInfo = await UniversalFeeCalculator.getTokenFeeInfo([baseFeeId]);
@@ -968,7 +927,7 @@ export class UniversalFeeCalculator {
     // Fetch all needed exchange rates in parallel
     const exchangeRates = new Map<string, Decimal>();
     const ratePromises = Array.from(neededContractIds).map(async (contractId) => {
-      const rate = await getExchangeRate(contractId);
+      const rate = await ExchangeRateService.getExchangeRate(contractId);
       exchangeRates.set(contractId, rate);
       return rate;
     });
@@ -1055,7 +1014,7 @@ export class UniversalFeeCalculator {
    * Get exchange rate for a given contract ID
    */
   static async getExchangeRate(contractId: string): Promise<Decimal> {
-    return await getExchangeRate(contractId);
+    return ExchangeRateService.getExchangeRate(contractId);
   }
 
   /**
@@ -1085,7 +1044,7 @@ export class UniversalFeeCalculator {
     });
 
     // Transform the response to match the expected return type
-    return response.tokens.map((token: any) => ({
+    return response.tokens.map((token) => ({
       contractId: token.contractId,
       rate: toDecimal(token.rate),
       authorized: token.authorized,

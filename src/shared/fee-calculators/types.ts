@@ -4,6 +4,8 @@
  * Type definitions for contract fee calculation functionality.
  */
 
+import { Decimal } from 'decimal.js';
+
 /**
  * Contract fee configuration interface
  * Defines the structure for contract fee information
@@ -48,7 +50,7 @@ export interface ContractFeeCalculationParams {
   /** Optional transaction contract ID (defaults to contractId) */
   transactionContractId?: string;
   /** Optional exchange rates map for currency conversion */
-  exchangeRates?: Map<string, any>;
+  exchangeRates?: Map<string, Decimal>;
 }
 
 /**
@@ -58,7 +60,7 @@ export interface ContractFeeCalculationResult {
   /** Calculated fee as string */
   fee: string;
   /** Calculated fee as Decimal object */
-  feeDecimal: any;
+  feeDecimal: Decimal;
   /** Contract ID */
   contractId: string;
   /** Contract fee type */

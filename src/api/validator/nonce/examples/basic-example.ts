@@ -4,8 +4,8 @@
  * This provides examples for the validator nonce service.
  */
 
-import { getNonce, getNonces } from '../service.js';
 import { TEST_WALLET_ADDRESSES } from '../../../../test-utils/index.js';
+import { getNonce, getNonces } from '../service.js';
 
 /**
  * Example 1: Basic Usage

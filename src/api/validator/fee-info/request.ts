@@ -5,9 +5,9 @@
  * Uses the GetTokenFeeInfo API to get comprehensive token fee information.
  */
 
+import type { TokenFeeInfoResponse } from '../../../../proto/generated/api_pb.js';
 import { createValidatorAPIClient } from '../../../grpc/api/validator-api-client.js';
 import type { GRPCConfig } from '../../../types/index.js';
-import type { TokenFeeInfoResponse } from '../../../../proto/generated/api_pb.js';
 
 /**
  * Parameters for GetTokenFeeInfo API call

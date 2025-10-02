@@ -1,26 +1,27 @@
-import { sha256, sha512 } from '@noble/hashes/sha2';
-import { sha3_256, sha3_512 } from '@noble/hashes/sha3';
 import { blake3 } from '@noble/hashes/blake3';
-import { ripemd160 } from '@noble/hashes/ripemd160';
 import { hmac } from '@noble/hashes/hmac';
-import { HASH_TYPE, VALID_HASH_TYPES } from './constants.js';
+// import { sha256 } from '@noble/hashes/sha2'; // Not currently used
+import { sha3_256, sha3_512 } from '@noble/hashes/sha3';
+
 import type { HashType } from '../types/index.js';
+
+import { HASH_TYPE, VALID_HASH_TYPES } from './constants.js';
 
 /**
  * Utility functions for byte manipulation
  */
-const ByteUtils = {
+const _ByteUtils = {
   /**
    * Generate cryptographically secure random bytes
    */
-  randomBytes(length: number): Uint8Array {
+  async randomBytes(length: number): Promise<Uint8Array> {
     const array = new Uint8Array(length);
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
       crypto.getRandomValues(array);
     } else {
       // Fallback for Node.js
-      const crypto = require('crypto');
-      crypto.randomFillSync(array);
+      const nodeCrypto = await import('crypto');
+      nodeCrypto.randomFillSync(array);
     }
     return array;
   },
@@ -109,7 +110,7 @@ export function getAllHashInfo(): {
   supportedTypes: readonly HashType[];
   implementations: Record<HashType, string>;
   descriptions: Record<HashType, string>;
-} {
+  } {
   return {
     supportedTypes: VALID_HASH_TYPES,
     implementations: {

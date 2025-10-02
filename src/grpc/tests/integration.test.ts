@@ -6,16 +6,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { 
-  createGenericGRPCClient,
-  makeGRPCCall
-} from '../generic-grpc-client.js';
-import { 
-  createValidatorAPIClient
-} from '../api/validator-api-client.js';
-import { 
-  createTransactionClient
-} from '../transaction/transaction-client.js';
+  getConfig,
+  setEnvironment
+} from '../../shared/config/index.js';
 import { 
   ErrorHandler
 } from '../../shared/utils/error-handler.js';
@@ -23,9 +18,15 @@ import {
   PerformanceBenchmark
 } from '../../shared/utils/performance-benchmark.js';
 import { 
-  getConfig,
-  setEnvironment
-} from '../../shared/config/index.js';
+  createValidatorAPIClient
+} from '../api/validator-api-client.js';
+import { 
+  createGenericGRPCClient,
+  makeGRPCCall
+} from '../generic-grpc-client.js';
+import { 
+  createTransactionClient
+} from '../transaction/transaction-client.js';
 
 describe('gRPC Infrastructure Tests', () => {
   beforeEach(() => {

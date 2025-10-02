@@ -1,18 +1,20 @@
 import { generateMnemonic, validateMnemonic, mnemonicToSeedSync } from 'bip39';
+
+import type { HDOptions, MnemonicLength, KeyType } from '../types/index.js';
+
 import { 
   ZERA_TYPE, 
   MNEMONIC_LENGTHS, 
   DEFAULT_HD_SETTINGS,
   validateSLIP0010Path
 } from './constants.js';
+import { SLIP0010HDWallet } from './crypto-core.js';
 import {
   InvalidMnemonicLengthError,
   InvalidMnemonicError,
   InvalidHDParameterError,
   InvalidDerivationPathError
 } from './errors.js';
-import { SLIP0010HDWallet } from './crypto-core.js';
-import type { HDOptions, MnemonicLength, KeyType } from '../types/index.js';
 
 /**
  * Generate a new BIP39 mnemonic phrase
@@ -140,7 +142,7 @@ export function getHDWalletInfo(): {
   supportedLengths: readonly number[];
   defaultSettings: typeof DEFAULT_HD_SETTINGS;
   description: string;
-} {
+  } {
   return {
     standard: 'BIP32 + BIP39 + SLIP-0010',
     coinType: ZERA_TYPE,

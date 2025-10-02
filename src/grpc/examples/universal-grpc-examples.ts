@@ -5,17 +5,17 @@
  * Focuses on infrastructure patterns rather than business logic.
  */
 
+import { TESTING_GRPC_CONFIG } from '../../shared/utils/testing-defaults/index.js';
+import { 
+  createValidatorAPIClient
+} from '../api/validator-api-client.js';
 import { 
   createGenericGRPCClient,
   createTypedGRPCClient
 } from '../generic-grpc-client.js';
 import { 
-  createValidatorAPIClient
-} from '../api/validator-api-client.js';
-import { 
   createTransactionClient
 } from '../transaction/transaction-client.js';
-import { TESTING_GRPC_CONFIG } from '../../shared/utils/testing-defaults/index.js';
 
 /**
  * Example 1: Generic gRPC Client Creation

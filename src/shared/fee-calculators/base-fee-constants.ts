@@ -50,7 +50,7 @@ export function updateFeeConstants(newConstants: Partial<typeof FEE_CONSTANTS>):
 /**
  * Get signature size for a key type
  */
-export function getSignatureSize(keyType: string, hashType?: string): number {
+export function getSignatureSize(keyType: string, _hashType?: string): number {
   if (keyType === KEY_TYPE.ED25519) {
     return SIGNATURE_SIZES.ED25519;
   } else if (keyType === KEY_TYPE.ED448) {
@@ -66,14 +66,14 @@ export function getSignatureSize(keyType: string, hashType?: string): number {
  */
 export function getHashSize(hashType: string): number {
   switch (hashType) {
-    case HASH_TYPE.SHA3_256:
-      return HASH_SIZES.SHA3_256;
-    case HASH_TYPE.SHA3_512:
-      return HASH_SIZES.SHA3_512;
-    case HASH_TYPE.BLAKE3:
-      return HASH_SIZES.BLAKE3;
-    default:
-      return HASH_SIZE; // Default to SHA3-256
+  case HASH_TYPE.SHA3_256:
+    return HASH_SIZES.SHA3_256;
+  case HASH_TYPE.SHA3_512:
+    return HASH_SIZES.SHA3_512;
+  case HASH_TYPE.BLAKE3:
+    return HASH_SIZES.BLAKE3;
+  default:
+    return HASH_SIZE; // Default to SHA3-256
   }
 }
 
@@ -134,7 +134,7 @@ export const FEE_CONSTANTS = {
   SBT_BURN_FEE: 0.0001,                    // 0.01 cents per byte - SBT burn transactions
   REQUIRED_VERSION_FEE: 0.0001,            // 0.01 cents per byte - Required version transactions
   ALLOWANCE_FEE: 0.0001,                   // 0.01 cents per byte - Allowance transactions
-  UNKNOWN_TXN_FEE: 0.0001,                 // 0.01 cents per byte - Unknown transaction types (fallback)
+  UNKNOWN_TXN_FEE: 0.0001                 // 0.01 cents per byte - Unknown transaction types (fallback)
 } as const;
 
 /**
@@ -168,7 +168,7 @@ const TRANSACTION_TYPE_FEE_MAP: Record<number, number> = {
   23: FEE_CONSTANTS.REQUIRED_VERSION_FEE,           // REQUIRED_VERSION - Required version transactions
   24: FEE_CONSTANTS.SMART_CONTRACT_INSTANTIATE_FEE, // SMART_CONTRACT_INSTANTIATE_TYPE - Smart contract instantiation
   25: FEE_CONSTANTS.UNKNOWN_TXN_FEE,                // UKNOWN_TYPE - Unknown transaction types
-  26: FEE_CONSTANTS.ALLOWANCE_FEE,                  // ALLOWANCE_TYPE - Allowance transactions
+  26: FEE_CONSTANTS.ALLOWANCE_FEE                  // ALLOWANCE_TYPE - Allowance transactions
 };
 
 /**
@@ -196,16 +196,16 @@ export function getKeyFee(keyType: string, isRestricted: boolean = false): numbe
   let baseFee: number;
   
   switch (keyType.toLowerCase()) {
-    case KEY_TYPE.ED25519:
-    case 'a':
-      baseFee = FEE_CONSTANTS.ED25519_KEY_FEE;
-      break;
-    case KEY_TYPE.ED448:
-    case 'b':
-      baseFee = FEE_CONSTANTS.ED448_KEY_FEE;
-      break;
-    default:
-      baseFee = FEE_CONSTANTS.ED25519_KEY_FEE; // Default fallback
+  case KEY_TYPE.ED25519:
+  case 'a':
+    baseFee = FEE_CONSTANTS.ED25519_KEY_FEE;
+    break;
+  case KEY_TYPE.ED448:
+  case 'b':
+    baseFee = FEE_CONSTANTS.ED448_KEY_FEE;
+    break;
+  default:
+    baseFee = FEE_CONSTANTS.ED25519_KEY_FEE; // Default fallback
   }
   
   return isRestricted ? baseFee * FEE_CONSTANTS.RESTRICTED_KEY_MULTIPLIER : baseFee;
@@ -222,44 +222,44 @@ export function getHashFee(hashType: string, isRestricted: boolean = false): num
   let baseFee: number;
   
   switch (hashType.toLowerCase()) {
-    case HASH_TYPE.SHA3_256:
-    case 'a':
-      baseFee = FEE_CONSTANTS.SHA3_256_HASH_FEE;
-      break;
-    case HASH_TYPE.SHA3_512:
-    case 'b':
-      baseFee = FEE_CONSTANTS.SHA3_512_HASH_FEE;
-      break;
-    case HASH_TYPE.BLAKE3:
-    case 'c':
-      baseFee = FEE_CONSTANTS.BLAKE3_HASH_FEE;
-      break;
-    case 'd':
-      baseFee = FEE_CONSTANTS.CUSTOM_HASH_D_FEE;
-      break;
-    case 'e':
-      baseFee = FEE_CONSTANTS.CUSTOM_HASH_E_FEE;
-      break;
-    case 'f':
-      baseFee = FEE_CONSTANTS.CUSTOM_HASH_F_FEE;
-      break;
-    case 'g':
-      baseFee = FEE_CONSTANTS.CUSTOM_HASH_G_FEE;
-      break;
-    case 'dbz':
-      baseFee = FEE_CONSTANTS.CUSTOM_HASH_DBZ_FEE;
-      break;
-    case 'h':
-      baseFee = FEE_CONSTANTS.CUSTOM_HASH_H_FEE;
-      break;
-    case 'i':
-      baseFee = FEE_CONSTANTS.CUSTOM_HASH_I_FEE;
-      break;
-    case 'j':
-      baseFee = FEE_CONSTANTS.CUSTOM_HASH_J_FEE;
-      break;
-    default:
-      baseFee = FEE_CONSTANTS.SHA3_256_HASH_FEE; // Default fallback
+  case HASH_TYPE.SHA3_256:
+  case 'a':
+    baseFee = FEE_CONSTANTS.SHA3_256_HASH_FEE;
+    break;
+  case HASH_TYPE.SHA3_512:
+  case 'b':
+    baseFee = FEE_CONSTANTS.SHA3_512_HASH_FEE;
+    break;
+  case HASH_TYPE.BLAKE3:
+  case 'c':
+    baseFee = FEE_CONSTANTS.BLAKE3_HASH_FEE;
+    break;
+  case 'd':
+    baseFee = FEE_CONSTANTS.CUSTOM_HASH_D_FEE;
+    break;
+  case 'e':
+    baseFee = FEE_CONSTANTS.CUSTOM_HASH_E_FEE;
+    break;
+  case 'f':
+    baseFee = FEE_CONSTANTS.CUSTOM_HASH_F_FEE;
+    break;
+  case 'g':
+    baseFee = FEE_CONSTANTS.CUSTOM_HASH_G_FEE;
+    break;
+  case 'dbz':
+    baseFee = FEE_CONSTANTS.CUSTOM_HASH_DBZ_FEE;
+    break;
+  case 'h':
+    baseFee = FEE_CONSTANTS.CUSTOM_HASH_H_FEE;
+    break;
+  case 'i':
+    baseFee = FEE_CONSTANTS.CUSTOM_HASH_I_FEE;
+    break;
+  case 'j':
+    baseFee = FEE_CONSTANTS.CUSTOM_HASH_J_FEE;
+    break;
+  default:
+    baseFee = FEE_CONSTANTS.SHA3_256_HASH_FEE; // Default fallback
   }
   
   return isRestricted ? baseFee * FEE_CONSTANTS.RESTRICTED_KEY_MULTIPLIER : baseFee;
@@ -336,30 +336,30 @@ export function extractHashTypeFromIdentifier(hashIdentifier: string): string {
     const hashTypePrefix = cleanIdentifier.substring(0, firstUnderscoreIndex);
     
     switch (hashTypePrefix.toLowerCase()) {
-      case 'a':
-        return HASH_TYPE.SHA3_256;
-      case 'b':
-        return HASH_TYPE.SHA3_512;
-      case 'c':
-        return HASH_TYPE.BLAKE3;
-      case 'd':
-        return 'd';
-      case 'e':
-        return 'e';
-      case 'f':
-        return 'f';
-      case 'g':
-        return 'g';
-      case 'dbz':
-        return 'dbz';
-      case 'h':
-        return 'h';
-      case 'i':
-        return 'i';
-      case 'j':
-        return 'j';
-      default:
-        throw new Error(`Unsupported hash type prefix: '${hashTypePrefix}'`);
+    case 'a':
+      return HASH_TYPE.SHA3_256;
+    case 'b':
+      return HASH_TYPE.SHA3_512;
+    case 'c':
+      return HASH_TYPE.BLAKE3;
+    case 'd':
+      return 'd';
+    case 'e':
+      return 'e';
+    case 'f':
+      return 'f';
+    case 'g':
+      return 'g';
+    case 'dbz':
+      return 'dbz';
+    case 'h':
+      return 'h';
+    case 'i':
+      return 'i';
+    case 'j':
+      return 'j';
+    default:
+      throw new Error(`Unsupported hash type prefix: '${hashTypePrefix}'`);
     }
   }
   

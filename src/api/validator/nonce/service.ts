@@ -6,9 +6,10 @@
  */
 
 import Decimal from 'decimal.js';
+
+import type { NonceResponse } from '../../../../proto/generated/api_pb.js';
 import { createValidatorAPIClient } from '../../../grpc/api/validator-api-client.js';
 import type { GRPCConfig } from '../../../types/index.js';
-import type { NonceResponse } from '../../../../proto/generated/api_pb.js';
 
 /**
  * Get a single nonce for an address

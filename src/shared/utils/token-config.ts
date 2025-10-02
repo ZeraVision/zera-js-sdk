@@ -16,7 +16,7 @@ import type { ContractId } from '../../types/index.js';
  */
 export const TOKEN_DECIMALS: Record<ContractId, number> = {
   // ZERA Network tokens
-  '$ZRA+0000': 9,  // ZERA token (main network token)
+  '$ZRA+0000': 9  // ZERA token (main network token)
 } as const;
 
 /**
@@ -27,7 +27,7 @@ export function getTokenDecimals(contractId: ContractId): number {
     throw new Error('Contract ID must be a non-empty string');
   }
   
-  const decimals = TOKEN_DECIMALS[contractId as keyof typeof TOKEN_DECIMALS];
+  const decimals = TOKEN_DECIMALS[contractId];
   if (decimals === undefined) {
     throw new Error(`Unsupported token: ${contractId}. Supported tokens: ${Object.keys(TOKEN_DECIMALS).join(', ')}`);
   }
@@ -47,7 +47,7 @@ export function addTokenConfig(contractId: ContractId, decimals: number): void {
     throw new Error('Decimals must be a non-negative integer');
   }
   
-  (TOKEN_DECIMALS as Record<string, number>)[contractId] = decimals;
+  (TOKEN_DECIMALS)[contractId] = decimals;
 }
 
 /**
@@ -61,7 +61,7 @@ export function isTokenSupported(contractId: ContractId): boolean {
  * Get all supported token contract IDs
  */
 export function getSupportedTokens(): ContractId[] {
-  return Object.keys(TOKEN_DECIMALS) as ContractId[];
+  return Object.keys(TOKEN_DECIMALS);
 }
 
 /**
@@ -78,7 +78,7 @@ export function getTokenSymbol(contractId: ContractId): string {
     throw new Error(`Invalid contract ID format: ${contractId}`);
   }
   
-  return match[1]!;
+  return match[1] || '';
 }
 
 /**
@@ -132,5 +132,5 @@ export function createContractId(symbol: string, identifier: string | number): C
     throw new Error('Symbol must contain only letters');
   }
   
-  return `$${symbol}+${id}` as ContractId;
+  return `$${symbol}+${id}`;
 }

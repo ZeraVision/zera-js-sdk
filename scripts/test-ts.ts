@@ -9,8 +9,8 @@
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -110,38 +110,38 @@ const args = process.argv.slice(2);
 const command = args[0];
 
 switch (command) {
-  case 'ts':
-  case 'typescript':
+case 'ts':
+case 'typescript':
+  runTypeScriptTests();
+  break;
+case 'js':
+case 'javascript':
+  runJavaScriptTests();
+  break;
+case 'all':
+  runAllTests();
+  break;
+case 'help':
+case '--help':
+case '-h':
+  log('ZERA JS SDK TypeScript Test Runner', colors.bright);
+  log('', colors.reset);
+  log('Usage: npm run test:ts [command]', colors.reset);
+  log('', colors.reset);
+  log('Commands:', colors.reset);
+  log('  (no command)  - Run TypeScript tests only', colors.reset);
+  log('  ts            - Run TypeScript tests only', colors.reset);
+  log('  js            - Run JavaScript tests only', colors.reset);
+  log('  all           - Run all tests (TypeScript + JavaScript)', colors.reset);
+  log('  help          - Show this help message', colors.reset);
+  break;
+default:
+  if (command) {
+    log(`Unknown command: ${command}`, colors.red);
+    log('Run "npm run test:ts help" for available commands', colors.yellow);
+    process.exit(1);
+  } else {
     runTypeScriptTests();
-    break;
-  case 'js':
-  case 'javascript':
-    runJavaScriptTests();
-    break;
-  case 'all':
-    runAllTests();
-    break;
-  case 'help':
-  case '--help':
-  case '-h':
-    log('ZERA JS SDK TypeScript Test Runner', colors.bright);
-    log('', colors.reset);
-    log('Usage: npm run test:ts [command]', colors.reset);
-    log('', colors.reset);
-    log('Commands:', colors.reset);
-    log('  (no command)  - Run TypeScript tests only', colors.reset);
-    log('  ts            - Run TypeScript tests only', colors.reset);
-    log('  js            - Run JavaScript tests only', colors.reset);
-    log('  all           - Run all tests (TypeScript + JavaScript)', colors.reset);
-    log('  help          - Show this help message', colors.reset);
-    break;
-  default:
-    if (command) {
-      log(`Unknown command: ${command}`, colors.red);
-      log('Run "npm run test:ts help" for available commands', colors.yellow);
-      process.exit(1);
-    } else {
-      runTypeScriptTests();
-    }
-    break;
+  }
+  break;
 }

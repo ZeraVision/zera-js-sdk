@@ -4,11 +4,14 @@
  * This module handles transaction signing with automatic key type detection.
  */
 
+import { createHash } from 'crypto';
+
+import bs58 from 'bs58';
+
 import { Ed25519KeyPair, Ed448KeyPair } from '../../wallet-creation/crypto-core.js';
+
 import { getKeyTypeFromPublicKey } from './address-utils.js';
 import { KEY_TYPE, HASH_TYPE } from './constants.js';
-import bs58 from 'bs58';
-import { createHash } from 'crypto';
 
 /**
  * Sign transaction data with automatic key type detection

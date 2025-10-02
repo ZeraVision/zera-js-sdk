@@ -1,8 +1,9 @@
 #!/usr/bin/env tsx
 
 import { execSync } from 'child_process';
-import chalk from 'chalk';
 import { readFileSync } from 'fs';
+
+import chalk from 'chalk';
 
 /**
  * Custom test runner with clean output
@@ -239,7 +240,7 @@ function showModuleBreakdown(results: TestResult[], failedTests: FailedTest[]): 
     // Show failures for this module if any
     const moduleFailures = failedTests.filter(test => test.module === result.module);
     if (moduleFailures.length > 0) {
-      console.log(chalk.red(`   ❌ Failed Tests:`));
+      console.log(chalk.red('   ❌ Failed Tests:'));
       moduleFailures.forEach((test, index) => {
         console.log(chalk.red(`      ${index + 1}. ${test.testName}`));
         

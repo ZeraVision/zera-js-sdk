@@ -6,23 +6,12 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { 
-  createCoinTXN, 
-  sendCoinTXN,
-  type CoinTXNInput,
-  type CoinTXNOutput,
-  type FeeConfig
-} from '../index.js';
+
 import type { CoinTXN } from '../../../proto/generated/txn_pb.js';
 import { 
-  ED25519_TEST_KEYS,
-  TEST_WALLET_ADDRESSES
-} from '../../test-utils/index.js';
-import { 
-  validateAmount,
-  validateBase58Address,
-  validateContractId as validateContractIdUtil
-} from '../../shared/utils/validation.js';
+  getConfig,
+  setEnvironment
+} from '../../shared/config/index.js';
 import { 
   ErrorHandler
 } from '../../shared/utils/error-handler.js';
@@ -31,9 +20,21 @@ import {
   PerformanceBenchmark
 } from '../../shared/utils/performance-benchmark.js';
 import { 
-  getConfig,
-  setEnvironment
-} from '../../shared/config/index.js';
+  validateAmount,
+  validateBase58Address,
+  validateContractId as validateContractIdUtil
+} from '../../shared/utils/validation.js';
+import { 
+  ED25519_TEST_KEYS,
+  TEST_WALLET_ADDRESSES
+} from '../../test-utils/index.js';
+import { 
+  createCoinTXN, 
+  sendCoinTXN,
+  type CoinTXNInput,
+  type CoinTXNOutput,
+  type FeeConfig
+} from '../index.js';
 
 describe('Transaction Integration Tests', () => {
   let contractId: string;

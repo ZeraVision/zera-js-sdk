@@ -1,4 +1,6 @@
+import bs58 from 'bs58';
 import { describe, it, expect } from 'vitest';
+
 import {
   createWallet,
   deriveMultipleWallets,
@@ -6,7 +8,6 @@ import {
   KEY_TYPE,
   HASH_TYPE
 } from '../index.js';
-import bs58 from 'bs58';
 
 describe('Ed448 Implementation', () => {
   describe('Basic Ed448 wallet creation', () => {

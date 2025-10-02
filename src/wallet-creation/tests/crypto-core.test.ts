@@ -1,4 +1,7 @@
+import bs58 from 'bs58';
 import { describe, it, expect } from 'vitest';
+
+import { KEY_TYPE } from '../constants.js';
 import { 
   SLIP0010HDWallet, 
   Ed25519KeyPair, 
@@ -10,8 +13,6 @@ import {
   generateSeed, 
   buildDerivationPath 
 } from '../hd-utils.js';
-import { KEY_TYPE } from '../constants.js';
-import bs58 from 'bs58';
 
 describe('Crypto Core', () => {
   describe('SLIP-0010 HD Wallet', () => {

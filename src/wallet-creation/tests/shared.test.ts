@@ -1,14 +1,15 @@
 import { describe, it, expect } from 'vitest';
+
+import { validateAddress } from '../../shared/crypto/address-utils.js';
+import { TEST_WALLET_ADDRESSES } from '../../test-utils/keys.test.js';
+import { HASH_TYPE, isValidKeyType } from '../constants.js';
+import { validateMnemonicPhrase } from '../hd-utils.js';
 import { 
   createBaseWallet, 
   validateWalletObject,
   sanitizeWalletForLogging,
   createWalletSummary
 } from '../shared.js';
-import { validateAddress } from '../../shared/crypto/address-utils.js';
-import { HASH_TYPE, isValidKeyType } from '../constants.js';
-import { validateMnemonicPhrase } from '../hd-utils.js';
-import { TEST_WALLET_ADDRESSES } from '../../test-utils/keys.test.js';
 
 describe('Shared Utilities', () => {
   describe('Mnemonic validation', () => {

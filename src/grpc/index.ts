@@ -1,5 +1,5 @@
-import { createGenericGRPCClient, makeGRPCCall } from './generic-grpc-client.js';
 import { createValidatorAPIClient, type ValidatorAPIClient } from './api/validator-api-client.js';
+import { createGenericGRPCClient, makeGRPCCall } from './generic-grpc-client.js';
 import { createTransactionClient, type TransactionClient } from './transaction/transaction-client.js';
 
 /**

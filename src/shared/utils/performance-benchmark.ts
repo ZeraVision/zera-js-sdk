@@ -77,7 +77,7 @@ export class PerformanceBenchmark {
     for (let i = 0; i < warmupIterations; i++) {
       try {
         await fn();
-      } catch (error) {
+      } catch {
         // Ignore warmup errors
       }
     }
@@ -101,7 +101,7 @@ export class PerformanceBenchmark {
         await fn();
         const iterationEnd = performance.now();
         times.push(iterationEnd - iterationStart);
-      } catch (error) {
+      } catch {
         // Record failed iteration as 0 time
         times.push(0);
       }
@@ -254,7 +254,7 @@ export class PerformanceBenchmark {
     }
 
     let report = 'Performance Benchmark Report\n';
-    report += '='.repeat(50) + '\n\n';
+    report += `${'='.repeat(50)}\n\n`;
 
     for (const result of this.results) {
       report += `Benchmark: ${result.name}\n`;
@@ -365,7 +365,7 @@ export class MemoryTracker {
     }
 
     let report = 'Memory Usage Report\n';
-    report += '='.repeat(30) + '\n\n';
+    report += `${'='.repeat(30)}\n\n`;
 
     for (let i = 0; i < this.measurements.length; i++) {
       const measurement = this.measurements[i];
@@ -396,19 +396,19 @@ export class MemoryTracker {
 /**
  * Performance monitoring decorator
  */
-export function measurePerformance<T extends (...args: any[]) => any>(
+export function measurePerformance<_T extends(...args: unknown[]) => unknown>(
   name?: string
 ) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
-    const methodName = name || `${target.constructor.name}.${propertyKey}`;
+    const _methodName = name || `${(target as { constructor: { name: string } }).constructor.name}.${propertyKey}`;
 
-    descriptor.value = async function (...args: any[]) {
-      const start = performance.now();
-      const result = await originalMethod.apply(this, args);
-      const end = performance.now();
+    descriptor.value = async function (..._args: unknown[]) {
+      const _start = performance.now();
+      const result = await originalMethod.apply(this, _args);
+      const _end = performance.now();
       
-      console.log(`[PERF] ${methodName}: ${(end - start).toFixed(4)}ms`);
+      // console.log(`[PERF] ${_methodName}: ${(_end - _start).toFixed(4)}ms`);
       
       return result;
     };

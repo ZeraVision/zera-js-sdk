@@ -6,7 +6,7 @@
  * handle BigInt serialization.
  */
 
-import { create } from '@bufbuild/protobuf';
+// import { create } from '@bufbuild/protobuf'; // Not used in current implementation
 
 /**
  * Sanitization options interface
@@ -94,18 +94,18 @@ export function sanitizeProtobufObject<T = unknown>(
  * Create a protobuf object with comprehensive sanitization
  * This ensures optional fields are never empty strings
  */
-export function createSanitized(schema: any, data: any): any {
+export function createSanitized<T>(schema: new (data?: Partial<T>) => T, data: Record<string, unknown>): T {
   // First sanitize the input data to remove empty optional fields
   const sanitizedData = sanitizeProtobufObject(data, { removeEmptyFields: true });
   
   // Then create the protobuf object
-  return create(schema, sanitizedData);
+  return new schema(sanitizedData as Partial<T>);
 }
 
 /**
  * Sanitize object for serialization (BigInt conversion)
  */
-export function sanitizeForSerialization<T = any>(obj: T): T | undefined {
+export function sanitizeForSerialization<T = unknown>(obj: T): T | undefined {
   return sanitizeProtobufObject(obj, { convertBigInt: true });
 }
 
@@ -113,7 +113,7 @@ export function sanitizeForSerialization<T = any>(obj: T): T | undefined {
  * Create multiple protobuf objects with sanitization
  * Useful for creating arrays of protobuf objects
  */
-export function createSanitizedArray(schema: any, dataArray: any[]): any[] {
+export function createSanitizedArray<T>(schema: new (data?: Partial<T>) => T, dataArray: Record<string, unknown>[]): T[] {
   return dataArray.map(data => createSanitized(schema, data));
 }
 
@@ -121,7 +121,7 @@ export function createSanitizedArray(schema: any, dataArray: any[]): any[] {
  * Conditionally create sanitized protobuf object
  * Only creates if data is not null/undefined
  */
-export function createSanitizedConditional(schema: any, data: any): any | undefined {
+export function createSanitizedConditional<T>(schema: new (data?: Partial<T>) => T, data: Record<string, unknown>): T | undefined {
   if (data === null || data === undefined) {
     return undefined;
   }

@@ -1,22 +1,4 @@
-import {
-  ZERA_TYPE, ZERA_SYMBOL, ZERA_NAME,
-  KEY_TYPE, HASH_TYPE, VALID_KEY_TYPES, VALID_HASH_TYPES, MNEMONIC_LENGTHS,
-  isValidKeyType, isValidMnemonicLength
-} from './constants.js';
-import {
-  generateMnemonicPhrase, generateSeed, buildDerivationPath, 
-  createHDWallet, deriveMultipleAddresses
-} from './hd-utils.js';
-import { 
-  generateZeraPublicKeyIdentifier, createBaseWallet
-} from './shared.js';
 import { generateZeraAddress } from '../shared/crypto/address-utils.js';
-import {
-  MissingParameterError, InvalidKeyTypeError, InvalidHashTypeError, InvalidMnemonicLengthError
-} from './errors.js';
-import { validateHashTypes } from './hash-utils.js';
-import { Ed25519KeyPair, Ed448KeyPair, CryptoUtils, SLIP0010HDWallet } from './crypto-core.js';
-import bs58 from 'bs58';
 import type { 
   WalletOptions, 
   Wallet, 
@@ -25,6 +7,26 @@ import type {
   KeyType, 
   HashType
 } from '../types/index.js';
+
+import {
+  ZERA_TYPE, ZERA_SYMBOL, ZERA_NAME,
+  VALID_KEY_TYPES, VALID_HASH_TYPES, MNEMONIC_LENGTHS,
+  isValidKeyType, KEY_TYPE
+} from './constants.js';
+import { Ed25519KeyPair, Ed448KeyPair, CryptoUtils, SLIP0010HDWallet } from './crypto-core.js';
+import {
+  MissingParameterError, InvalidKeyTypeError, InvalidHashTypeError
+} from './errors.js';
+import { validateHashTypes } from './hash-utils.js';
+import {
+  generateSeed, buildDerivationPath, 
+  createHDWallet
+} from './hd-utils.js';
+import { 
+  generateZeraPublicKeyIdentifier, createBaseWallet
+} from './shared.js';
+
+
 
 /**
  * Unified wallet creation factory for the ZERA Network.
@@ -262,9 +264,9 @@ export class WalletFactory {
    */
   private async generateKeyPair(hdNode: SLIP0010HDWallet, keyType: KeyType): Promise<Ed25519KeyPair | Ed448KeyPair> {
     if (keyType === KEY_TYPE.ED25519) {
-      return Ed25519KeyPair.fromHDNode(hdNode as any);
+      return Ed25519KeyPair.fromHDNode(hdNode);
     } else if (keyType === KEY_TYPE.ED448) {
-      return Ed448KeyPair.fromHDNode(hdNode as any);
+      return Ed448KeyPair.fromHDNode(hdNode);
     } else {
       throw new InvalidKeyTypeError(keyType, VALID_KEY_TYPES);
     }
@@ -284,7 +286,7 @@ export class WalletFactory {
     description: string;
     cryptographicLibraries: string[];
     securityFeatures: string[];
-  } {
+    } {
     return {
       name: this.name,
       symbol: this.symbol,
@@ -320,7 +322,7 @@ export class WalletFactory {
  */
 export async function createWallet(options: WalletOptions): Promise<Wallet> {
   const factory = new WalletFactory();
-  return await factory.createWallet(options);
+  return factory.createWallet(options);
 }
 
 /**
@@ -328,5 +330,5 @@ export async function createWallet(options: WalletOptions): Promise<Wallet> {
  */
 export async function deriveMultipleWallets(options: MultipleWalletOptions): Promise<Wallet[]> {
   const factory = new WalletFactory();
-  return await factory.deriveMultipleWallets(options);
+  return factory.deriveMultipleWallets(options);
 }

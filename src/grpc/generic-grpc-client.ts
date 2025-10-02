@@ -7,24 +7,23 @@
 
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import { sanitizeProtobufObject } from '../shared/utils/protobuf-utils.js';
+
 import { 
   createNetworkError,
-  grpcErrorContext,
-  ErrorHandler
+  grpcErrorContext
 } from '../shared/utils/error-handler.js';
+import { sanitizeProtobufObject } from '../shared/utils/protobuf-utils.js';
 import type { 
   GRPCClientOptions, 
   GRPCClient
 } from '../types/index.js';
+
 import type {
   TypedGRPCClientOptions,
   TypedGRPCClient,
   GRPCMethod,
   GRPCCallOptions,
-  GRPCCallResult,
-  GRPCError,
-  isGRPCError
+  GRPCError
 } from './types.js';
 
 /**
@@ -57,7 +56,7 @@ export function createGenericGRPCClient(options: GRPCClientOptions): GRPCClient 
       );
     }
     
-    const ServiceClass = (proto as any)[serviceName];
+    const ServiceClass = (proto as Record<string, unknown>)[serviceName];
     
     if (!ServiceClass || typeof ServiceClass !== 'function') {
       throw createNetworkError(
@@ -67,7 +66,7 @@ export function createGenericGRPCClient(options: GRPCClientOptions): GRPCClient 
     }
 
     // Create the gRPC client
-    const client = new ServiceClass(
+    const client = new (ServiceClass as new (address: string, credentials: unknown) => unknown)(
       `${host}:${port}`,
       grpc.credentials.createInsecure()
     );
@@ -111,18 +110,18 @@ export function makeGRPCCall<TRequest = unknown, TResponse = unknown>(
 
       if (process.env.DEBUG_GRPC_REQUESTS === 'true') {
         try {
-          console.log('gRPC request to', method);
-          console.log(JSON.stringify(sanitizedRequest, (key, value) => {
-            if (value instanceof Uint8Array) {
-              return Buffer.from(value).toString('hex');
-            }
-            if (typeof value === 'bigint') {
-              return value.toString();
-            }
-            return value;
-          }, 2));
-        } catch (logError) {
-          console.warn('Failed to log gRPC request', logError);
+          // console.log('gRPC request to', method);
+          // console.log(JSON.stringify(sanitizedRequest, (key, value) => {
+          //   if (value instanceof Uint8Array) {
+          //     return Buffer.from(value).toString('hex');
+          //   }
+          //   if (typeof value === 'bigint') {
+          //     return value.toString();
+          //   }
+          //   return value;
+          // }, 2));
+        } catch {
+          // console.warn('Failed to log gRPC request', _logError);
         }
       }
 

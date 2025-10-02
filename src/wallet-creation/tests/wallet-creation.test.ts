@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
 import { createWallet, generateMnemonicPhrase, buildDerivationPath, deriveMultipleWallets, KEY_TYPE, HASH_TYPE } from '../index.js';
 
 describe('ZERA Wallet Creation', () => {

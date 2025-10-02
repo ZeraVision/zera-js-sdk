@@ -50,16 +50,16 @@ export class ErrorHandler {
     }
 
     switch (type) {
-      case 'validation':
-        return new ValidationError(message, details);
-      case 'network':
-        return new NetworkError(message, details);
-      case 'crypto':
-        return new CryptoError(message, details);
-      case 'transaction':
-        return new TransactionError(message, details);
-      default:
-        return new ZeraError(message, 'GENERAL_ERROR', details);
+    case 'validation':
+      return new ValidationError(message, details);
+    case 'network':
+      return new NetworkError(message, details);
+    case 'crypto':
+      return new CryptoError(message, details);
+    case 'transaction':
+      return new TransactionError(message, details);
+    default:
+      return new ZeraError(message, 'GENERAL_ERROR', details);
     }
   }
 

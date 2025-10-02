@@ -7,7 +7,7 @@
 export * from './keys.test.js';
 
 // Test result tracking for assertions
-let testResults = {
+const testResults = {
   total: 0,
   passed: 0,
   failed: 0,
@@ -22,7 +22,7 @@ export const assert = {
   /**
    * Assert that a condition is true
    */
-  ok(condition: any, message: string = 'Assertion failed'): boolean {
+  ok(condition: unknown, message: string = 'Assertion failed'): boolean {
     testResults.total++;
     if (condition) {
       testResults.passed++;
@@ -36,7 +36,7 @@ export const assert = {
   /**
    * Assert that two values are equal
    */
-  equal(actual: any, expected: any, message: string = `Expected ${expected}, but got ${actual}`): boolean {
+  equal(actual: unknown, expected: unknown, message: string = `Expected ${expected}, but got ${actual}`): boolean {
     testResults.total++;
     if (actual === expected) {
       testResults.passed++;
@@ -50,7 +50,7 @@ export const assert = {
   /**
    * Assert that two values are deeply equal (for objects/arrays)
    */
-  deepEqual(actual: any, expected: any, message: string = 'Objects are not deeply equal'): boolean {
+  deepEqual(actual: unknown, expected: unknown, message: string = 'Objects are not deeply equal'): boolean {
     testResults.total++;
     if (JSON.stringify(actual) === JSON.stringify(expected)) {
       testResults.passed++;
@@ -64,16 +64,17 @@ export const assert = {
   /**
    * Assert that a function throws an error
    */
-  throws(fn: () => any, expectedError: any = null, message: string = 'Expected function to throw an error'): Error {
+  throws(fn: () => unknown, expectedError: unknown = null, message: string = 'Expected function to throw an error'): Error {
     testResults.total++;
     try {
       fn();
       testResults.failed++;
       throw new Error(message);
     } catch (error) {
-      if (expectedError && !(error instanceof expectedError)) {
+      if (expectedError && !(error instanceof (expectedError as new (...args: unknown[]) => Error))) {
         testResults.failed++;
-        throw new Error(`Expected ${expectedError.name}, but got ${(error as Error).constructor.name}`);
+        const expectedName = (expectedError as new (...args: unknown[]) => Error).name;
+        throw new Error(`Expected ${expectedName}, but got ${(error as Error).constructor.name}`);
       }
       testResults.passed++;
       return error as Error;
@@ -83,7 +84,7 @@ export const assert = {
   /**
    * Assert that a function does not throw an error
    */
-  doesNotThrow(fn: () => any, message: string = 'Expected function not to throw an error'): boolean {
+  doesNotThrow(fn: () => unknown, message: string = 'Expected function not to throw an error'): boolean {
     testResults.total++;
     try {
       fn();

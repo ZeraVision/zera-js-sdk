@@ -1,12 +1,14 @@
-import { sha256, sha512 } from '@noble/hashes/sha2';
-import { sha3_256 } from '@noble/hashes/sha3';
-import { hmac } from '@noble/hashes/hmac';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { ed448 } from '@noble/curves/ed448.js';
+import { hmac } from '@noble/hashes/hmac';
+import { sha256, sha512 } from '@noble/hashes/sha2';
+import { sha3_256 } from '@noble/hashes/sha3';
 import bs58 from 'bs58';
-import { EXTENDED_KEY_VERSIONS } from './constants.js';
+
 import { KEY_TYPE } from '../shared/crypto/constants.js';
 import type { KeyType } from '../types/index.js';
+
+import { EXTENDED_KEY_VERSIONS } from './constants.js';
 
 // SLIP-0010 constants
 const SLIP0010_HARDENED_OFFSET = 0x80000000;
@@ -39,14 +41,14 @@ const ByteUtils = {
   /**
    * Generate cryptographically secure random bytes
    */
-  randomBytes(length: number): Uint8Array {
+  async randomBytes(length: number): Promise<Uint8Array> {
     const array = new Uint8Array(length);
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
       crypto.getRandomValues(array);
     } else {
       // Fallback for Node.js
-      const crypto = require('crypto');
-      crypto.randomFillSync(array);
+      const nodeCrypto = await import('crypto');
+      nodeCrypto.randomFillSync(array);
     }
     return array;
   },
@@ -127,7 +129,7 @@ export class SLIP0010HDWallet {
     // Parse derivation path
     const pathParts = this.parseDerivationPath(derivationPath);
     this.depth = pathParts.length - 1;
-    this.index = pathParts[pathParts.length - 1]!;
+    this.index = pathParts[pathParts.length - 1] || 0;
     
     // Derive keys
     const derived = this.deriveKeys(seed, pathParts);
@@ -194,7 +196,7 @@ export class SLIP0010HDWallet {
     privateKey: Uint8Array;
     chainCode: Uint8Array;
   } {
-    const hmacKey = new TextEncoder().encode(SLIP0010_SEED_KEY);
+    const hmacKey = Buffer.from(SLIP0010_SEED_KEY, 'utf-8');
     const hmacResult = hmac(sha512, hmacKey, seed);
     
     return {
@@ -302,7 +304,7 @@ export class SLIP0010HDWallet {
   /**
    * Get fingerprint
    */
-  getFingerprint(keyType: KeyType): string {
+  getFingerprint(_keyType: KeyType): string {
     const hash = sha256(this.publicKey);
     return ByteUtils.toHex(hash.slice(0, 4));
   }

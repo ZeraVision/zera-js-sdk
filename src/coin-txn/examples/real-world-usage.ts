@@ -8,14 +8,14 @@
  * Memo's optional. Base memo more typically used. Transfer memo for multi-output if required.
  */
 
-import { createCoinTXN, sendCoinTXN } from '../index.js';
+import { TESTING_GRPC_CONFIG } from '../../shared/utils/testing-defaults/index.js';
 import {
   ED25519_TEST_KEYS,
   ED448_TEST_KEYS,
   TEST_WALLET_ADDRESSES
 } from '../../test-utils/index.js';
-import type { CoinTXNInput, CoinTXNOutput, FeeConfig} from '../../types/index.js';
-import { TESTING_GRPC_CONFIG } from '../../shared/utils/testing-defaults/index.js';
+import type { CoinTXNInput, CoinTXNOutput, FeeConfig } from '../../types/index.js';
+import { createCoinTXN, sendCoinTXN } from '../index.js';
 
 /**
  * Example 1: Simple Transfer
@@ -32,12 +32,12 @@ export async function exampleSimpleTransfer(): Promise<void> {
   const startTime = Date.now();
   
   // In a real application, you would pull this data from your storage
-  var aliceWallet = ED25519_TEST_KEYS.alice;
+  const aliceWallet = ED25519_TEST_KEYS.alice;
   //aliceWallet = ED448_TEST_KEYS.alice;
   const bobAddress = TEST_WALLET_ADDRESSES.bob;
   
   console.log('📋 Wallet data pulled from data source:');
-  console.log('  Alice private key:', aliceWallet.privateKey.substring(0, 20) + '...');
+  console.log('  Alice private key:', `${aliceWallet.privateKey.substring(0, 20)}...`);
   console.log('  Alice public key:', aliceWallet.publicKey);
   console.log('  Bob address:', bobAddress);
   
@@ -62,7 +62,7 @@ export async function exampleSimpleTransfer(): Promise<void> {
   
   // This can be left empty to default to ZERA, shown for example
   const feeConfig: FeeConfig = {
-    baseFeeId: '$ZRA+0000',
+    baseFeeId: '$ZRA+0000'
     // overestimatePercent: 2.5 // default 5% if not specified
   };
   
@@ -87,7 +87,7 @@ export async function exampleSimpleTransfer(): Promise<void> {
     const totalTime = endTime - startTime;
     console.log(`⏱️  End-to-end time: ${totalTime}ms`);
 
-    console.log(`Done Example`);
+    console.log('Done Example');
     
   } catch (error) {
     // Calculate and display time even on failure
@@ -156,7 +156,7 @@ export async function exampleMultiInputTransfer(): Promise<void> {
   
   // This can be left empty to default to ZERA, shown for example
   const feeConfig: FeeConfig = {
-    baseFeeId: '$ZRA+0000',
+    baseFeeId: '$ZRA+0000'
     
   };
   
@@ -229,7 +229,7 @@ export async function exampleMultiOutputTransfer(): Promise<void> {
   
   // This can be left empty to default to ZERA, shown for example
   const feeConfig: FeeConfig = {
-    baseFeeId: '$ZRA+0000',
+    baseFeeId: '$ZRA+0000'
     
   };
   
@@ -407,7 +407,7 @@ export async function exampleErrorHandling(): Promise<void> {
     ];
     
     // This can be left empty to default to ZERA, shown for example
-  const feeConfig: FeeConfig = {
+    const feeConfig: FeeConfig = {
       baseFeeId: '$ZRA+0000',
       baseFee: '0.001',
       contractFeeId: '$ZRA+0000',

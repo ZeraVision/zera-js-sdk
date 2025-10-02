@@ -5,12 +5,6 @@
  * with consistent error handling and type safety.
  */
 
-import { Decimal } from '../utils/amount-utils.js';
-import { 
-  createValidationError,
-  createErrorContext,
-  ErrorHandler
-} from './error-handler.js';
 import type { 
   AmountInput, 
   ContractId, 
@@ -19,6 +13,12 @@ import type {
   KeyType,
   HashType
 } from '../../types/index.js';
+import { Decimal } from '../utils/amount-utils.js';
+
+import { 
+  createValidationError,
+  createErrorContext
+} from './error-handler.js';
 
 /**
  * Validation result interface
@@ -115,7 +115,7 @@ export class InputValidator {
     
     return {
       isValid: true,
-      value: contractId as ContractId,
+      value: contractId,
       details: options.details
     };
   }
@@ -357,7 +357,7 @@ export class InputValidator {
     
     return {
       isValid: true,
-      value: address as Base58Address,
+      value: address,
       details: options.details
     };
   }
@@ -425,7 +425,7 @@ export class InputValidator {
     
     return {
       isValid: true,
-      value: key as Base58Key,
+      value: key,
       details: options.details
     };
   }

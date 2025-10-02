@@ -1,5 +1,5 @@
-import type { Reporter, File, Task, TaskResultPack, TaskEventPack } from 'vitest';
 import chalk from 'chalk';
+import type { Reporter, File, _Task, TaskResultPack, TaskEventPack } from 'vitest';
 
 class ZeraTestReporter implements Reporter {
   private startTime: number = 0;
@@ -15,7 +15,7 @@ class ZeraTestReporter implements Reporter {
     this.showModuleBreakdowns(files);
   }
 
-  onTaskUpdate(packs: TaskResultPack[], events: TaskEventPack[]) {
+  onTaskUpdate(packs: TaskResultPack[], _events: TaskEventPack[]) {
     // Track test results as they happen
     packs.forEach(task => {
       if (task.type === 'test' && task.result) {
@@ -112,7 +112,7 @@ class ZeraTestReporter implements Reporter {
     console.log(chalk.gray('='.repeat(80)));
   }
 
-  private showModuleBreakdowns(files: File[]) {
+  private showModuleBreakdowns(_files: File[]) {
     const duration = Date.now() - this.startTime;
     let totalPassed = 0;
     let totalFailed = 0;
@@ -166,7 +166,7 @@ class ZeraTestReporter implements Reporter {
     console.log(chalk.gray('='.repeat(80)));
   }
 
-  private showModuleInsights(moduleName: string, stats: { passed: number; failed: number; skipped: number; duration: number }) {
+  private showModuleInsights(moduleName: string, _stats: { passed: number; failed: number; skipped: number; duration: number }) {
     const insights = {
       'wallet-creation': [
         '🔑 HD wallet derivation',

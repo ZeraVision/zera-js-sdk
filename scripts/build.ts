@@ -14,8 +14,8 @@
 import { execSync } from 'child_process';
 import { existsSync, rmSync, mkdirSync, cpSync } from 'fs';
 import { join } from 'path';
-import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -60,6 +60,18 @@ function cleanDist(): void {
   
   mkdirSync(distPath, { recursive: true });
   log('✅ Dist directory cleaned', colors.green);
+}
+
+function lintCode(): void {
+  log('🔍 Running ESLint...', colors.blue);
+  try {
+    exec('npm run lint:check');
+    log('✅ Linting passed', colors.green);
+  } catch (error) {
+    log('❌ Linting failed!', colors.red);
+    log('Run "npm run lint:fix" to automatically fix some issues', colors.yellow);
+    throw error;
+  }
 }
 
 function typeCheck(): void {
@@ -177,11 +189,11 @@ function validateBuild(): void {
 function showBuildInfo(): void {
   log('\n📊 Build Information:', colors.cyan);
   log(`  • Output directory: ${join(projectRoot, 'dist')}`, colors.reset);
-  log(`  • Main entry: dist/index.js`, colors.reset);
-  log(`  • ESM entry: dist/index.mjs`, colors.reset);
-  log(`  • Type definitions: dist/index.d.ts`, colors.reset);
-  log(`  • Source maps: Generated`, colors.reset);
-  log(`  • Declaration maps: Generated`, colors.reset);
+  log('  • Main entry: dist/index.js', colors.reset);
+  log('  • ESM entry: dist/index.mjs', colors.reset);
+  log('  • Type definitions: dist/index.d.ts', colors.reset);
+  log('  • Source maps: Generated', colors.reset);
+  log('  • Declaration maps: Generated', colors.reset);
 }
 
 async function build(): Promise<void> {
@@ -193,6 +205,7 @@ async function build(): Promise<void> {
   try {
     cleanDist();
     buildProtobuf();
+    lintCode();
     typeCheck();
     compileTypeScript();
     generateESM();
@@ -223,44 +236,47 @@ const args = process.argv.slice(2);
 const command = args[0];
 
 switch (command) {
-  case 'clean':
-    cleanDist();
-    break;
-  case 'type-check':
-    typeCheck();
-    break;
-  case 'compile':
-    compileTypeScript();
-    break;
-  case 'esm':
-    generateESM();
-    break;
-  case 'validate':
-    validateBuild();
-    break;
-  case 'help':
-  case '--help':
-  case '-h':
-    log('ZERA JS SDK TypeScript Build Script', colors.bright);
-    log('', colors.reset);
-    log('Usage: npm run build [command]', colors.reset);
-    log('', colors.reset);
-    log('Commands:', colors.reset);
-    log('  (no command)  - Full build process', colors.reset);
-    log('  clean         - Clean dist directory', colors.reset);
-    log('  type-check    - Run TypeScript type checking only', colors.reset);
-    log('  compile       - Compile TypeScript to JavaScript only', colors.reset);
-    log('  esm           - Generate ESM modules only', colors.reset);
-    log('  validate      - Validate build output only', colors.reset);
-    log('  help          - Show this help message', colors.reset);
-    break;
-  default:
-    if (command) {
-      log(`Unknown command: ${command}`, colors.red);
-      log('Run "npm run build help" for available commands', colors.yellow);
-      process.exit(1);
-    } else {
-      await build();
-    }
-    break;
+case 'clean':
+  cleanDist();
+  break;
+case 'lint':
+  lintCode();
+  break;
+case 'type-check':
+  typeCheck();
+  break;
+case 'compile':
+  compileTypeScript();
+  break;
+case 'esm':
+  generateESM();
+  break;
+case 'validate':
+  validateBuild();
+  break;
+case 'help':
+case '--help':
+case '-h':
+  log('ZERA JS SDK TypeScript Build Script', colors.bright);
+  log('', colors.reset);
+  log('Usage: npm run build [command]', colors.reset);
+  log('', colors.reset);
+  log('Commands:', colors.reset);
+  log('  (no command)  - Full build process', colors.reset);
+  log('  clean         - Clean dist directory', colors.reset);
+  log('  type-check    - Run TypeScript type checking only', colors.reset);
+  log('  compile       - Compile TypeScript to JavaScript only', colors.reset);
+  log('  esm           - Generate ESM modules only', colors.reset);
+  log('  validate      - Validate build output only', colors.reset);
+  log('  help          - Show this help message', colors.reset);
+  break;
+default:
+  if (command) {
+    log(`Unknown command: ${command}`, colors.red);
+    log('Run "npm run build help" for available commands', colors.yellow);
+    process.exit(1);
+  } else {
+    await build();
+  }
+  break;
 }

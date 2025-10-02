@@ -26,7 +26,7 @@ async function getAllTokenFeeInfoExample() {
       console.log(`  Authorized: ${info.authorized}`);
       console.log(`  Denomination: ${info.denomination}`);
       if (info.contractFees) {
-        console.log(`  Contract Fees:`);
+        console.log('  Contract Fees:');
         console.log(`    Fee: ${info.contractFees.fee}`);
         console.log(`    Burn: ${info.contractFees.burn}`);
         console.log(`    Validator: ${info.contractFees.validator}`);

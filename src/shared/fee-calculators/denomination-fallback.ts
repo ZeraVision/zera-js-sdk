@@ -12,7 +12,7 @@ import type { ContractId } from '../../types/index.js';
  * Value: Denomination string (e.g., '1000000000' for 1e9)
  */
 export const DENOMINATION_FALLBACKS: Record<ContractId, string> = {
-  '$ZRA+0000': '1000000000',  // 1e9 (9 decimal places)
+  '$ZRA+0000': '1000000000'  // 1e9 (9 decimal places)
 } as const;
 
 /**
@@ -61,7 +61,7 @@ export function addDenominationFallback(contractId: ContractId, denomination: st
     throw new Error('Denomination must be a valid number string');
   }
   
-  (DENOMINATION_FALLBACKS as Record<string, string>)[contractId] = denomination;
+  (DENOMINATION_FALLBACKS)[contractId] = denomination;
 }
 
 /**
@@ -69,7 +69,7 @@ export function addDenominationFallback(contractId: ContractId, denomination: st
  * @returns Array of contract IDs
  */
 export function getSupportedContractIds(): ContractId[] {
-  return Object.keys(DENOMINATION_FALLBACKS) as ContractId[];
+  return Object.keys(DENOMINATION_FALLBACKS);
 }
 
 /**

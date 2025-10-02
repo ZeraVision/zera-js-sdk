@@ -6,6 +6,7 @@
  */
 
 import { CONTRACT_FEE_TYPE } from '../protobuf/index.js';
+
 import type { ContractFeeConfig } from './types.js';
 
 /**

@@ -9,6 +9,22 @@
 
 import { Decimal } from 'decimal.js';
 
+import {
+  HASH_TYPE,
+  KEY_TYPE,
+  VALID_HASH_TYPES,
+  VALID_KEY_TYPES,
+  isValidHashType,
+  isValidKeyType,
+  type HashType,
+  type KeyType
+} from '../shared/crypto/constants.js';
+import {
+  MNEMONIC_LENGTHS,
+  isValidMnemonicLength,
+  type MnemonicLength
+} from '../wallet-creation/constants.js';
+
 // Simple error types
 export class ZeraError extends Error {
   constructor(
@@ -146,26 +162,6 @@ export function withContext<T, E extends Error>(
 // ENUMS AND CONSTANTS
 // ============================================================================
 
-// Import types and constants from shared crypto module
-import type {
-  KeyType,
-  HashType
-} from '../shared/crypto/constants.js';
-
-import type {
-  MnemonicLength
-} from '../wallet-creation/constants.js';
-
-import {
-  KEY_TYPE,
-  HASH_TYPE,
-  VALID_KEY_TYPES,
-  VALID_HASH_TYPES
-} from '../shared/crypto/constants.js';
-
-import {
-  MNEMONIC_LENGTHS
-} from '../wallet-creation/constants.js';
 
 // Re-export for external use
 export type { KeyType, HashType, MnemonicLength };
@@ -328,7 +324,7 @@ export interface GRPCConfig {
   /** Protocol to use (default: 'http') */
   protocol?: 'http' | 'https';
   /** Additional Node.js options for the transport */
-  nodeOptions?: Record<string, any>;
+  nodeOptions?: Record<string, unknown>;
   /** Connection timeout in milliseconds (default: 30000) */
   timeout?: number;
   /** Maximum retry attempts (default: 3) */
@@ -379,7 +375,7 @@ export interface GRPCClientOptions {
  */
 export interface GRPCClient {
   /** The gRPC client instance */
-  client: any;
+  client: unknown;
   /** Proto definition */
   proto: Record<string, unknown>;
   /** Service name */
@@ -401,7 +397,7 @@ export interface WalletCreationErrorInterface extends Error {
   /** Error code */
   code: string;
   /** Additional error details */
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   /** Error timestamp */
   timestamp: string;
 }
@@ -443,18 +439,9 @@ export interface ValidationResult {
   /** Error message if validation failed */
   error?: string;
   /** Additional validation details */
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
-// Import validation functions from shared modules
-import {
-  isValidKeyType,
-  isValidHashType
-} from '../shared/crypto/constants.js';
-
-import {
-  isValidMnemonicLength
-} from '../wallet-creation/constants.js';
 
 // Re-export for external use
 export { isValidKeyType, isValidHashType, isValidMnemonicLength };

@@ -28,33 +28,33 @@ export {
   VARIABLE_TYPE
 };
 
-// Re-export commonly used protobuf schemas
+// Re-export commonly used protobuf classes
 export {
-  CoinTXNSchema as CoinTXN,
-  MintTXNSchema as MintTXN,
-  ItemizedMintTXNSchema as ItemizedMintTXN,
-  InstrumentContractSchema as InstrumentContract,
-  GovernanceVoteSchema as GovernanceVote,
-  GovernanceProposalSchema as GovernanceProposal,
-  SmartContractTXNSchema as SmartContractTXN,
-  SmartContractExecuteTXNSchema as SmartContractExecuteTXN,
-  SmartContractInstantiateTXNSchema as SmartContractInstantiateTXN,
-  SelfCurrencyEquivSchema as SelfCurrencyEquiv,
-  AuthorizedCurrencyEquivSchema as AuthorizedCurrencyEquiv,
-  ExpenseRatioTXNSchema as ExpenseRatioTXN,
-  NFTTXNSchema as NFTTXN,
-  ContractUpdateTXNSchema as ContractUpdateTXN,
-  FoundationTXNSchema as FoundationTXN,
-  DelegatedTXNSchema as DelegatedTXN,
-  QuashTXNSchema as QuashTXN,
-  FastQuorumTXNSchema as FastQuorumTXN,
-  RevokeTXNSchema as RevokeTXN,
-  ComplianceTXNSchema as ComplianceTXN,
-  BurnSBTTXNSchema as BurnSBTTXN,
-  AllowanceTXNSchema as AllowanceTXN,
-  BaseTXNSchema as BaseTXN,
-  TransferAuthenticationSchema as TransferAuthentication,
-  PublicKeySchema as PublicKey
+  CoinTXN,
+  MintTXN,
+  ItemizedMintTXN,
+  InstrumentContract,
+  GovernanceVote,
+  GovernanceProposal,
+  SmartContractTXN,
+  SmartContractExecuteTXN,
+  SmartContractInstantiateTXN,
+  SelfCurrencyEquiv,
+  AuthorizedCurrencyEquiv,
+  ExpenseRatioTXN,
+  NFTTXN,
+  ContractUpdateTXN,
+  FoundationTXN,
+  DelegatedTXN,
+  QuashTXN,
+  FastQuorumTXN,
+  RevokeTXN,
+  ComplianceTXN,
+  BurnSBTTXN,
+  AllowanceTXN,
+  BaseTXN,
+  TransferAuthentication,
+  PublicKey
 } from '../../../proto/generated/txn_pb.js';
 
 // Re-export protobuf utilities

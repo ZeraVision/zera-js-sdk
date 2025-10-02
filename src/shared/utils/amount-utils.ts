@@ -10,8 +10,10 @@
  */
 
 import Decimal from 'decimal.js';
-import { getTokenDecimals } from './token-config.js';
+
 import type { AmountInput, ContractId } from '../../types/index.js';
+
+import { getTokenDecimals } from './token-config.js';
 
 // Configure decimal.js for maximum precision
 Decimal.set({

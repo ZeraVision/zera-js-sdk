@@ -4,6 +4,8 @@
  */
 
 // Import protobuf enums directly
+import Decimal from 'decimal.js';
+
 import { 
   TRANSACTION_TYPE, 
   CONTRACT_FEE_TYPE,
@@ -14,8 +16,8 @@ import {
   PROPOSAL_PERIOD,
   VARIABLE_TYPE
 } from '../../../proto/generated/txn_pb.js';
+
 import { toDecimal } from './amount-utils.js';
-import Decimal from 'decimal.js';
 
 // Re-export for external use
 export { 
@@ -187,7 +189,7 @@ export class TransactionValidator {
     maxFee?: number;
     decimals?: number;
   } = {}): { valid: boolean; error?: string; fee?: number } {
-    const { minFee = 0, maxFee = Number.MAX_SAFE_INTEGER, decimals = 18 } = options;
+    const { minFee = 0, maxFee = Number.MAX_SAFE_INTEGER } = options;
     
     const decimalFee = typeof fee === 'string' ? toDecimal(fee) : new Decimal(fee);
     
@@ -277,14 +279,14 @@ export class TransactionFormatter {
     }
     
     switch (format) {
-      case 'relative':
-        return this.getRelativeTime(date);
-      case 'iso':
-        return date.toISOString();
-      case 'local':
-        return date.toLocaleString(locale);
-      default:
-        return date.toString();
+    case 'relative':
+      return this.getRelativeTime(date);
+    case 'iso':
+      return date.toISOString();
+    case 'local':
+      return date.toLocaleString(locale);
+    default:
+      return date.toString();
     }
   }
 
@@ -420,12 +422,12 @@ export class TransactionSerializer {
     }
     
     switch (format) {
-      case 'json':
-        return JSON.stringify(serializable);
-      case 'base64':
-        return Buffer.from(JSON.stringify(serializable)).toString('base64');
-      default:
-        throw new Error(`Unsupported serialization format: ${format}`);
+    case 'json':
+      return JSON.stringify(serializable);
+    case 'base64':
+      return Buffer.from(JSON.stringify(serializable)).toString('base64');
+    default:
+      throw new Error(`Unsupported serialization format: ${format}`);
     }
   }
 
@@ -443,14 +445,14 @@ export class TransactionSerializer {
     let parsed: unknown;
     
     switch (format) {
-      case 'json':
-        parsed = JSON.parse(data);
-        break;
-      case 'base64':
-        parsed = JSON.parse(Buffer.from(data, 'base64').toString());
-        break;
-      default:
-        throw new Error(`Unsupported deserialization format: ${format}`);
+    case 'json':
+      parsed = JSON.parse(data);
+      break;
+    case 'base64':
+      parsed = JSON.parse(Buffer.from(data, 'base64').toString());
+      break;
+    default:
+      throw new Error(`Unsupported deserialization format: ${format}`);
     }
     
     return parsed as BaseTransaction;

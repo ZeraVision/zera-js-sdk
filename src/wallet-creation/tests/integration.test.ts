@@ -6,14 +6,14 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { 
-  createWallet, 
-  deriveMultipleWallets, 
-  generateMnemonicPhrase,
-  WalletFactory,
-  KEY_TYPE,
-  HASH_TYPE
-} from '../index.js';
+  getConfig,
+  setEnvironment
+} from '../../shared/config/index.js';
+import { 
+  benchmark
+} from '../../shared/utils/performance-benchmark.js';
 import { 
   validateBase58Address,
   validateBase58Key,
@@ -22,12 +22,13 @@ import {
   validateMnemonic
 } from '../../shared/utils/validation.js';
 import { 
-  benchmark
-} from '../../shared/utils/performance-benchmark.js';
-import { 
-  getConfig,
-  setEnvironment
-} from '../../shared/config/index.js';
+  createWallet, 
+  deriveMultipleWallets, 
+  generateMnemonicPhrase,
+  WalletFactory,
+  KEY_TYPE,
+  HASH_TYPE
+} from '../index.js';
 
 describe('Wallet Creation Integration Tests', () => {
   beforeEach(() => {

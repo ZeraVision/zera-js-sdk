@@ -3,6 +3,7 @@
 
 // Mock gRPC modules for testing
 import { vi } from 'vitest';
+
 import { NetworkError } from './src/types/index.js';
 
 // Mock the entire gRPC client creation

@@ -5,12 +5,12 @@
  * Minimal wrapper around the generic gRPC client.
  */
 
-import { createGenericGRPCClient, makeGRPCCall } from '../generic-grpc-client.js';
 import bs58 from 'bs58';
-import { create } from '@bufbuild/protobuf';
-import type { GRPCConfig, GRPCClient } from '../../types/index.js';
+
 import type { TokenFeeInfoResponse, NonceResponse } from '../../../proto/generated/api_pb.js';
-import { NonceRequestSchema, TokenFeeInfoRequestSchema } from '../../../proto/generated/api_pb.js';
+import { NonceRequest, TokenFeeInfoRequest } from '../../../proto/generated/api_pb.js';
+import type { GRPCConfig, GRPCClient } from '../../types/index.js';
+import { createGenericGRPCClient, makeGRPCCall } from '../generic-grpc-client.js';
 
 /**
  * Validator API client interface
@@ -31,7 +31,7 @@ export interface ValidatorAPIClient extends GRPCClient {
  * Validator API Client Class
  */
 class ValidatorAPIClientImpl implements ValidatorAPIClient {
-  public client: any;
+  public client: unknown;
   public proto: Record<string, unknown>;
   public host: string;
   public port: number;
@@ -57,21 +57,21 @@ class ValidatorAPIClientImpl implements ValidatorAPIClient {
    * Get nonce for an address
    */
   async getNonce(address: string): Promise<NonceResponse> {
-    const request = create(NonceRequestSchema, {
-      walletAddress: bs58.decode(address), // Convert base58 to bytes
+    const request = new NonceRequest({
+      walletAddress: new Uint8Array(bs58.decode(address)), // Convert base58 to bytes
       encoded: false // Decode on local side for marginally faster processing
     });
-    return await makeGRPCCall(this.client, 'Nonce', request);
+    return makeGRPCCall(this.client as Record<string, unknown>, 'Nonce', request);
   }
 
   /**
    * Get comprehensive token fee information
    */
   async getTokenFeeInfo(request: { contractIds: string[] }): Promise<TokenFeeInfoResponse> {
-    const protoRequest = create(TokenFeeInfoRequestSchema, {
+    const protoRequest = new TokenFeeInfoRequest({
       contractIds: request.contractIds
     });
-    return await makeGRPCCall(this.client, 'GetTokenFeeInfo', protoRequest);
+    return makeGRPCCall(this.client as Record<string, unknown>, 'GetTokenFeeInfo', protoRequest);
   }
 }
 

@@ -1,6 +1,6 @@
+import chalk from 'chalk';
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { describe, it, expect } from 'vitest';
-import chalk from 'chalk';
 
 // Re-export vitest functions for convenience
 export { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach };
@@ -154,7 +154,7 @@ export class TestSuite {
     });
   }
   
-  private showModuleInsights(moduleName: string, stats: { passed: number; failed: number; skipped: number; duration: number; tests: string[] }): void {
+  private showModuleInsights(moduleName: string, _stats: { passed: number; failed: number; skipped: number; duration: number; tests: string[] }): void {
     const insights = {
       'wallet-creation': [
         '🔑 HD wallet derivation',
@@ -328,11 +328,11 @@ export const TestData = {
     return Array.from({ length }, generator);
   },
   
-  generateTestWallet(): any {
+  generateTestWallet(): Record<string, string> {
     return {
-      address: 'test-address-' + this.generateRandomString(8),
-      privateKey: 'test-private-key-' + this.generateRandomString(16),
-      publicKey: 'test-public-key-' + this.generateRandomString(16),
+      address: `test-address-${this.generateRandomString(8)}`,
+      privateKey: `test-private-key-${this.generateRandomString(16)}`,
+      publicKey: `test-public-key-${this.generateRandomString(16)}`,
       type: 'test'
     };
   }
@@ -340,12 +340,13 @@ export const TestData = {
 
 // Assertion helpers
 export const Assert = {
-  isWallet(wallet: any): void {
+  isWallet(wallet: unknown): void {
     expect(wallet).toBeDefined();
-    expect(wallet.address).toBeDefined();
-    expect(wallet.privateKey).toBeDefined();
-    expect(wallet.publicKey).toBeDefined();
-    expect(wallet.type).toBeDefined();
+    const walletObj = wallet as Record<string, unknown>;
+    expect(walletObj.address).toBeDefined();
+    expect(walletObj.privateKey).toBeDefined();
+    expect(walletObj.publicKey).toBeDefined();
+    expect(walletObj.type).toBeDefined();
   },
   
   isValidAddress(address: string): void {
@@ -395,7 +396,7 @@ export const Performance = {
 
 // Mock utilities
 export const Mock = {
-  createMockWallet(overrides: Partial<any> = {}): any {
+  createMockWallet(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
     return {
       address: 'mock-address-123',
       privateKey: 'mock-private-key-456',
@@ -408,7 +409,7 @@ export const Mock = {
     };
   },
   
-  createMockTransaction(overrides: Partial<any> = {}): any {
+  createMockTransaction(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
     return {
       id: 'mock-tx-123',
       from: 'mock-from-address',
