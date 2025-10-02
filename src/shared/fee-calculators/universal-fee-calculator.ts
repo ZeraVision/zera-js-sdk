@@ -50,7 +50,6 @@ import {
   addAmounts, 
   Decimal 
 } from '../utils/amount-utils.js';
-// import { sanitizeForSerialization } from '../utils/protobuf-utils.js'; // Not used anymore
 
 import { 
   HASH_SIZE, 

@@ -68,7 +68,7 @@ export async function exampleSimpleTransfer(): Promise<void> {
   
   try {
     console.log('🔨 Creating transaction...');
-    const coinTxn = await createCoinTXN(input, output, '$ZRA+0000', feeConfig, '', TESTING_GRPC_CONFIG);
+    const coinTxn = await createCoinTXN(input, output, '$TESTFEE+0000', feeConfig, '', TESTING_GRPC_CONFIG);
     
     console.log('✅ Transaction created successfully!');
     console.log('  Transaction ID:', coinTxn.base?.hash ? 'Generated' : 'Not generated');

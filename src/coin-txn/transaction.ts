@@ -350,6 +350,8 @@ export async function createCoinTXN(
     overestimatePercent = 5.0
   } = feeConfig;
 
+  //TODO get required token info (denomination, etc)
+
   // Step 1: Process inputs (includes nonce generation)
   const { publicKeys, inputTransfers, nonces, allowanceAddresses, allowanceNonces } = await processInputs(inputs, contractId, grpcConfig);
 
