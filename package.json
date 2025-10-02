@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build": "node scripts/build.ts",
+    "build:lint": "node scripts/build.ts lint",
     "build:esm": "node scripts/build.ts esm",
     "build:watch": "tsc --watch",
     "dev": "npx tsx --watch src/api/validator/fee-info/examples/fee-info-examples.ts",
@@ -57,6 +58,7 @@
     "lint": "eslint . --ext .ts,.js,.mjs",
     "lint:fix": "eslint . --ext .ts,.js,.mjs --fix",
     "lint:check": "eslint . --ext .ts,.js,.mjs --max-warnings 0",
+    "lint:fix-and-check": "npm run lint:fix && npm run lint:check",
     "lint:src": "eslint src --ext .ts,.js,.mjs",
     "lint:src:fix": "eslint src --ext .ts,.js,.mjs --fix",
     "lint:scripts": "eslint scripts --ext .ts,.js,.mjs",

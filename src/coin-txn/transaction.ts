@@ -53,8 +53,10 @@ import { createTransactionClient } from '../grpc/transaction/transaction-client.
 import { getPublicKeyBytes, generateAddressFromPublicKey } from '../shared/crypto/address-utils.js';
 import { signTransactionData, createTransactionHash } from '../shared/crypto/signature-utils.js';
 import { UniversalFeeCalculator, type FeeCalculationOptions } from '../shared/fee-calculators/universal-fee-calculator.js';
-import { toSmallestUnits, validateAmountBalance, Decimal, toDecimal } from '../shared/utils/amount-utils.js';
+import { validateExactAmountBalance, Decimal, toDecimal } from '../shared/utils/amount-utils.js';
 import { TESTING_GRPC_CONFIG } from '../shared/utils/testing-defaults/index.js';
+import { getTokenInfo, type TokenInfo } from '../shared/utils/token-info.js';
+import { toSmallestUnits } from '../shared/utils/unified-amount-conversion.js';
 import type { 
   CoinTXNInput, 
   CoinTXNOutput, 
@@ -63,6 +65,7 @@ import type {
   ContractId, 
   AmountInput 
 } from '../types/index.js';
+
 
 /**
  * Validates contract ID format according to ZERA Network standards.
@@ -96,6 +99,7 @@ export function validateContractId(contractId: ContractId): boolean {
 async function processInputs(
   inputs: CoinTXNInput[], 
   contractID: ContractId, 
+  tokenInfoMap: Map<string, TokenInfo>,
   grpcConfig: GRPCConfig = {}
 ): Promise<{
   publicKeys: PublicKey[];
@@ -166,13 +170,26 @@ async function processInputs(
       throw new Error(`Input ${i} is missing publicKey`);
     } 
 
-    // Allowance authorizor does not have an input
+    // For allowance transactions, skip inputs with public keys since they're just authorizers
     if (isAllowance && input.publicKey) {
       continue;
     }
     
     // Create input transfer
-    const finalAmount = toSmallestUnits(input.amount, contractID);
+    const inputTokenInfo = tokenInfoMap.get(contractID);
+    
+    // Check for undefined amount for allowance transactions
+    if (!input.amount && input.allowanceAddress) {
+      throw new Error(`Allowance input at index ${i} must specify an amount`);
+    }
+    if (!input.amount) {
+      throw new Error(`Input at index ${i} must specify an amount`);
+    }
+    
+    const finalAmount = toSmallestUnits(input.amount, contractID, inputTokenInfo?.denomination 
+      ? { denomination: inputTokenInfo.denomination }
+      : {}
+    );
     const feePercent = input.feePercent !== undefined ? input.feePercent : '100';
     const scaledFeePercent = new Decimal(feePercent).mul(1000000).toFixed(0);
     
@@ -203,9 +220,17 @@ async function processInputs(
 /**
  * Process outputs
  */
-function processOutputs(outputs: CoinTXNOutput[], contractId: ContractId): OutputTransfers[] {
+function processOutputs(
+  outputs: CoinTXNOutput[], 
+  tokenInfoMap: Map<string, TokenInfo>,
+  contractId: ContractId
+): OutputTransfers[] {
   return outputs.map(output => {
-    const finalAmount = toSmallestUnits(output.amount, contractId);
+    const outputTokenInfo = tokenInfoMap.get(contractId);
+    const finalAmount = toSmallestUnits(output.amount, contractId, outputTokenInfo?.denomination 
+      ? { denomination: outputTokenInfo.denomination }
+      : {}
+    );
     const data: Partial<OutputTransfers> = {
       walletAddress: new Uint8Array(bs58.decode(output.to))
     };
@@ -350,10 +375,11 @@ export async function createCoinTXN(
     overestimatePercent = 5.0
   } = feeConfig;
 
-  //TODO get required token info (denomination, etc)
+  // Get all required token info in a single optimized call
+  const tokenInfoMap = await getTokenInfo(contractId, [contractFeeId, interfaceFeeId, baseFeeId].filter((id): id is string => Boolean(id)));
 
   // Step 1: Process inputs (includes nonce generation)
-  const { publicKeys, inputTransfers, nonces, allowanceAddresses, allowanceNonces } = await processInputs(inputs, contractId, grpcConfig);
+  const { publicKeys, inputTransfers, nonces, allowanceAddresses, allowanceNonces } = await processInputs(inputs, contractId, tokenInfoMap, grpcConfig);
 
   // Used for signatures at bottom, accounts for allowance inputs (filtered to exclude allowance-based inputs)
   const signersArray = JSON.parse(JSON.stringify(inputs)).filter((input: CoinTXNInput) => !input.allowanceAddress);
@@ -365,12 +391,24 @@ export async function createCoinTXN(
   }
 
   // Step 2: Process outputs
-  const outputTransfers = processOutputs(outputs, contractId);
+  const outputTransfers = processOutputs(outputs, tokenInfoMap, contractId);
 
   // Step 3: Validate balance
-  const inputAmounts = inputs.map(i => toSmallestUnits(i.amount, contractId));
-  const outputAmounts = outputs.map(o => toSmallestUnits(o.amount, contractId));
-  validateAmountBalance(inputAmounts, outputAmounts);
+  const mainTokenInfo = tokenInfoMap.get(contractId);
+  const inputAmounts = inputs.map(i => {
+    if (!i.amount) {
+      throw new Error(`Input at index ${inputs.indexOf(i)} must have a defined amount`);
+    }
+    return toSmallestUnits(i.amount, contractId, mainTokenInfo?.denomination 
+      ? { denomination: mainTokenInfo.denomination }
+      : {}
+    );
+  });
+  const outputAmounts = outputs.map(o => toSmallestUnits(o.amount, contractId, mainTokenInfo?.denomination 
+    ? { denomination: mainTokenInfo.denomination }
+    : {}
+  ));
+  validateExactAmountBalance(inputAmounts, outputAmounts);
 
   // Step 4: Validate fee percentages
   const totalFeePercent = inputTransfers.reduce((sum, t) => new Decimal(sum).add(t.feePercent), new Decimal(0));
@@ -402,7 +440,6 @@ export async function createCoinTXN(
     // Only include contract fee fields if there's actually a contract fee
     if (finalContractFee !== undefined && finalContractFee !== null && contractFeeId) {
       tempCoinTxnData.contractFeeId = contractFeeId;
-      tempCoinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId, true);
     }
 
     const tempCoinTxn = new CoinTXN(tempCoinTxnData);
@@ -452,11 +489,20 @@ export async function createCoinTXN(
   }
 
   // Step 7: Create final base transaction with correct fees
-  const txnBase = createBaseTransaction(baseFeeId, finalBaseFee, baseMemo);
+  const baseFeeTokenInfo = tokenInfoMap.get(baseFeeId);
+  const scaledBaseFee = toSmallestUnits(finalBaseFee, baseFeeId, baseFeeTokenInfo?.denomination 
+    ? { denomination: baseFeeTokenInfo.denomination, isBaseFee: true }
+    : { isBaseFee: true }
+  );
+  const txnBase = createBaseTransaction(baseFeeId, scaledBaseFee, baseMemo);
 
   // Add interface fees to base transaction if specified
   if (shouldUseInterfaceFee && interfaceFeeAmount && interfaceFeeId) {
-    txnBase.interfaceFee = toSmallestUnits(interfaceFeeAmount, interfaceFeeId, true);
+    const interfaceTokenInfo = tokenInfoMap.get(interfaceFeeId);
+    txnBase.interfaceFee = toSmallestUnits(interfaceFeeAmount, interfaceFeeId, interfaceTokenInfo?.denomination 
+      ? { denomination: interfaceTokenInfo.denomination, isBaseFee: true }
+      : { isBaseFee: true }
+    );
     txnBase.interfaceFeeId = interfaceFeeId;
     if (interfaceAddress) {
       txnBase.interfaceAddress = bs58.decode(interfaceAddress);
@@ -475,7 +521,11 @@ export async function createCoinTXN(
   // Only include contract fee fields if there's actually a contract fee
   if (finalContractFee !== undefined && finalContractFee !== null && contractFeeId) {
     coinTxnData.contractFeeId = contractFeeId;
-    coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId, true);
+    const feeTokenInfoForFinal = tokenInfoMap.get(contractFeeId);
+    coinTxnData.contractFeeAmount = toSmallestUnits(finalContractFee, contractFeeId, feeTokenInfoForFinal?.denomination 
+      ? { denomination: feeTokenInfoForFinal.denomination, isBaseFee: true }
+      : { isBaseFee: true }
+    );
   }
 
   const coinTxn = new CoinTXN(coinTxnData);

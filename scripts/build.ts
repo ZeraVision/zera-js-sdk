@@ -63,13 +63,21 @@ function cleanDist(): void {
 }
 
 function lintCode(): void {
-  log('🔍 Running ESLint...', colors.blue);
+  log('🔧 Running ESLint auto-fix...', colors.cyan);
+  try {
+    exec('npm run lint:fix');
+    log('✅ ESLint auto-fix completed', colors.green);
+  } catch (error) {
+    log('⚠️  ESLint auto-fix encountered issues, continuing...', colors.yellow);
+  }
+
+  log('🔍 Running ESLint check...', colors.blue);
   try {
     exec('npm run lint:check');
     log('✅ Linting passed', colors.green);
   } catch (error) {
     log('❌ Linting failed!', colors.red);
-    log('Run "npm run lint:fix" to automatically fix some issues', colors.yellow);
+    log('Please fix remaining linting issues manually', colors.yellow);
     throw error;
   }
 }

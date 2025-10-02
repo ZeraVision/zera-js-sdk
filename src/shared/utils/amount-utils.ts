@@ -207,6 +207,29 @@ export function validateAmountBalance(inputAmounts: AmountInput[], outputAmounts
 }
 
 /**
+ * Validate that input amounts exactly equal output amounts for coin transactions
+ * 
+ * For coin transactions, the sum of input amounts should exactly equal the sum of output amounts.
+ * This is different from regular validation which allows inputs >= outputs.
+ * Fees are handled separately in the base transaction.
+ * 
+ * @param inputAmounts - Array of input amounts
+ * @param outputAmounts - Array of output amounts
+ * @returns true if amounts are exactly equal
+ * @throws Error if amounts are not equal
+ */
+export function validateExactAmountBalance(inputAmounts: AmountInput[], outputAmounts: AmountInput[]): boolean {
+  const totalInputs = addAmounts(...inputAmounts);
+  const totalOutputs = addAmounts(...outputAmounts);
+  
+  if (!totalInputs.equals(totalOutputs)) {
+    throw new Error(`Amount mismatch in coin transaction: inputs (${totalInputs.toString()}) !== outputs (${totalOutputs.toString()}). Difference: ${totalInputs.sub(totalOutputs).toString()}`);
+  }
+  
+  return true;
+}
+
+/**
  * Calculate percentage of an amount
  */
 export function calculatePercentage(amount: AmountInput, percentage: AmountInput): Decimal {

@@ -258,13 +258,13 @@ export interface MultipleWalletOptions extends WalletOptions {
  */
 export interface CoinTXNInput {
   /** Private key in base58 format */
-  privateKey: string;
+  privateKey?: string; // should be specifed if not an allowance
   /** Public key identifier */
-  publicKey: string;
+  publicKey?: string; // should be specifed if not an allowance
   /** Amount to spend (user-friendly format) */
-  amount: AmountInput;
+  amount?: AmountInput; // should be specifed if not an allowance
   /** Fee percentage (default: '100') */
-  feePercent?: string;
+  feePercent?: string; 
   /** Key type (optional, auto-detected if not provided) */
   keyType?: KeyType;
   /** Allowance address (for allowance transactions) */

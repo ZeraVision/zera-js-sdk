@@ -24,7 +24,7 @@ import { createCoinTXN, sendCoinTXN } from '../index.js';
  * This shows how users would construct a transaction by pulling wallet data
  * from their own data sources (database, config files, etc.)
  */
-exampleSimpleTransfer();
+//exampleSimpleTransfer();
 export async function exampleSimpleTransfer(): Promise<void> {
   console.log('💸 Example 1: Simple Transfer');
   
@@ -301,14 +301,14 @@ export async function exampleComplexTransfer(): Promise<void> {
   // This can be left empty to default to ZERA, shown for example
   const feeConfig: FeeConfig = {
     baseFeeId: '$ZRA+0000',
-    baseFee: '0.005', // Higher fee for complex transaction
-    contractFeeId: '$ZRA+0000',
-    contractFee: '0.002'
+    baseFee: '1.234',
+    contractFeeId: '$HELLO+0000',
+    contractFee: '123456789'
   };
   
   try {
     console.log('🔨 Creating complex transaction...');
-    const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', feeConfig, '', TESTING_GRPC_CONFIG);
+    const coinTxn = await createCoinTXN(inputs, outputs, '$HELLO+0000', feeConfig, '', TESTING_GRPC_CONFIG);
     
     console.log('✅ Complex transaction created!');
     console.log('  Inputs:', inputs.length);
@@ -355,10 +355,10 @@ export async function exampleCustomFees(): Promise<void> {
   
   // Custom fee configuration for high-priority transaction
   const customFeeConfig: FeeConfig = {
-    baseFeeId: '$ZRA+0000',
-    baseFee: '0.01', // Higher base fee for priority
-    contractFeeId: '$ZRA+0000',
-    contractFee: '0.005' // Higher contract fee
+    baseFeeId: '$TESTFEES+0000',
+    baseFee: '1.234',
+    contractFeeId: '$TESTFEES+0000',
+    contractFee: '0.005'
   };
   
   try {
@@ -366,7 +366,7 @@ export async function exampleCustomFees(): Promise<void> {
     console.log('  Base fee:', customFeeConfig.baseFee);
     console.log('  Contract fee:', customFeeConfig.contractFee);
     
-    const coinTxn = await createCoinTXN(input, output, '$ZRA+0000', customFeeConfig, '', TESTING_GRPC_CONFIG);
+    const coinTxn = await createCoinTXN(input, output, '$TESTFEES+0000', customFeeConfig, '', TESTING_GRPC_CONFIG);
     
     console.log('✅ Custom fee transaction created!');
     
@@ -376,6 +376,60 @@ export async function exampleCustomFees(): Promise<void> {
     
   } catch (error) {
     console.error('❌ Custom fee transaction failed:', (error as Error).message);
+    throw error;
+  }
+}
+
+/**
+ * Example 5: Allowance Transfer
+ * Demonstrating allowance authorization transfers
+ * 
+ * For allowance transactions to work, the authorizer authorizes someone else 
+ * to spend funds on their behalf.
+ */
+export async function exampleAllowanceTransfer(): Promise<void> {
+  console.log('💸 Example 5: Allowance Transfer');
+  
+  const aliceWallet = ED25519_TEST_KEYS.alice; // Authorizer (signs the transaction)
+  const charlieAddress = TEST_WALLET_ADDRESSES.charlie; // Allowance holder (wants to spend Alice's funds)
+  const bobAddress = TEST_WALLET_ADDRESSES.bob; // Recipient
+  
+  const inputs: CoinTXNInput[] = [
+    // The caller (your wallet) is always index [0]
+    {
+      privateKey: aliceWallet.privateKey,
+      publicKey: aliceWallet.publicKey,
+      feePercent: '100' // [0] MUST always pay 100% of fee in allowance transaction
+    },
+    // [1], [2], ..., can be different addresses that have provided an allowance to [0]
+    {
+      // Allowance input - Alice spending Charlie's funds
+      allowanceAddress: charlieAddress,
+      amount: '2.0'
+    }
+  ];
+  
+  const outputs: CoinTXNOutput[] = [
+    {
+      to: bobAddress,
+      amount: '2.0',
+      memo: 'Allowance transfer triggered by Alice to Bob with Charlies funds'
+    }
+  ];
+  
+  try {    
+    console.log('🔨 Creating allowance transfer...');
+    
+    const coinTxn = await createCoinTXN(inputs, outputs, '$ZRA+0000', {}, 'Allowance authorization', TESTING_GRPC_CONFIG);
+    
+    console.log('✅ Allowance transaction created!');
+    
+    const result = await sendCoinTXN(coinTxn);
+    console.log('🎉 Allowance transaction sent!');
+    console.log('  Result:', result);
+    
+  } catch (error) {
+    console.error('❌ Allowance transaction failed:', (error as Error).message);
     throw error;
   }
 }

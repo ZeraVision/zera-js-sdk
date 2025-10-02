@@ -46,10 +46,10 @@ import {
 } from '../protobuf/index.js';
 import { 
   toDecimal, 
-  toSmallestUnits,
   addAmounts, 
   Decimal 
 } from '../utils/amount-utils.js';
+import { toSmallestUnits } from '../utils/unified-amount-conversion.js';
 
 import { 
   HASH_SIZE, 
@@ -828,7 +828,7 @@ async function calculateNetworkFee(
   const roundedFee = totalNetworkFee.mul(precisionMultiplier).floor().div(precisionMultiplier);
   
   // Convert to smallest units with precise denomination-based precision
-  let feeInSmallestUnits = toSmallestUnits(roundedFee.toString(), baseFeeId, true);
+  let feeInSmallestUnits = toSmallestUnits(roundedFee.toString(), baseFeeId, { isBaseFee: true });
   
   // Calculate the difference in size between placeholder '1' and actual fee
   const placeholderFeeSize = 1; // Size of '1' in bytes
@@ -853,7 +853,7 @@ async function calculateNetworkFee(
     const correctedRoundedFee = correctedTotalNetworkFee.mul(precisionMultiplier).floor().div(precisionMultiplier);
     
     // Update the fee in smallest units with precise denomination-based precision
-    feeInSmallestUnits = toSmallestUnits(correctedRoundedFee.toString(), baseFeeId, true);
+    feeInSmallestUnits = toSmallestUnits(correctedRoundedFee.toString(), baseFeeId, { isBaseFee: true });
     
     // Update transaction size for return value
     transactionSize = correctedTransactionSize;

@@ -52,6 +52,23 @@ export {
   type GRPCConfig
 } from './src/coin-txn/index.js';
 
+// Import shared token utilities
+export {
+  getTokenFeeInfo,
+  getTokenInfo,
+  getTokenInfoForSingle,
+  isTokenSupported,
+  getTokenDenomination,
+  getTokenRate,
+  type TokenFeeInfoResponse,
+  type TokenInfo
+} from './src/shared/utils/token-info.js';
+
+export {
+  toSmallestUnits,
+  fromSmallestUnits
+} from './src/shared/utils/unified-amount-conversion.js';
+
 
 
 

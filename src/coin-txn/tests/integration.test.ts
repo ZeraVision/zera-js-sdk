@@ -50,7 +50,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '100'
       }];
 
@@ -131,7 +131,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '100'
       }];
 
@@ -202,7 +202,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '100'
       }];
 
@@ -239,7 +239,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '100'
       }];
 
@@ -278,7 +278,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '50' // Should be 100% for single input
       }];
 
@@ -302,7 +302,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '100'
       }];
 
@@ -343,7 +343,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '100'
       }];
 
@@ -389,7 +389,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '100'
       }];
 
@@ -463,7 +463,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '100'
       }];
 
@@ -512,7 +512,7 @@ describe('Transaction Integration Tests', () => {
       const inputs: CoinTXNInput[] = [{
         privateKey: ED25519_TEST_KEYS.alice.privateKey,
         publicKey: ED25519_TEST_KEYS.alice.publicKey,
-        amount: '10.5',
+        amount: '10.0',
         feePercent: '100'
       }];
 
